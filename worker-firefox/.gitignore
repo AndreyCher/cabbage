@@ -1,0 +1,6 @@
+.browser-build/
+/camoufox-custom.zip
+/SOURCE_COMMIT
+identities/*
+!identities/.gitkeep
+artifacts/results/*

@@ -1,0 +1,98 @@
+# syntax=docker/dockerfile:1.7
+
+ARG PYTHON_BASE_IMAGE=python:3.12-slim-bookworm
+FROM ${PYTHON_BASE_IMAGE}
+
+ARG FIREFOX_VERSION
+ARG FIREFOX_BUILD
+ARG CAMOUFOX_BROWSER_VERSION
+ARG CAMOUFOX_PRERELEASE=false
+ARG SOURCE_COMMIT_VALUE=unknown
+ARG WORKER_TYPE=firefox
+ARG BROWSER_RUNTIME=camoufox
+
+LABEL worker.type="${WORKER_TYPE}" \
+      browser.runtime="${BROWSER_RUNTIME}" \
+      browser.version="${FIREFOX_VERSION}" \
+      browser.build="${FIREFOX_BUILD}" \
+      browser.runtime_version="${CAMOUFOX_BROWSER_VERSION}" \
+      browser.source_commit="${SOURCE_COMMIT_VALUE}"
+
+ENV PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    DEBIAN_FRONTEND=noninteractive \
+    DISPLAY=:99 \
+    CAMOUFOX_EXECUTABLE_PATH=/opt/camoufox-custom/camoufox-bin
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    xvfb \
+    x11vnc \
+    novnc \
+    websockify \
+    openbox \
+    dbus-x11 \
+    x11-utils \
+    libgtk-3-0 \
+    libdbus-glib-1-2 \
+    libasound2 \
+    libx11-xcb1 \
+    libxcomposite1 \
+    libxcursor1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxi6 \
+    libxrandr2 \
+    libxrender1 \
+    libxss1 \
+    libxt6 \
+    libxtst6 \
+    libnss3 \
+    libnspr4 \
+    libglib2.0-0 \
+    libpango-1.0-0 \
+    libcairo2 \
+    libcups2 \
+    libdrm2 \
+    libgbm1 \
+    ca-certificates \
+    curl \
+    procps \
+    unzip \
+    fonts-dejavu-core \
+    fonts-liberation \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/* /tmp/* /var/tmp/*
+
+WORKDIR /opt/firefox-runtime
+
+COPY requirements.txt /opt/firefox-runtime/requirements.txt
+RUN pip install --no-cache-dir -r /opt/firefox-runtime/requirements.txt \
+    && pip install --no-cache-dir --no-deps playwright-recaptcha==0.5.1 \
+    && pip install --no-cache-dir --no-deps hcaptcha-challenger==0.19.0 \
+    && python -m playwright install ffmpeg \
+    && rm -rf /root/.cache/pip \
+    && find /usr/local/lib/python3.12/site-packages -type d -name '__pycache__' -prune -exec rm -rf '{}' +
+
+# Browser package is produced from source by the first stage of build.sh.
+COPY browser/ /opt/camoufox-custom/
+COPY SOURCE_COMMIT /opt/camoufox-custom/SOURCE_COMMIT
+
+RUN test -x /opt/camoufox-custom/camoufox-bin
+
+# Register the custom browser in Camoufox package-manager metadata.
+RUN set -eux; \
+    cache=/root/.cache/camoufox; \
+    rel="browsers/official/${CAMOUFOX_BROWSER_VERSION}"; \
+    mkdir -p "$cache/browsers/official"; \
+    printf '{"version":"%s","build":"%s","prerelease":%s}\n' \
+      "${FIREFOX_VERSION}" "${FIREFOX_BUILD}" "${CAMOUFOX_PRERELEASE}" \
+      > /opt/camoufox-custom/version.json; \
+    ln -s /opt/camoufox-custom "$cache/$rel"; \
+    printf '%s\n' "{\"active_version\":\"$rel\",\"channel\":\"official/stable\"}" \
+      > "$cache/config.json"; \
+    touch "$cache/.0.5_FLAG"; \
+    test -x "$cache/$rel/camoufox-bin"; \
+    test -f "$cache/$rel/version.json"
+
+WORKDIR /opt/worker-firefox

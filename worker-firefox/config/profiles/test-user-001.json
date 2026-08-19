@@ -1,0 +1,6 @@
+{
+  "identity": "test-user-001",
+  "run": {
+    "scenario": "identity"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "profiles": {
+    "user-001": {
+      "id": "user-001",
+      "login": "example-login",
+      "password": "example-password",
+      "country": "Germany",
+      "country_code": "DE",
+      "birth_day": 14,
+      "birth_month": 8,
+      "birth_year": 1990,
+      "first_name": "Max",
+      "last_name": "Mustermann",
+      "recovery_email": "recovery@example.com",
+      "verification_code": "123456"
+    }
+  }
+}

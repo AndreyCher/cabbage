@@ -1,0 +1,53 @@
+{
+  "name": "identity",
+  "version": 1,
+  "actions": [
+    {
+      "type": "open",
+      "url": "https://browserleaks.com/javascript"
+    },
+    {
+      "type": "wait",
+      "min": 2,
+      "max": 4
+    },
+    {
+      "type": "screenshot",
+      "name": "001-browserleaks-javascript.png",
+      "full_page": true
+    },
+    {
+      "type": "open",
+      "url": "https://browserleaks.com/webgl"
+    },
+    {
+      "type": "wait",
+      "min": 2,
+      "max": 4
+    },
+    {
+      "type": "screenshot",
+      "name": "002-browserleaks-webgl.png",
+      "full_page": true
+    },
+    {
+      "type": "open",
+      "url": "https://www.browserscan.net/"
+    },
+    {
+      "type": "wait",
+      "min": 4,
+      "max": 7
+    },
+    {
+      "type": "screenshot",
+      "name": "003-browserscan.png",
+      "full_page": true
+    },
+    {
+      "type": "wait",
+      "min": 8,
+      "max": 12
+    }
+  ]
+}

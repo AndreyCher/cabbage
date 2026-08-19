@@ -1,0 +1,46 @@
+{
+  "name": "fingerprint-check",
+  "version": 1,
+  "actions": [
+    {
+      "type": "open",
+      "url": "https://fingerprint.com/"
+    },
+    {
+      "type": "wait",
+      "min": 8,
+      "max": 12
+    },
+    {
+      "type": "click",
+      "selector": "button[type='button'][class*='ScoreSection-module--docLink--']",
+      "method": "mouse",
+      "timeout_ms": 15000
+    },
+    {
+      "type": "wait",
+      "min": 8,
+      "max": 12
+    },
+    {
+      "type": "mouse_move",
+      "x": 1400,
+      "y": 500,
+      "duration": 1.2
+    },
+    {
+      "type": "scroll",
+      "delta_y": 600
+    },
+    {
+      "type": "wait",
+      "min": 2,
+      "max": 4
+    },
+    {
+      "type": "screenshot",
+      "name": "fingerprint-score-details.png",
+      "full_page": true
+    }
+  ]
+}

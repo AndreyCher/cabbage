@@ -1,0 +1,30 @@
+{
+  "name": "captcha-test-v2",
+  "version": 1,
+  "actions": [
+    {
+      "type": "open",
+      "url": "https://lessons.zennolab.com/captchas/recaptcha/v2_simple.php?level=low"
+    },
+    {
+      "type": "wait",
+      "min": 2,
+      "max": 4
+    },
+    {
+      "type": "plugin_call",
+      "plugin": "playwright-recaptcha",
+      "method": "solve_v2",
+      "params": {
+        "wait": true,
+        "image_challenge": false
+      },
+      "action_timeout_ms": 120000
+    },
+    {
+      "type": "screenshot",
+      "name": "recaptcha-v2-solved.png",
+      "full_page": true
+    }
+  ]
+}

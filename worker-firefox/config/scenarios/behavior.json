@@ -1,0 +1,128 @@
+{
+  "name": "behavior",
+  "version": 1,
+  "actions": [
+    {
+      "type": "open",
+      "url": "https://en.wikipedia.org/wiki/Web_browser"
+    },
+    {
+      "type": "wait",
+      "min": 2,
+      "max": 5
+    },
+    {
+      "type": "mouse_move_random",
+      "count": 4
+    },
+    {
+      "type": "scroll",
+      "direction": "down",
+      "distance": [
+        400,
+        900
+      ]
+    },
+    {
+      "type": "wait",
+      "min": 1,
+      "max": 3
+    },
+    {
+      "type": "scroll",
+      "direction": "down",
+      "distance": [
+        500,
+        1200
+      ]
+    },
+    {
+      "type": "mouse_move_random",
+      "count": 3
+    },
+    {
+      "type": "screenshot",
+      "name": "001-wikipedia-read.png"
+    },
+    {
+      "type": "click_link_by_index",
+      "selector": "#mw-content-text a[href^='/wiki/']",
+      "index": 3
+    },
+    {
+      "type": "wait",
+      "min": 2,
+      "max": 5
+    },
+    {
+      "type": "scroll",
+      "direction": "down",
+      "distance": [
+        350,
+        800
+      ]
+    },
+    {
+      "type": "screenshot",
+      "name": "002-wikipedia-linked-page.png"
+    },
+    {
+      "type": "go_back"
+    },
+    {
+      "type": "wait",
+      "min": 1,
+      "max": 3
+    },
+    {
+      "type": "new_tab",
+      "url": "https://www.mozilla.org/en-US/firefox/"
+    },
+    {
+      "type": "wait",
+      "min": 2,
+      "max": 5
+    },
+    {
+      "type": "mouse_move_random",
+      "count": 4
+    },
+    {
+      "type": "scroll",
+      "direction": "down",
+      "distance": [
+        400,
+        900
+      ]
+    },
+    {
+      "type": "screenshot",
+      "name": "003-second-tab.png"
+    },
+    {
+      "type": "new_tab",
+      "url": "https://www.youtube.com/"
+    },
+    {
+      "type": "wait",
+      "min": 4,
+      "max": 8
+    },
+    {
+      "type": "mouse_move_random",
+      "count": 3
+    },
+    {
+      "type": "scroll",
+      "direction": "down",
+      "distance": [
+        300,
+        700
+      ]
+    },
+    {
+      "type": "screenshot",
+      "name": "004-youtube.png"
+    }
+  ]
+}

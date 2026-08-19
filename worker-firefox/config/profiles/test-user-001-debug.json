@@ -1,0 +1,19 @@
+{
+  "identity": "test-user-001",
+  "run": {
+    "scenario": "google-search"
+  },
+  "browser": {
+    "mode": "debug"
+  },
+  "recording": {
+    "show_cursor": true
+  },
+  "vm_diagnostics": {
+    "enabled": true
+  },
+  "debug": {
+    "keep_alive": true,
+    "message": "Automation finished. Browser remains open for manual control through noVNC."
+  }
+}

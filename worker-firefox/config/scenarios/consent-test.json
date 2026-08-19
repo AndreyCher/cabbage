@@ -1,0 +1,31 @@
+{
+  "name": "consent-test",
+  "version": 1,
+  "actions": [
+    {
+      "type": "open",
+      "url": "http://consent-test-page/"
+    },
+    {
+      "type": "wait",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "type": "plugin_call",
+      "plugin": "consent-handler",
+      "method": "handle",
+      "params": {
+        "policy": "accept_all",
+        "timeout_ms": 5000,
+        "required": true
+      },
+      "action_timeout_ms": 10000
+    },
+    {
+      "type": "screenshot",
+      "name": "consent-test-after.png",
+      "full_page": true
+    }
+  ]
+}

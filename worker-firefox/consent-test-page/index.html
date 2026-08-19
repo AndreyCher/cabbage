@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Camoufox Consent Test</title>
+<style>
+body { font-family: sans-serif; margin: 40px; }
+#banner { position: fixed; left: 30px; right: 30px; bottom: 30px; padding: 24px; border: 1px solid #999; background: white; }
+.actions { display:flex; gap:12px; margin-top:15px; }
+#state { font-weight: bold; }
+</style>
+</head>
+<body>
+<h1>Consent handler test page</h1>
+<p>State: <span id="state">pending</span></p>
+<div id="banner" data-testid="consent-banner">
+  <p>This test page uses optional cookies.</p>
+  <div class="actions">
+    <button id="reject-test" class="cky-btn-reject">Reject all</button>
+    <button id="accept-test" class="cky-btn-accept">Accept all</button>
+  </div>
+</div>
+<script>
+function finish(value) {
+  document.getElementById('state').textContent=value;
+  document.getElementById('banner').remove();
+  document.body.dataset.consent=value;
+}
+document.getElementById('accept-test').addEventListener('click',()=>finish('accepted'));
+document.getElementById('reject-test').addEventListener('click',()=>finish('rejected'));
+</script>
+</body>
+</html>

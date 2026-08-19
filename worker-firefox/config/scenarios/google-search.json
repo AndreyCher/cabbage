@@ -1,0 +1,41 @@
+{
+  "name": "google-search",
+  "version": 1,
+  "actions": [
+    {
+      "type": "open",
+      "url": "https://google.com"
+    },
+    {
+      "type": "wait",
+      "min": 2,
+      "max": 4
+    },
+    {
+      "type": "wait_input",
+      "key": "search",
+      "timeout_sec": 600,
+      "on_timeout": "fail"
+    },
+    {
+      "type": "type",
+      "selector": "textarea[name='q'], input[name='q']",
+      "text": "{{input.search.query}}"
+    },
+    {
+      "type": "press",
+      "selector": "textarea[name='q'], input[name='q']",
+      "key": "Enter"
+    },
+    {
+      "type": "wait",
+      "min": 3,
+      "max": 5
+    },
+    {
+      "type": "screenshot",
+      "name": "google-search-result.png",
+      "full_page": true
+    }
+  ]
+}

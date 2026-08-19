@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "project": {
+    "name": "cabbage"
+  },
+  "worker": {
+    "type": "firefox"
+  },
+  "paths": {
+    "default_config": "/config/default.json",
+    "profiles_dir": "/config/profiles",
+    "scenarios_dir": "/config/scenarios",
+    "identities_dir": "/identities",
+    "artifacts_dir": "/artifacts/results",
+    "browser_source_commit": "/opt/camoufox-custom/SOURCE_COMMIT"
+  }
+}

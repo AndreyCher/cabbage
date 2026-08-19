@@ -1,0 +1,116 @@
+{
+  "identity": "",
+  "identity_policy": {
+    "allow_proxy_change": false
+  },
+  "run": {
+    "scenario": "identity"
+  },
+  "api": {
+    "enabled": true,
+    "host": "0.0.0.0",
+    "port": 8090
+  },
+  "plugins": {
+    "enabled": true,
+    "items": {
+      "playwright-recaptcha": {
+        "enabled": false,
+        "adapter": "app.plugins.playwright_recaptcha:PlaywrightRecaptchaPlugin",
+        "config": {
+          "default_wait": true,
+          "image_challenge": false
+        }
+      },
+      "hcaptcha-challenger": {
+        "enabled": false,
+        "adapter": "app.plugins.hcaptcha_challenger:HCaptchaChallengerPlugin",
+        "config": {
+          "click_checkbox": true,
+          "disable_bezier_trajectory": true,
+          "debug": false,
+          "backend": "agentv"
+        }
+      },
+      "consent-handler": {
+        "enabled": true,
+        "adapter": "app.plugins.consent_handler:ConsentHandlerPlugin",
+        "config": {
+          "policy": "accept_all",
+          "timeout_ms": 10000,
+          "required": false,
+          "generic_fallback": true
+        }
+      }
+    }
+  },
+  "browser": {
+    "mode": "virtual",
+    "humanize": 1.8,
+    "enable_cache": true,
+    "version": "152.0.4-beta.28",
+    "debug_display": {
+      "size": "identity",
+      "fallback": {
+        "width": 1920,
+        "height": 1080
+      },
+      "depth": 24,
+      "window": "maximized",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "novnc_scaling": "local"
+    }
+  },
+  "recording": {
+    "video": true,
+    "video_size": "default",
+    "show_cursor": false
+  },
+  "fingerprint_diagnostics": {
+    "enabled": true,
+    "save_snapshot": true,
+    "compare_with_baseline": true,
+    "update_baseline": false,
+    "fail_on_change": false
+  },
+  "vm_diagnostics": {
+    "enabled": false,
+    "save_snapshot": true,
+    "compare_with_baseline": true,
+    "update_baseline": false,
+    "keep_history": true,
+    "label": "unknown"
+  },
+  "proxy": {
+    "enabled": false,
+    "proxy_id": "test-proxy-001",
+    "server": "http://proxy.example.com:10000",
+    "username": "proxy-user",
+    "password": "proxy-password",
+    "geoip": {
+      "enabled": true,
+      "validate_identity": true,
+      "fail_on_mismatch": false
+    },
+    "verify_ssl": true
+  },
+  "fingerprint": {
+    "os": "default",
+    "preset": "default",
+    "screen": "default",
+    "locale": "default",
+    "window": "default",
+    "device_pixel_ratio": "default",
+    "hardware_concurrency": "default",
+    "webgl": "default",
+    "languages": "default",
+    "timezone": "default"
+  },
+  "debug": {
+    "keep_alive": false,
+    "message": "Automation finished. Browser remains open for manual control through noVNC."
+  }
+}
