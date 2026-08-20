@@ -51,17 +51,6 @@ services:
       - ./artifacts:/artifacts
     command: ["python", "-m", "app.main"]
 
-  webhook-mock:
-    build:
-      context: ./webhook-mock
-      dockerfile: Dockerfile
-    container_name: worker-webhook-mock
-    profiles: ["webhook-mock"]
-    volumes:
-      - ./webhook-mock/config:/config:ro
-    expose:
-      - "8080"
-
   consent-test-page:
     image: nginx:1.28-alpine
     container_name: worker-consent-test-page

@@ -9,6 +9,13 @@ This is the global release history for all application components. Component cha
 
 ## Component releases
 
+### data-provider 0.1.0
+
+- Promoted the worker-local webhook mock into a standalone, independently versioned data-resolution component.
+- Added a generic backend provider interface and initial mounted JSON provider.
+- Added versioned API endpoints while preserving the previous mock endpoint for compatibility.
+- Detailed history: `data-provider/CHANGELOG.md`.
+
 ### worker-firefox 0.5.22
 
 - Added resilient Camoufox startup readiness retries.

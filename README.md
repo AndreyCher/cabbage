@@ -31,6 +31,16 @@ Standalone source builder for immutable `worker-firefox-base:<browser-version>` 
 
 Planned control-plane component. It will own queues, run state, worker assignment and the external application API. It is not implemented yet; the approved direction is documented in `FUTURE.md` and `FUTURE_BOT.md`.
 
+### data-provider
+
+Current version: **0.1.0**
+
+Standalone data-resolution service used by automated workers. The initial backend reads mounted JSON; its provider interface is intended for Redis, PostgreSQL, secret stores and external APIs.
+
+- Code and component documentation: `data-provider/`
+- Overview: `data-provider/README.md`
+- Detailed component history: `data-provider/CHANGELOG.md`
+
 ## Documentation ownership
 
 - `AGENT.md` — durable agent memory, architecture decisions, release rules and the complete documentation map.
@@ -38,6 +48,7 @@ Planned control-plane component. It will own queues, run state, worker assignmen
 - `FUTURE.md` — concise application roadmap.
 - `FUTURE_BOT.md` — detailed implementation-oriented notes for deferred work.
 - `worker-firefox/*.md` — documentation owned by the Firefox worker module.
+- `data-provider/*.md` — documentation owned by the worker-facing data-resolution component.
 - `tools/firefox-image-builder/*.md` — documentation owned by the base-image builder module.
 
 Each component keeps its detailed release history beside its code. Every component release must also receive a concise entry in the global `CHANGELOG.md`.

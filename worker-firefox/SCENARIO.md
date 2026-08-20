@@ -1,5 +1,7 @@
 # Scenario Guide — v0.5.15
 
+> Component root: `worker-firefox/`. Paths and commands in this document are relative to that directory unless stated otherwise.
+
 This file is the practical reference for writing scenario `actions`. Every currently registered action has a purpose, parameter summary, and copy-ready JSON example. `CONFIG.md` remains the broader configuration reference; `API.md` documents runtime input delivery; `PLUGINS.md` documents adapters.
 
 ## Scenario file shape — v0.5.19
@@ -620,7 +622,7 @@ GET example:
 ```json
 {
   "type": "webhook",
-  "url": "http://webhook-mock:8080/api/profile",
+  "url": "http://data-provider:8080/api/v1/profiles/resolve",
   "method": "GET",
   "timeout_ms": 10000,
   "retries": 1,
@@ -688,7 +690,7 @@ Keep template paths consistent with the actual JSON payload received/stored.
 
 The action engine supports its existing run/debug failure behavior independently of the action-specific parameters documented above. Some integrations also have their own policies, such as `wait_input.on_timeout` and `webhook.on_error`.
 
-A future centralized Playwright error-normalization layer is documented in `FUTURE.md` / `FUTURE_BOT.md`; it is not yet implemented.
+A future centralized Playwright error-normalization layer is documented in `../FUTURE.md` / `../FUTURE_BOT.md`; it is not yet implemented.
 
 # Duplication / API review notes
 

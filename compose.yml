@@ -1,0 +1,15 @@
+include:
+  - path: ./worker-firefox/docker-compose.yml
+
+services:
+  data-provider:
+    build:
+      context: ./data-provider
+      dockerfile: Dockerfile
+    profiles: ["data-provider"]
+    environment:
+      DATA_PROVIDER_FILE_PATH: /config/profiles.json
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ./data-provider/config:/config:ro

@@ -6,7 +6,7 @@
 ```json
 {
   "type": "webhook",
-  "url": "http://webhook-mock:8080/api/profile",
+  "url": "http://data-provider:8080/api/v1/profiles/resolve",
   "method": "POST",
   "json": {"id": "user-001"},
   "save_as": "profile",
@@ -401,7 +401,7 @@ The debug Xvfb desktop defaults to `2560x1600x24` so the persistent Identity win
 - `../CHANGELOG.md` — global release history for all application components.
 - `../tools/firefox-image-builder/README.md` — standalone base-image builder guide.
 - `../tools/firefox-image-builder/CHANGELOG.md` — builder version history.
-- `webhook-mock/README.md` — test webhook mock service guide.
+- `../data-provider/README.md` — standalone worker data-resolution service.
 
 ## Build
 
