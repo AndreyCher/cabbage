@@ -103,7 +103,8 @@ def build_camoufox_kwargs(cfg: dict[str, Any], identity_state: dict[str, Any], r
         kwargs.pop("browser", None)
 
     recording = cfg.get("recording", {})
-    if recording.get("video", False):
+    debug_x11_recording = mode == "debug" and recording.get("debug_backend", "x11") == "x11"
+    if recording.get("video", False) and not debug_x11_recording:
         if not run_dir:
             raise ValueError("run_dir is required when recording.video=true")
         kwargs["record_video_dir"] = f"{run_dir}/videos/.raw"

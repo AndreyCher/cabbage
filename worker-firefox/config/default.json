@@ -48,6 +48,8 @@
     "mode": "virtual",
     "humanize": 1.8,
     "enable_cache": true,
+    "startup_attempts": 3,
+    "startup_retry_delay_sec": 1.0,
     "version": "152.0.4-beta.28",
     "debug_display": {
       "size": "identity",
@@ -67,6 +69,8 @@
   "recording": {
     "video": true,
     "video_size": "default",
+    "debug_backend": "x11",
+    "debug_fps": 15,
     "show_cursor": false
   },
   "fingerprint_diagnostics": {

@@ -1,4 +1,8 @@
 .browser-build/
+.venv/
+.pytest_cache/
+__pycache__/
+*.pyc
 /camoufox-custom.zip
 /SOURCE_COMMIT
 identities/*

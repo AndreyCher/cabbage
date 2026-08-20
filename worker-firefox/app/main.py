@@ -8,11 +8,14 @@ import os
 import signal
 import secrets
 import shutil
+import subprocess
 import sys
 import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+
+from playwright._impl._errors import TargetClosedError
 
 from .actions import ActionEngine
 from .browser import launch
@@ -55,6 +58,101 @@ def dump_json(path: Path, data) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as fh:
         json.dump(data, fh, indent=2, ensure_ascii=False)
+
+
+def start_debug_video_recorder(cfg: dict, run_dir: Path, logger: logging.Logger):
+    recording = cfg.get("recording", {})
+    if not recording.get("video", False):
+        return None
+    if cfg.get("browser", {}).get("mode", "virtual") != "debug":
+        return None
+    if recording.get("debug_backend", "x11") != "x11":
+        return None
+
+    display = os.getenv("DISPLAY")
+    size = os.getenv("WORKER_DEBUG_DISPLAY_SIZE")
+    if not display or not size:
+        raise RuntimeError("X11 debug recording requires DISPLAY and WORKER_DEBUG_DISPLAY_SIZE")
+
+    video_dir = run_dir / "videos"
+    video_dir.mkdir(parents=True, exist_ok=True)
+    target = video_dir / "debug-session.webm"
+    log_path = video_dir / "ffmpeg.log"
+    log_handle = log_path.open("w", encoding="utf-8")
+    command = [
+        "ffmpeg", "-y", "-nostdin", "-loglevel", "warning",
+        "-f", "x11grab", "-framerate", str(int(recording.get("debug_fps", 15))),
+        "-video_size", size, "-i", f"{display}.0",
+        "-an", "-c:v", "libvpx-vp9", "-deadline", "realtime",
+        "-cpu-used", "8", "-pix_fmt", "yuv420p", str(target),
+    ]
+    process = subprocess.Popen(command, stdout=log_handle, stderr=log_handle)
+    logger.info("Debug X11 video recording started: %s (%s at %s fps)", target, size, recording.get("debug_fps", 15))
+    return {"process": process, "target": target, "log_handle": log_handle, "log_path": log_path}
+
+
+def stop_debug_video_recorder(recorder, logger: logging.Logger) -> dict | None:
+    if recorder is None:
+        return None
+    process = recorder["process"]
+    try:
+        if process.poll() is None:
+            process.send_signal(signal.SIGINT)
+            try:
+                process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                logger.warning("Debug video recorder did not stop in 10 seconds; terminating")
+                process.terminate()
+                process.wait(timeout=3)
+    finally:
+        recorder["log_handle"].close()
+
+    target = recorder["target"]
+    if process.returncode not in {0, 255} or not target.is_file() or target.stat().st_size <= 0:
+        raise RuntimeError(
+            f"Debug X11 video recording failed (exit={process.returncode}, log={recorder['log_path']})"
+        )
+    logger.info("Debug X11 video recording saved: %s (%d bytes)", target, target.stat().st_size)
+    return {"video": True, "backend": "x11", "files": [str(target)], "errors": []}
+
+
+def launch_ready_browser(cfg, identity_state, run_dir: Path, logger: logging.Logger):
+    """Launch Camoufox and verify the first page survives startup initialization."""
+    browser_cfg = cfg.get("browser", {})
+    attempts = max(1, int(browser_cfg.get("startup_attempts", 3)))
+    retry_delay = max(0.0, float(browser_cfg.get("startup_retry_delay_sec", 1.0)))
+    last_error = None
+
+    for attempt in range(1, attempts + 1):
+        manager = launch(cfg, identity_state, run_dir=str(run_dir))
+        try:
+            context = manager.__enter__()
+            page = context.pages[0] if context.pages else context.new_page()
+            if page.video is not None:
+                logger.info("Playwright video recorder attached to startup page: %s", page.video is not None)
+            observed_identity = browser_identity(page)
+            if attempt > 1:
+                logger.info("Camoufox startup recovered on attempt %d/%d", attempt, attempts)
+            return manager, context, page, observed_identity, attempt
+        except TargetClosedError as exc:
+            last_error = exc
+            logger.warning(
+                "Camoufox closed during startup readiness check (attempt %d/%d): %s",
+                attempt,
+                attempts,
+                exc,
+            )
+            try:
+                bounded_manager_exit(manager, sys.exc_info(), logger, timeout_sec=4.0)
+            except Exception as cleanup_exc:
+                logger.warning("Failed startup attempt cleanup: %s", cleanup_exc)
+            if attempt < attempts:
+                logger.info("Retrying Camoufox startup in %.1f seconds", retry_delay)
+                time.sleep(retry_delay)
+
+    raise RuntimeError(
+        f"Camoufox failed startup readiness check after {attempts} attempt(s)"
+    ) from last_error
 
 
 def wait_for_interactive_debug(cfg: dict, logger: logging.Logger, runtime: RuntimeContext) -> None:
@@ -262,7 +360,9 @@ def main() -> int:
             "graceful": False,
         },
     }
+    debug_video_recorder = None
     try:
+        debug_video_recorder = start_debug_video_recorder(cfg, run_dir, logger)
         validate_proxy_config(cfg)
         summary["network_preflight"] = network_preflight(cfg)
         dump_json(run_dir / "network.json", summary["network_preflight"])
@@ -343,13 +443,15 @@ def main() -> int:
             "fingerprint_request": identity_state["metadata"].get("fingerprint_request"),
         }
 
-        browser_manager = launch(cfg, identity_state, run_dir=str(run_dir))
-        context = browser_manager.__enter__()
+        browser_manager, context, page, observed_identity, startup_attempt = launch_ready_browser(
+            cfg, identity_state, run_dir, logger
+        )
+        summary["browser_startup"] = {
+            "attempt": startup_attempt,
+            "max_attempts": max(1, int(cfg.get("browser", {}).get("startup_attempts", 3))),
+        }
         engine = None
         try:
-            page = context.pages[0] if context.pages else context.new_page()
-
-            observed_identity = browser_identity(page)
             summary["browser_identity"] = observed_identity
             dump_json(run_dir / "browser-identity.json", observed_identity)
             logger.info("Browser identity: %s", observed_identity)
@@ -478,7 +580,18 @@ def main() -> int:
             summary["recording"] = {"video": False, "files": []}
         else:
             logger.info("Finalizing video artifacts")
-            summary["recording"] = finalize_recorded_videos(run_dir, logger)
+            try:
+                debug_recording = stop_debug_video_recorder(debug_video_recorder, logger)
+            except Exception as recording_exc:
+                logger.error("Debug video finalization failed: %s", recording_exc)
+                summary["recording"] = {
+                    "video": True,
+                    "backend": "x11",
+                    "files": [],
+                    "errors": [str(recording_exc)],
+                }
+            else:
+                summary["recording"] = debug_recording or finalize_recorded_videos(run_dir, logger)
 
         summary["runtime"] = runtime.public_status()
         dump_json(run_dir / "runtime-events.json", runtime.events())

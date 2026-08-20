@@ -1,4 +1,16 @@
-# Changelog
+# Changelog — worker-firefox
+
+> Component root: `worker-firefox/`. Paths and commands in this document are relative to that directory unless stated otherwise.
+
+## 0.5.22
+- Added bounded Camoufox startup readiness retries for transient browser/context closure during addon initialization.
+- Added `browser.startup_attempts` and `browser.startup_retry_delay_sec` configuration defaults.
+- Replaced Playwright page recording in debug mode with full Xvfb display recording through FFmpeg.
+- Added `recording.debug_backend="x11"` and `recording.debug_fps=15` defaults.
+- Debug video is written live to `videos/debug-session.webm` and finalized on graceful SIGINT/SIGTERM shutdown.
+- Preserved Playwright page recording for normal virtual/headless runs.
+- Added `pytest.ini` to restrict test discovery to `tests/` and ignored local Python virtual-environment/cache files.
+- Verified the Docker debug lifecycle, noVNC/API operation, runtime input, VP9 video playback, and all 59 unit tests.
 
 ## 0.5.21-1
 - Documentation-only synchronization with `firefox-image-builder v0.2.0`.
@@ -44,19 +56,19 @@
 
 ## 0.5.18-2
 - Documentation-only review; no intentional runtime changes.
-- Cleaned `FUTURE.md` so it contains only genuinely unimplemented work.
+- Cleaned `../FUTURE.md` so it contains only genuinely unimplemented work.
 - Clarified that the generic plugin framework is already implemented; retained only concrete plugin enhancements/new adapters in the roadmap.
 - Audited the action registry against `SCENARIO.md`: all 19 implemented actions are documented.
 - Audited Control API implementation against `API.md` and added the current endpoint inventory.
 - Audited plugin modules against `PLUGINS.md`, including the internal `echo` test plugin.
-- Updated documentation Definition of Done to keep completed work out of `FUTURE.md`.
+- Updated documentation Definition of Done to keep completed work out of `../FUTURE.md`.
 
 ## 0.5.18-1
 - Documentation-only revision of v0.5.18; no intentional runtime change.
 - Documented the rare intermittent native `page.mouse.move()` stall observed across multiple releases.
 - Added future design for phase-specific `click` timeouts and controlled reasons.
 - Added future cleanup task for interrupted Playwright futures / trailing `TargetClosedError`.
-- Synchronized `FUTURE.md`, `FUTURE_BOT.md`, `MEMORY.md`, README and release notes.
+- Synchronized `../FUTURE.md`, `../FUTURE_BOT.md`, `MEMORY.md`, README and release notes.
 
 ## 0.5.18
 - Fixed `recording.show_cursor` to display the real cursor trajectory instead of only final action coordinates.
@@ -78,7 +90,7 @@
 - Documentation/metadata-only revision of v0.5.16; no intentional runtime behavior change.
 - Added project versioning policy for `-N` documentation revisions.
 - Added future task to eliminate hidden/hardcoded operator-tunable behavioral defaults from Python code.
-- Added detailed migration/audit plan to `FUTURE_BOT.md`.
+- Added detailed migration/audit plan to `../FUTURE_BOT.md`.
 - Updated `MEMORY.md` so both policies survive future handoffs.
 
 ## 0.5.16
@@ -95,7 +107,7 @@
 ## 0.5.15
 - Documentation/architecture synchronization release; no browser-worker runtime behavior changed from v0.5.14.
 - Reviewed all root Markdown documentation against the current implementation and roadmap.
-- Restored the approved future Controller/control-plane architecture to `FUTURE.md`, `FUTURE_BOT.md`, and `MEMORY.md`.
+- Restored the approved future Controller/control-plane architecture to `../FUTURE.md`, `../FUTURE_BOT.md`, and `MEMORY.md`.
 - Documented Docker SDK/Engine based `DockerExecutor`, Executor abstraction, one-run/one-ephemeral-worker lifecycle, internal worker networking, Controller-routed mid-run inputs, external persistence, and deferred Kubernetes direction.
 - Added the future Controller/worker API boundary note to `API.md`.
 
@@ -105,7 +117,7 @@
 - Added precise center-relative `offset` positioning.
 - Added optional `frame_selector` and nested `frames` support for iframe targets.
 - Added regression tests for generic selectors, offsets, and iframe chains.
-- Synchronized `FUTURE.md` / `FUTURE_BOT.md` with the deferred centralized Playwright frame/locator error-normalization task.
+- Synchronized `../FUTURE.md` / `../FUTURE_BOT.md` with the deferred centralized Playwright frame/locator error-normalization task.
 - Updated project documentation and `MEMORY.md`.
 
 ## 0.5.13
@@ -156,7 +168,7 @@
 - Froze the experimental `hcaptcha-challenger` solver direction after successful v0.5.8 live decision testing.
 - Kept `hcaptcha-challenger` disabled by default; retained adapter code/tests for future research.
 - Removed all bundled `hcaptcha-*` scenarios from `config/test.json` and `config/test-debug.json`.
-- Added `FUTURE_BOT.md` for detailed AI/developer continuation context while keeping `FUTURE.md` concise for people.
+- Added `../FUTURE_BOT.md` for detailed AI/developer continuation context while keeping `../FUTURE.md` concise for people.
 - Synchronized README, scenario/functions/plugin/API documentation, roadmap, changelog, and release notes with the freeze decision.
 
 ### hCaptcha decision evidence
@@ -225,8 +237,8 @@
 
 ### Changed
 - Maintenance/roadmap synchronization release based on v0.5.3 runtime.
-- Added hCaptcha-without-Gemini research task to `FUTURE.md`.
-- Added future consent/cookie-banner plugin specification to `FUTURE.md`; no consent plugin is included in this release.
+- Added hCaptcha-without-Gemini research task to `../FUTURE.md`.
+- Added future consent/cookie-banner plugin specification to `../FUTURE.md`; no consent plugin is included in this release.
 - Documented current `hcaptcha-challenger` `GEMINI_API_KEY` / AgentV live-test limitation in `PLUGINS.md`.
 - Kept `pydub SyntaxWarning` cleanup as future work.
 - Updated release notes and version metadata to 0.5.4.
@@ -272,7 +284,7 @@
 - Added the dependency-free `EchoPlugin` as a reference adapter/contract test.
 - Kept optional third-party dependencies out of the core runtime unless an enabled adapter requires them.
 - Added plugin framework tests; full suite: 19 tests.
-- Added `RELEASE_NOTES.md` as a required per-release document and `FUTURE.md` for roadmap items.
+- Added `RELEASE_NOTES.md` as a required per-release document and `../FUTURE.md` for roadmap items.
 - Updated README, FUNCTIONS, SCENARIO, and API documentation.
 
 ## v0.4.33 - 2026-08-13

@@ -1,4 +1,6 @@
-# worker-firefox v0.5.21-1
+# worker-firefox v0.5.22
+
+> Component root: `worker-firefox/`. Paths and commands in this document are relative to that directory unless stated otherwise.
 
 ### Webhook quick example
 ```json
@@ -14,6 +16,14 @@
 }
 ```
 A following action can use `{{webhook.profile.login}}`. See `SCENARIO.md` and `CONFIG.md`.
+
+## v0.5.22 — resilient debug startup and recording
+
+- Camoufox startup now performs a readiness check and retries transient `TargetClosedError` failures. Configure this with `browser.startup_attempts` and `browser.startup_retry_delay_sec`.
+- Debug/noVNC recording now captures the complete Xvfb display through FFmpeg, including manual input and tab changes during `keep_alive`.
+- Debug recordings are written live to `videos/debug-session.webm` and finalized during graceful container shutdown. Configure frame rate with `recording.debug_fps`; set `recording.debug_backend` to `x11` (default) to use this backend.
+- Normal `virtual` and `headless` modes continue to use Playwright page recording and finalized `videos/page-XX.webm` artifacts.
+- Added a project-local pytest configuration and isolated `.venv` workflow; `python -m pytest -q` now collects only `tests/`.
 
 ## v0.5.21-1 — builder documentation sync
 
@@ -124,7 +134,7 @@ This keeps the worker autonomous and prepares it for the future Controller witho
 
 ## v0.5.18-2 — documentation review
 
-Documentation-only review of v0.5.18. Runtime behavior is unchanged. `FUTURE.md` was cleaned to contain only unimplemented work; the implemented plugin framework and other completed roadmap items are no longer presented as future features. Runtime actions, Control API endpoints, plugin inventory and documentation coverage were cross-checked.
+Documentation-only review of v0.5.18. Runtime behavior is unchanged. `../FUTURE.md` was cleaned to contain only unimplemented work; the implemented plugin framework and other completed roadmap items are no longer presented as future features. Runtime actions, Control API endpoints, plugin inventory and documentation coverage were cross-checked.
 
 ## v0.5.18-1 — documentation revision
 
@@ -180,7 +190,7 @@ v0.5.16-1 is a documentation/metadata-only revision of the v0.5.16 runtime. No a
 This revision:
 - introduces the `-N` numbering policy for documentation-only releases;
 - records the future repository-wide removal of hidden/hardcoded behavioral defaults;
-- synchronizes `FUTURE.md`, `FUTURE_BOT.md`, `MEMORY.md`, CHANGELOG and release notes.
+- synchronizes `../FUTURE.md`, `../FUTURE_BOT.md`, `MEMORY.md`, CHANGELOG and release notes.
 
 ## v0.5.16 — consent / cookie-banner handler
 
@@ -208,7 +218,7 @@ and run the normal/debug Camoufox service. Expected plugin result: `handled=true
 
 ## v0.5.15 — documentation/architecture synchronization
 
-v0.5.15 is a documentation-consistency release. Runtime behavior is unchanged from v0.5.14. All project Markdown files were reviewed against the implemented worker and the approved roadmap. The previously missing Controller/control-plane architecture is now preserved in `FUTURE.md`, `FUTURE_BOT.md`, and `MEMORY.md`.
+v0.5.15 is a documentation-consistency release. Runtime behavior is unchanged from v0.5.14. All project Markdown files were reviewed against the implemented worker and the approved roadmap. The previously missing Controller/control-plane architecture is now preserved in `../FUTURE.md`, `../FUTURE_BOT.md`, and `MEMORY.md`.
 
 ## v0.5.14 — universal physical hover
 
@@ -247,10 +257,12 @@ Example for a site-opened login tab:
 
 ## v0.5.9 — hCaptcha direction frozen
 
-v0.5.9 freezes the experimental `hcaptcha-challenger` solver direction after the v0.5.8 live test confirmed that the installed 0.19.x runtime has no stable configuration-only non-Gemini end-to-end local solver. The adapter code is retained for future research, but the plugin remains disabled by default and bundled hCaptcha test scenarios are removed from normal/debug sample configs. `FUTURE.md` contains the human roadmap; `FUTURE_BOT.md` preserves the detailed technical continuation context.
+v0.5.9 freezes the experimental `hcaptcha-challenger` solver direction after the v0.5.8 live test confirmed that the installed 0.19.x runtime has no stable configuration-only non-Gemini end-to-end local solver. The adapter code is retained for future research, but the plugin remains disabled by default and bundled hCaptcha test scenarios are removed from normal/debug sample configs. `../FUTURE.md` contains the human roadmap; `../FUTURE_BOT.md` preserves the detailed technical continuation context.
 
 
 Autonomous Firefox execution worker using the Camoufox runtime, with persistent Identities, repeatable browser/device configuration, scenario automation, artifacts, diagnostics, debug/noVNC operation, video recording, plugins, and a versioned Control API.
+
+In debug mode, `recording.video=true` uses X11 display capture by default (`recording.debug_backend="x11"`). This records the complete noVNC/Xvfb session, including manual interaction and tab changes, into `videos/debug-session.webm`. `recording.debug_fps` controls the frame rate (default `15`). The file is finalized during graceful `Ctrl+C`, `docker compose stop`, or `docker compose down` shutdown.
 
 
 
@@ -281,7 +293,7 @@ The hCaptcha investigation was also completed: upstream `hcaptcha-challenger` 0.
 
 ## v0.5.4 maintenance / roadmap sync
 
-v0.5.4 keeps the v0.5.3 runtime and plugin set unchanged, but synchronizes the project roadmap and plugin documentation with live validation findings. The experimental `hcaptcha-challenger` adapter remains disabled by default; consent/cookie-banner automation was still future work in v0.5.4; it is implemented later in v0.5.16 as `consent-handler`. See `RELEASE_NOTES.md` and `FUTURE.md`.
+v0.5.4 keeps the v0.5.3 runtime and plugin set unchanged, but synchronizes the project roadmap and plugin documentation with live validation findings. The experimental `hcaptcha-challenger` adapter remains disabled by default; consent/cookie-banner automation was still future work in v0.5.4; it is implemented later in v0.5.16 as `consent-handler`. See `RELEASE_NOTES.md` and `../FUTURE.md`.
 
 ## v0.5.3 experimental hCaptcha adapter
 
@@ -295,7 +307,7 @@ Plugin configuration lives under `plugins.items.<name>`. Each adapter implements
 
 A dependency-free `EchoPlugin` is included only as a reference/contract test. Adapters for libraries such as `playwright-captcha` and `playwright-recaptcha` can now be added as isolated modules without changing the scenario engine.
 
-Every release includes `RELEASE_NOTES.md`; planned work is tracked in `FUTURE.md`. Plugin architecture and adapter usage are documented in `PLUGINS.md`.
+Every release includes `RELEASE_NOTES.md`; planned work is tracked in `../FUTURE.md`. Plugin architecture and adapter usage are documented in `PLUGINS.md`.
 
 
 
@@ -326,6 +338,7 @@ The Identity profile now also supports persistent `fingerprint.languages` and `f
 
 - Mouse actions now delegate trajectory generation to Camoufox native `humanize`; legacy `steps`/`duration` values remain accepted but are ignored for native-humanized movement.
 - Every normal browser action now has a 30-second engine watchdog unless `timeout_ms`/`action_timeout_ms` specifies another deadline. `wait` and `wait_input` keep their own timing semantics.
+- Camoufox startup is validated before diagnostics and scenario actions begin. If the browser closes during first-run initialization (for example while preparing an addon), the worker retries up to `browser.startup_attempts` times (default `3`), waiting `browser.startup_retry_delay_sec` seconds (default `1.0`) between attempts.
 - Browser shutdown is bounded to 4 seconds. If Camoufox/Playwright cleanup hangs after a fatal action, child browser processes are terminated and the runner continues finalization instead of requiring Ctrl+C.
 - Fatal action timeouts therefore end the container with `Result: FAIL` and exit code `1`.
 
@@ -380,11 +393,15 @@ The debug Xvfb desktop defaults to `2560x1600x24` so the persistent Identity win
 - `SCENARIO.md` — scenario actions, `wait_input`, runtime templates, and error policy.
 - `API.md` — current worker Control API endpoints and future Controller boundary.
 - `PLUGINS.md` — plugin framework and adapter status.
-- `CHANGELOG.md` — factual version history.
+- `CHANGELOG.md` — detailed worker version history.
 - `RELEASE_NOTES.md` — current release notes.
-- `FUTURE.md` — concise human roadmap.
-- `FUTURE_BOT.md` — detailed continuation context for deferred work.
-- `MEMORY.md` — compact durable project handoff and release rules.
+- `../FUTURE.md` — concise human roadmap.
+- `../FUTURE_BOT.md` — detailed continuation context for deferred work.
+- `../AGENT.md` — durable agent memory, project handoff, release rules and documentation index.
+- `../CHANGELOG.md` — global release history for all application components.
+- `../tools/firefox-image-builder/README.md` — standalone base-image builder guide.
+- `../tools/firefox-image-builder/CHANGELOG.md` — builder version history.
+- `webhook-mock/README.md` — test webhook mock service guide.
 
 ## Build
 

@@ -1,5 +1,7 @@
 # Configuration architecture — v0.5.19
 
+> Component root: `worker-firefox/`. Paths and commands in this document are relative to that directory unless stated otherwise.
+
 The worker no longer uses one monolithic `test.json`.
 
 
@@ -155,8 +157,15 @@ See `API.md` for the complete API contract.
 
 ## `recording`
 
-- `video` — enable Playwright video recording.
+- `video` — enable video recording.
 - `video_size` — `default` or configured recording dimensions supported by the implementation.
+- `debug_backend` — debug-mode recording backend; `x11` (default) captures the complete Xvfb/noVNC display. Normal virtual/headless runs continue to use Playwright page recording.
+- `debug_fps` — X11 debug recording frame rate, default `15`.
+
+Browser startup readiness is controlled by:
+
+- `browser.startup_attempts` — maximum Camoufox startup attempts after transient context/browser closure, default `3`.
+- `browser.startup_retry_delay_sec` — delay between startup attempts, default `1.0` seconds.
 
 ## `fingerprint_diagnostics`
 
@@ -649,7 +658,7 @@ Expected controlled negative result when no stable local solver is available: `r
 
 ## v0.5.9 hCaptcha plugin status
 
-`hcaptcha-challenger` is frozen/experimental and disabled by default. Its adapter methods remain in code for future research, but hCaptcha sample scenarios are no longer bundled. Detailed continuation context is stored in `FUTURE_BOT.md`.
+`hcaptcha-challenger` is frozen/experimental and disabled by default. Its adapter methods remain in code for future research, but hCaptcha sample scenarios are no longer bundled. Detailed continuation context is stored in `../FUTURE_BOT.md`.
 
 
 ## v0.5.11 compatibility note
