@@ -1,4 +1,19 @@
-# Changelog
+# Changelog — firefox-image-builder
+
+Paths and commands in this document are relative to the current `tools/firefox-image-builder/` directory unless stated otherwise.
+
+## 0.2.1
+
+- Added automatic Firefox build parallelism selection based on the CPU count and memory available to the Docker daemon.
+- Added configurable `BUILD_JOBS`, `BUILD_MEMORY_RESERVE_MIB` and `BUILD_MEMORY_PER_JOB_MIB` resource-policy controls.
+- Added an explicit `mach build -jN` bridge for Camoufox's upstream build flow, preventing memory exhaustion from unchecked host CPU parallelism.
+- Added a per-invocation isolated BuildKit builder so builder cache can be removed without touching caches owned by other projects.
+- Added automatic isolated BuildKit cache cleanup after both successful and failed runs.
+- Added cleanup of unverified runtime images after failed builds.
+- Changed source-builder retention to opt-in: multi-gigabyte intermediate images are removed by default after successful and failed runs.
+- Added `KEEP_BUILDER_IMAGE="true"` for deliberately retaining a source-builder for repeated compilation or debugging.
+- Added deterministic source-builder tags for safe reuse when retention is enabled.
+- Verified the complete source checkout, Firefox/Camoufox compilation, packaging, runtime-image build and executable validation flow for `worker-firefox-base:152.0.4-beta.28`.
 
 ## 0.2.0
 

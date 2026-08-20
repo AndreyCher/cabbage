@@ -2,7 +2,9 @@
 
 Standalone source builder for immutable base images consumed by `worker-firefox`.
 
-Version: **0.2.0**
+Paths and commands in this document are relative to the current `tools/firefox-image-builder/` directory unless stated otherwise.
+
+Version: **0.2.1**
 
 Unlike v0.1.0, this tool does **not** require a prebuilt `camoufox-custom.zip` or a manually supplied `SOURCE_COMMIT`.
 
@@ -50,15 +52,62 @@ Git
 unzip
 sed
 awk
+grep
 find
 ```
 
 The heavy Firefox compiler dependencies run inside Camoufox's official builder image.
 
+### Automatic resource tuning
+
+Before compilation, `build.sh` detects the CPU count and memory available to
+the Docker daemon. Firefox build parallelism is capped by both resources. By
+default, the builder reserves 1024 MiB for the operating system/build
+orchestration and budgets 2048 MiB for each compiler job. This is deliberately
+conservative because individual optimized Rust and C++ compilation units can
+use substantially more than Firefox's default estimate.
+
+The version file can override the policy:
+
+```text
+BUILD_JOBS="auto"
+BUILD_MEMORY_RESERVE_MIB="1024"
+BUILD_MEMORY_PER_JOB_MIB="2048"
+```
+
+Set `BUILD_JOBS` to a positive integer only when a fixed value is intentional.
+The effective values are printed before compilation. For example, a Docker
+environment with 4 CPUs and 4096 MiB selects one build job with the defaults,
+avoiding OOM kills from four concurrent compiler processes.
+
+Camoufox's `multibuild.py` does not expose Firefox's jobs option. The builder
+therefore adjusts the cloned temporary checkout's Makefile to pass the
+calculated value as `mach build -jN`. The upstream repository is not modified.
+
+The source-builder image uses a deterministic tag derived from the Camoufox
+commit, browser version, target and resource-policy revision. By default this
+multi-gigabyte intermediate image is removed when the invocation finishes,
+because a browser version is normally compiled only once. Set
+`KEEP_BUILDER_IMAGE="true"` to retain it for an expected repeat build or for
+debugging. A retained matching image is reused on the next run; set
+`REBUILD_BUILDER="true"` only when a clean source-builder rebuild is required.
+
+### Automatic cleanup
+
+Each invocation creates its own isolated BuildKit builder. Its cache is removed
+by the exit trap after both successful and failed runs, so this tool does not
+accumulate cache in Docker's shared default builder or remove caches belonging
+to other projects.
+
+The source-builder image used by the invocation is also removed after either a
+successful or failed run unless `KEEP_BUILDER_IMAGE="true"`. Any unverified
+runtime image is removed after a failure. The temporary source workspace
+remains controlled separately by `KEEP_WORKDIR`.
+
 ## Directory layout
 
 ```text
-firefox-image-builder-v0.2.0/
+firefox-image-builder/
 ├── VERSION
 ├── CHANGELOG.md
 ├── README.md
