@@ -1,6 +1,6 @@
 # Configuration architecture — v0.5.19
 
-> Component root: `worker-firefox/`. Paths and commands in this document are relative to that directory unless stated otherwise.
+> Component files live in `workers/worker-firefox/`. Run Docker Compose commands from the repository root; file paths in this document are relative to the component directory unless stated otherwise.
 
 The worker no longer uses one monolithic `test.json`.
 
@@ -36,11 +36,13 @@ This is the only bootstrap configuration. It contains paths rather than browser/
 {
   "schema_version": 1,
   "paths": {
-    "default_config": "/config/default.json",
+    "global_default_config": "/workers-config/default.json",
+    "local_default_config": "/config/default.json",
     "profiles_dir": "/config/profiles",
-    "scenarios_dir": "/config/scenarios",
+    "global_scenarios_dir": "/workers-config/scenarios",
+    "local_scenarios_dir": "/config/scenarios",
     "identities_dir": "/identities",
-    "artifacts_dir": "/artifacts/results",
+    "artifacts_dir": "/artifacts",
     "browser_source_commit": "/opt/camoufox-custom/SOURCE_COMMIT"
   }
 }
@@ -52,11 +54,11 @@ Relative values in `paths` are resolved relative to the directory containing `co
 
 OS/kernel inspection paths such as `/proc` and `/sys` used by diagnostics are structural Linux interfaces, not application storage/configuration paths, and remain implementation constants.
 
-## `config/default.json` — canonical defaults
+## Global and local `default.json`
 
-`default.json` contains the complete normal worker configuration and all generally available top-level options. The worker only reads this file.
+`workers/config/default.json` is required and contains the complete shared worker configuration. `workers/worker-firefox/config/default.json` is optional. The resolver always checks for the local file and, when present, recursively merges it over the global defaults.
 
-A profile is recursively merged over it. Lists/scalars replace the default value; nested objects are merged.
+A profile is then recursively merged over the resolved defaults. Lists/scalars replace the earlier value; nested objects are merged. Neither default file may embed scenarios.
 
 ## `config/profiles/<profile>.json` — launch profile overrides
 
@@ -83,7 +85,9 @@ Profiles must not embed a `scenarios` object.
 
 Do not confuse these launch profiles with the persistent Identity override file under `identities/<identity>/config.json`, which is managed by the existing Identity Profile API.
 
-## `config/scenarios/<scenario>.json` — one scenario per file
+## Global and local scenarios
+
+Shared scenarios live in `workers/config/scenarios/<scenario>.json`. Optional worker-specific scenarios live in `workers/worker-firefox/config/scenarios/<scenario>.json`.
 
 Example:
 
@@ -100,13 +104,14 @@ Example:
 }
 ```
 
-`run.scenario` contains the simple scenario name. The resolver loads `<scenarios_dir>/<name>.json`. Scenario name/path traversal is rejected and the optional `name` field must match `run.scenario`.
+`run.scenario` contains the simple scenario name. The resolver first checks the local scenario directory. If the named local file exists, it replaces the global file completely. Otherwise the global scenario is loaded. Scenario files are never merged or compared. Path traversal is rejected and the optional `name` field must match `run.scenario`.
 
 ## Resolution order
 
 ```text
-default.json
-  -> profile overrides
+workers/config/default.json (required)
+  -> workers/worker-firefox/config/default.json (optional deep merge)
+  -> local profile overrides
   -> selected external scenario
   -> worker runtime
 ```
@@ -256,7 +261,7 @@ Run artifacts are stored below `paths.artifacts_dir`:
 {artifacts_dir}/{identity}/{scenario}/{run_id}/
 ```
 
-With the supplied `config/config.json` this resolves to `/artifacts/results/...`.
+With the supplied `config/config.json` this resolves to `/artifacts/<identity>/<scenario>/<run-id>/`.
 
 v0.4.16 run IDs contain UTC timestamp plus a short random suffix, e.g. `20260812T101500Z-a8f3`.
 
@@ -272,7 +277,7 @@ Controlled failures expose a machine-readable `reason` in `summary.json`. Runtim
 
 In debug mode with `debug.keep_alive=true`, SIGINT (Ctrl+C) and SIGTERM (for example `docker compose down`) request a controlled shutdown. The application first leaves interactive mode, closes the Camoufox context, finalizes local video artifacts, stops the Control API, writes `summary.json`, and exits. The container entrypoint then stops Xvfb/Openbox/x11vnc/websockify.
 
-`docker-compose.yml` sets `stop_grace_period: 30s` so Docker does not immediately force-kill the container while artifacts are being finalized.
+The worker definition included by root `compose.yml` sets `stop_grace_period` so Docker does not immediately force-kill the container while artifacts are being finalized.
 
 `summary.json` contains:
 

@@ -7,4 +7,5 @@ __pycache__/
 /SOURCE_COMMIT
 identities/*
 !identities/.gitkeep
-artifacts/results/*
+artifacts/*
+!artifacts/.gitkeep

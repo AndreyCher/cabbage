@@ -14,9 +14,10 @@ def write_json(path: Path, data):
 
 
 def make_layout(tmp_path: Path):
-    cfg = tmp_path / "config"
+    cfg = tmp_path / "worker-config"
+    shared = tmp_path / "workers-config"
     profiles = cfg / "profiles"
-    scenarios = cfg / "scenarios"
+    scenarios = shared / "scenarios"
     identities = tmp_path / "identities"
     artifacts = tmp_path / "artifacts" / "results"
     browser_commit = tmp_path / "browser" / "SOURCE_COMMIT"
@@ -27,15 +28,17 @@ def make_layout(tmp_path: Path):
         "project": {"name": "cabbage"},
         "worker": {"type": "firefox"},
         "paths": {
-            "default_config": str(cfg / "default.json"),
+            "global_default_config": str(shared / "default.json"),
+            "local_default_config": str(cfg / "default.json"),
             "profiles_dir": str(profiles),
-            "scenarios_dir": str(scenarios),
+            "global_scenarios_dir": str(scenarios),
+            "local_scenarios_dir": str(cfg / "scenarios"),
             "identities_dir": str(identities),
             "artifacts_dir": str(artifacts),
             "browser_source_commit": str(browser_commit),
         },
     })
-    return system, cfg, profiles, scenarios
+    return system, shared, cfg, profiles, scenarios
 
 
 def test_deep_merge_recurses_and_replaces_lists():
@@ -50,9 +53,9 @@ def test_deep_merge_recurses_and_replaces_lists():
 
 
 def test_runtime_config_merges_default_profile_and_external_scenario(tmp_path):
-    system, cfg, profiles, scenarios = make_layout(tmp_path)
+    system, shared, cfg, profiles, scenarios = make_layout(tmp_path)
 
-    write_json(cfg / "default.json", {
+    write_json(shared / "default.json", {
         "identity": "",
         "run": {"scenario": "identity"},
         "browser": {"mode": "virtual", "humanize": 1.8},
@@ -78,13 +81,55 @@ def test_runtime_config_merges_default_profile_and_external_scenario(tmp_path):
     assert resolved["scenarios"]["trustpilot"]["actions"][0]["type"] == "open"
     assert layout["project_name"] == "cabbage"
     assert layout["worker_type"] == "firefox"
+    assert layout["local_default_loaded"] is False
     assert layout["profile_config"].endswith("profiles/test-user-004.json")
     assert layout["scenario_config"].endswith("scenarios/trustpilot.json")
 
 
+def test_optional_local_default_overrides_global_default(tmp_path):
+    system, shared, cfg, profiles, scenarios = make_layout(tmp_path)
+    write_json(shared / "default.json", {
+        "identity": "",
+        "run": {"scenario": "x"},
+        "browser": {"mode": "virtual", "humanize": 1.8},
+    })
+    write_json(cfg / "default.json", {"browser": {"mode": "debug"}})
+    write_json(profiles / "p.json", {"identity": "p"})
+    write_json(scenarios / "x.json", {"name": "x", "actions": []})
+
+    resolved, layout = load_runtime_config("p", system)
+
+    assert resolved["browser"] == {"mode": "debug", "humanize": 1.8}
+    assert layout["local_default_loaded"] is True
+
+
+def test_local_scenario_fully_replaces_global_scenario(tmp_path):
+    system, shared, cfg, profiles, scenarios = make_layout(tmp_path)
+    write_json(shared / "default.json", {
+        "identity": "",
+        "run": {"scenario": "x"},
+    })
+    write_json(profiles / "p.json", {"identity": "p"})
+    write_json(scenarios / "x.json", {
+        "name": "x",
+        "actions": [{"type": "open", "url": "https://global.example"}],
+    })
+    write_json(cfg / "scenarios" / "x.json", {
+        "name": "x",
+        "actions": [{"type": "open", "url": "https://local.example"}],
+    })
+
+    resolved, layout = load_runtime_config("p", system)
+
+    assert resolved["scenarios"]["x"]["actions"] == [
+        {"type": "open", "url": "https://local.example"}
+    ]
+    assert layout["scenario_config"].endswith("worker-config/scenarios/x.json")
+
+
 def test_profile_cannot_embed_scenarios(tmp_path):
-    system, cfg, profiles, scenarios = make_layout(tmp_path)
-    write_json(cfg / "default.json", {"identity": "", "run": {"scenario": "x"}})
+    system, shared, cfg, profiles, scenarios = make_layout(tmp_path)
+    write_json(shared / "default.json", {"identity": "", "run": {"scenario": "x"}})
     write_json(profiles / "p.json", {
         "identity": "p",
         "scenarios": {"x": {"actions": []}},
@@ -96,8 +141,8 @@ def test_profile_cannot_embed_scenarios(tmp_path):
 
 
 def test_scenario_name_must_match_reference(tmp_path):
-    system, cfg, profiles, scenarios = make_layout(tmp_path)
-    write_json(cfg / "default.json", {"identity": "", "run": {"scenario": "x"}})
+    system, shared, cfg, profiles, scenarios = make_layout(tmp_path)
+    write_json(shared / "default.json", {"identity": "", "run": {"scenario": "x"}})
     write_json(profiles / "p.json", {"identity": "p"})
     write_json(scenarios / "x.json", {"name": "other", "actions": []})
 
@@ -110,9 +155,11 @@ def test_system_config_requires_project_and_worker_metadata(tmp_path):
     write_json(cfg, {
         "schema_version": 1,
         "paths": {
-            "default_config": "default.json",
+            "global_default_config": "default.json",
+            "local_default_config": "local-default.json",
             "profiles_dir": "profiles",
-            "scenarios_dir": "scenarios",
+            "global_scenarios_dir": "scenarios",
+            "local_scenarios_dir": "local-scenarios",
             "identities_dir": "identities",
             "artifacts_dir": "artifacts",
             "browser_source_commit": "SOURCE_COMMIT"

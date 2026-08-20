@@ -1,6 +1,15 @@
-# worker-firefox v0.5.22
+# worker-firefox v0.5.23
 
-> Component root: `worker-firefox/`. Paths and commands in this document are relative to that directory unless stated otherwise.
+> Component files live in `workers/worker-firefox/`. The preferred integrated workflow runs Docker Compose from the repository root. This component also intentionally supports autonomous build and execution from its own directory. Paths describing component files are relative to that directory unless stated otherwise.
+
+## v0.5.23 — shared worker configuration and modular layout
+
+- Moved the component to `workers/worker-firefox/` while preserving both root-integrated and autonomous Compose workflows.
+- Added shared worker defaults and scenarios under `workers/config/` for future worker types.
+- Made the Firefox-local `config/default.json` optional; when present, it is deep-merged over the required shared default.
+- Added local-first scenario selection: a local same-named scenario replaces the global file completely without merging.
+- Kept a single local `example.json`; reusable production scenarios now live at the shared worker level.
+- Flattened run storage to `artifacts/<identity>/<scenario>/<run-id>/`.
 
 ### Webhook quick example
 ```json
@@ -93,29 +102,34 @@ Docker Compose services are now `worker-firefox` and `worker-firefox-debug`. Fix
 v0.5.19 redesigns worker configuration into three independent layers plus a bootstrap path map:
 
 ```text
-config/
-├── config.json
+workers/config/
 ├── default.json
-├── profiles/
-│   ├── test-user-001.json
-│   └── test-user-001-debug.json
 └── scenarios/
     ├── identity.json
     ├── fingerprint-check.json
     ├── google-search.json
-    ├── behavior.json
     ├── captcha-test-v2.json
     └── consent-test.json
+
+workers/worker-firefox/config/
+├── config.json
+├── profiles/
+│   ├── test-user-001.json
+│   └── test-user-001-debug.json
+└── scenarios/
+    └── example.json
 ```
 
-`config.json` contains runtime filesystem paths used by the worker. Python runtime code no longer embeds project-specific `/config`, `/identities`, `/artifacts/results`, or browser SOURCE_COMMIT paths.
+`config.json` contains runtime filesystem paths used by the worker. Python runtime code no longer embeds project-specific `/config`, `/identities`, `/artifacts`, or browser SOURCE_COMMIT paths.
 
-`default.json` is the canonical complete worker configuration and is read-only to the worker.
+The global `workers/config/default.json` is required and read-only. A local `workers/worker-firefox/config/default.json` is optional and, when present, overrides global values through deep merge.
 
 `profiles/<name>.json` contains only profile/run overrides. At startup the worker performs a recursive merge:
 
 ```text
-default.json
+global default.json
+    +
+optional local default.json
     +
 profiles/<profile>.json
     +
@@ -124,7 +138,7 @@ scenarios/<run.scenario>.json
 resolved worker configuration
 ```
 
-Scenarios are now one scenario per file and are reusable by any profile. A worker never modifies `default.json` or scenario files.
+Scenarios are one scenario per file and reusable by any profile. A local same-named scenario replaces the global file completely; scenario files are never merged. A worker never modifies default or scenario files.
 
 The bootstrap files are selected by environment/CLI:
 - `WORKER_SYSTEM_CONFIG` or `--system-config`
@@ -397,13 +411,15 @@ The debug Xvfb desktop defaults to `2560x1600x24` so the persistent Identity win
 - `RELEASE_NOTES.md` — current release notes.
 - `../FUTURE.md` — concise human roadmap.
 - `../FUTURE_BOT.md` — detailed continuation context for deferred work.
-- `../AGENT.md` — durable agent memory, project handoff, release rules and documentation index.
-- `../CHANGELOG.md` — global release history for all application components.
-- `../tools/firefox-image-builder/README.md` — standalone base-image builder guide.
-- `../tools/firefox-image-builder/CHANGELOG.md` — builder version history.
-- `../data-provider/README.md` — standalone worker data-resolution service.
+- `AGENT.md` — durable agent memory, project handoff, release rules and documentation index.
+- `CHANGELOG.md` — global release history for all application components.
+- `tools/firefox-image-builder/README.md` — standalone base-image builder guide.
+- `tools/firefox-image-builder/CHANGELOG.md` — builder version history.
+- `data-provider/README.md` — standalone worker data-resolution service.
 
 ## Build
+
+For the integrated application, run these commands from the repository root.
 
 `worker-firefox` does not build the heavy browser runtime itself.
 
@@ -467,6 +483,25 @@ noVNC is available on port `6080`; Control API remains on port `8090`.
 ```bash
 docker compose run --rm worker-firefox python -m app.main --version
 ```
+
+## Autonomous operation
+
+`worker-firefox` is self-operable inside the Cabbage workspace and keeps its own Compose definition. The same service commands can be run from the component directory:
+
+```bash
+cd workers/worker-firefox
+docker compose build worker-firefox
+docker compose up worker-firefox
+```
+
+Autonomous debug mode:
+
+```bash
+cd workers/worker-firefox
+WORKER_DEBUG_PROFILE=test-user-001-debug docker compose --profile debug up worker-firefox-debug
+```
+
+The standalone Compose definition still consumes the workspace-level component registry at `../../config/components.json`. Runtime configuration, identities and artifacts remain component-owned.
 
 
 ## v0.4.20 lifecycle and shutdown

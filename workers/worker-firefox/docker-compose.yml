@@ -15,13 +15,16 @@ services:
       DISPLAY: ":99"
       WORKER_SYSTEM_CONFIG: "/config/config.json"
       WORKER_PROFILE: "${WORKER_PROFILE:-test-user-001}"
+      COMPONENT_REGISTRY: "/etc/cabbage/components.json"
       CAMOUFOX_EXECUTABLE_PATH: "/opt/camoufox-custom/camoufox-bin"
     ports:
       - "0.0.0.0:8090:8090"
     volumes:
+      - ../config:/workers-config:ro
       - ./config:/config:ro
       - ./identities:/identities
       - ./artifacts:/artifacts
+      - ../../config/components.json:/etc/cabbage/components.json:ro
     command: ["python", "-m", "app.main"]
 
   worker-firefox-debug:
@@ -41,14 +44,17 @@ services:
       DISPLAY: ":99"
       WORKER_SYSTEM_CONFIG: "/config/config.json"
       WORKER_PROFILE: "${WORKER_DEBUG_PROFILE:-test-user-001-debug}"
+      COMPONENT_REGISTRY: "/etc/cabbage/components.json"
       CAMOUFOX_EXECUTABLE_PATH: "/opt/camoufox-custom/camoufox-bin"
     ports:
       - "0.0.0.0:6080:6080"
       - "0.0.0.0:8090:8090"
     volumes:
+      - ../config:/workers-config:ro
       - ./config:/config:ro
       - ./identities:/identities
       - ./artifacts:/artifacts
+      - ../../config/components.json:/etc/cabbage/components.json:ro
     command: ["python", "-m", "app.main"]
 
   consent-test-page:

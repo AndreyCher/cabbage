@@ -9,6 +9,20 @@ This is the global release history for all application components. Component cha
 
 ## Component releases
 
+### web-console 0.1.1-dev
+
+- Synchronized the console with the modular worker layout and root deployment workflow.
+- Revalidated the production image and global component-registry integration.
+- Detailed history: `web-console/CHANGELOG.md`.
+
+### worker-firefox 0.5.23
+
+- Moved the component into `workers/worker-firefox/` while preserving root-integrated and autonomous Compose operation.
+- Added shared defaults and scenarios under `workers/config/`, optional local defaults and complete local scenario replacement.
+- Flattened artifact storage to `artifacts/<identity>/<scenario>/<run-id>/`.
+- Verified all 61 unit tests, both Docker build modes and Control API startup.
+- Detailed history: `workers/worker-firefox/CHANGELOG.md`.
+
 ### web-console 0.1.0-dev
 
 - Released the first React/TypeScript and Material UI control-plane interface.
@@ -29,14 +43,14 @@ This is the global release history for all application components. Component cha
 - Added complete Xvfb/noVNC debug-session recording with live and gracefully finalized VP9 WebM output.
 - Preserved Playwright recording for normal virtual/headless runs.
 - Added deterministic local pytest discovery; all 59 tests pass.
-- Detailed history: `worker-firefox/CHANGELOG.md`.
+- Detailed history: `workers/worker-firefox/CHANGELOG.md`.
 
 ### worker-firefox 0.5.21-1
 
 - Documentation-only synchronization with `firefox-image-builder` v0.2.0.
 - Clarified the boundary between worker runtime images and the standalone browser base-image builder.
 - Runtime behavior is unchanged from `worker-firefox` v0.5.21.
-- Detailed history: `worker-firefox/CHANGELOG.md`.
+- Detailed history: `workers/worker-firefox/CHANGELOG.md`.
 
 ### firefox-image-builder 0.2.0
 

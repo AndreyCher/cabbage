@@ -4,20 +4,22 @@ This directory is the current source of truth for the application and its indepe
 
 `config/components.json` is the temporary global component/API registry. It contains internal service addresses, API versions and health paths while the Controller/service-discovery layer is not yet implemented.
 
+`workers/config/` contains configuration shared by worker types: the required global `default.json` and reusable scenarios. A concrete worker may optionally override defaults and fully replace individual scenarios in its own `config/` directory.
+
 `cabbage` is an internal configurable project codename. Public component names, APIs, Docker resources and environment variables remain neutral and must not be derived from this codename.
 
 ## Components
 
 ### worker-firefox
 
-Current version: **0.5.22**
+Current version: **0.5.23**
 
 Firefox/Camoufox execution worker with modular scenario actions, plugin adapters, persistent Identity profiles, recording/debug support and a per-worker Control API.
 
-- Code and component documentation: `worker-firefox/`
-- Overview: `worker-firefox/README.md`
-- Detailed component history: `worker-firefox/CHANGELOG.md`
-- Current release notes: `worker-firefox/RELEASE_NOTES.md`
+- Code and component documentation: `workers/worker-firefox/`
+- Overview: `workers/worker-firefox/README.md`
+- Detailed component history: `workers/worker-firefox/CHANGELOG.md`
+- Current release notes: `workers/worker-firefox/RELEASE_NOTES.md`
 
 ### firefox-image-builder
 
@@ -45,7 +47,7 @@ Standalone data-resolution service used by automated workers. The initial backen
 
 ### web-console
 
-Current development release: **0.1.0-dev**
+Current development release: **0.1.1-dev**
 
 React/TypeScript control-plane interface using Material UI. The first development release provides a responsive infrastructure overview, live component health cards, collapsible navigation, selectable appearance modes and an extension registry for frontend modules.
 
@@ -58,8 +60,20 @@ React/TypeScript control-plane interface using Material UI. The first developmen
 - `CHANGELOG.md` — global application changelog covering releases of every component.
 - `FUTURE.md` — concise application roadmap.
 - `FUTURE_BOT.md` — detailed implementation-oriented notes for deferred work.
-- `worker-firefox/*.md` — documentation owned by the Firefox worker module.
+- `workers/worker-firefox/*.md` — documentation owned by the Firefox worker module.
 - `data-provider/*.md` — documentation owned by the worker-facing data-resolution component.
 - `tools/firefox-image-builder/*.md` — documentation owned by the base-image builder module.
 
 Each component keeps its detailed release history beside its code. Every component release must also receive a concise entry in the global `CHANGELOG.md`.
+
+## Running components
+
+Run integrated application Docker Compose commands from the repository root. The root `compose.yml` is the primary application entry point and includes worker definitions from `workers/`.
+
+```bash
+docker compose build worker-firefox
+docker compose up worker-firefox
+WORKER_DEBUG_PROFILE=test-user-001-debug docker compose --profile debug up worker-firefox-debug
+```
+
+`worker-firefox` is intentionally the only current autonomous component. In addition to the preferred root workflow, it may be built and run directly from `workers/worker-firefox/`. Other components are not required to provide a standalone Compose workflow unless that requirement is explicitly introduced later.

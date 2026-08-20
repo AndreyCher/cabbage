@@ -1,5 +1,7 @@
 # Control API
 
+> Component files live in `workers/worker-firefox/`. Run Docker Compose commands from the repository root; file paths in this document are relative to the component directory unless stated otherwise.
+
 Firefox worker v0.4.16 introduced a versioned HTTP Control API for exchanging runtime data with an active scenario.
 
 The API is intentionally addressed by **Identity first**, then by the concrete run:
@@ -26,7 +28,7 @@ The timestamp is UTC and the four hexadecimal characters prevent collisions betw
 }
 ```
 
-`enabled` starts/stops the Control API. `host` is the bind address inside the container. `port` is the HTTP listen port. The supplied `docker-compose.yml` publishes port `8090` for both normal and debug services.
+`enabled` starts/stops the Control API. `host` is the bind address inside the container. `port` is the HTTP listen port. The root `compose.yml` publishes port `8090` for both normal and debug services.
 
 > v0.4.16 does not implement API authentication. Do not expose port 8090 directly to an untrusted network. Restrict it using Docker/network/firewall rules or place an authenticated reverse proxy in front of it.
 
@@ -375,7 +377,7 @@ Runs using `hcaptcha-challenger.local_solve_test` save `hcaptcha-local-solve-tes
 
 ## v0.5.9 hCaptcha status
 
-No API contract changes. The experimental hCaptcha adapter remains disabled and its bundled sample scenarios were removed. Existing generic `plugin_call` behavior is unchanged. Detailed frozen-direction context is in `FUTURE_BOT.md`.
+No API contract changes. The experimental hCaptcha adapter remains disabled and its bundled sample scenarios were removed. Existing generic `plugin_call` behavior is unchanged. Detailed frozen-direction context is in `../FUTURE_BOT.md`.
 
 
 ## v0.5.10 runtime note
@@ -394,7 +396,7 @@ The `webhook` scenario action is outbound and does not add a Control API endpoin
 
 ## Future orchestration boundary
 
-The current `/api/v1/identities/...` API is the Control API of a single browser worker. The approved future architecture introduces a separate Controller. In that architecture external systems will use the Controller API; worker Control APIs remain internal on the Docker network and the Controller routes run status and `wait_input` data to the worker assigned to each run. The public Controller request model will accept validated run/profile/scenario data rather than exposing arbitrary Docker parameters. See `FUTURE.md` and `FUTURE_BOT.md`.
+The current `/api/v1/identities/...` API is the Control API of a single browser worker. The approved future architecture introduces a separate Controller. In that architecture external systems will use the Controller API; worker Control APIs remain internal on the Docker network and the Controller routes run status and `wait_input` data to the worker assigned to each run. The public Controller request model will accept validated run/profile/scenario data rather than exposing arbitrary Docker parameters. See `../FUTURE.md` and `../FUTURE_BOT.md`.
 
 
 ## Endpoint audit — v0.5.18-2
@@ -416,6 +418,6 @@ The worker remains intentionally single-run-per-process; broader orchestration b
 
 The worker Control API is independent from the new launch-configuration layout. Startup configuration is resolved from `config.json` + `default.json` + a launch profile + one external scenario file before the API starts.
 
-The existing `/api/v1/identities/{identity}/config` resource still manages the **persistent Identity override configuration** stored below the Identity storage root. It does not edit `config/default.json`, `config/profiles/*.json`, or `config/scenarios/*.json`.
+The existing `/api/v1/identities/{identity}/config` resource still manages the **persistent Identity override configuration** stored below the Identity storage root. It does not edit shared worker defaults/scenarios, local worker defaults/scenarios, or `config/profiles/*.json`.
 
 The worker treats `default.json` and scenario definitions as read-only input. Future external mutation/orchestration of launch profiles/scenario selection belongs to the Controller/Central Console layer.

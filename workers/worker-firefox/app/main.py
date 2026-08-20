@@ -325,7 +325,12 @@ def main() -> int:
     logger.info("Scenario: %s", scenario_name)
     logger.info("Run ID: %s", run_id)
     logger.info("System config: %s", layout["system_config"])
-    logger.info("Default config: %s", layout["default_config"])
+    logger.info("Global default config: %s", layout["global_default_config"])
+    logger.info(
+        "Local default config: %s (%s)",
+        layout["local_default_config"],
+        "loaded" if layout["local_default_loaded"] else "not present",
+    )
     logger.info("Profile config: %s", layout["profile_config"])
     logger.info("Scenario config: %s", layout["scenario_config"])
     source_commit_path = Path(layout["browser_source_commit"])
@@ -347,7 +352,8 @@ def main() -> int:
         "browser_source_commit": browser_source_commit,
         "configuration": {
             "system": layout["system_config"],
-            "default": layout["default_config"],
+            "global_default": layout["global_default_config"],
+            "local_default": layout["local_default_config"] if layout["local_default_loaded"] else None,
             "profile": layout["profile_config"],
             "scenario": layout["scenario_config"],
         },

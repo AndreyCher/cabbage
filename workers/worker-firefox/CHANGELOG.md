@@ -1,6 +1,18 @@
 # Changelog — worker-firefox
 
-> Component root: `worker-firefox/`. Paths and commands in this document are relative to that directory unless stated otherwise.
+> Component files live in `workers/worker-firefox/`. Docker Compose commands are run from the repository root.
+
+## 0.5.23
+
+- Moved the component from `worker-firefox/` to `workers/worker-firefox/` to support future worker types such as `worker-android`.
+- Standardized build, run, debug and version commands on the root application `compose.yml`.
+- Preserved the component-local Compose workflow for autonomous worker build and execution.
+- Moved the required base `default.json` and reusable scenarios to shared `workers/config/`.
+- Made the Firefox-local `config/default.json` optional and deep-merged it only when present.
+- Added local-first scenario selection with complete file replacement and no scenario merging.
+- Kept only the worker-local example scenario, renamed from `behavior.json` to `example.json`.
+- Flattened artifact storage from `artifacts/results/<identity>/...` to `artifacts/<identity>/...` and preserved existing run data during migration.
+- Updated the global component-registry mount for the additional directory nesting.
 
 ## 0.5.22
 - Added bounded Camoufox startup readiness retries for transient browser/context closure during addon initialization.

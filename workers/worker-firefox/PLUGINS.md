@@ -1,5 +1,7 @@
 # Plugins
 
+> Component files live in `workers/worker-firefox/`. Run Docker Compose commands from the repository root; file paths in this document are relative to the component directory unless stated otherwise.
+
 Firefox worker v0.5.2 supports isolated third-party adapters through the plugin framework introduced in v0.5.1.
 
 ## Architecture
@@ -229,7 +231,7 @@ Create an adapter module under `app/plugins/`, inherit `BasePlugin`, keep third-
 
 ### Current live-test limitation
 
-Live validation reached the upstream `AgentV` configuration stage successfully, confirming that the plugin loads and the scenario reaches the adapter. The current upstream `AgentV` path requires `GEMINI_API_KEY`; without it, the adapter returns a controlled `hcaptcha_solve_failed` error before challenge solving begins. Because Gemini is not intended to become a mandatory paid dependency of the POC, researching a lower-level/local/pluggable vision path is tracked in `FUTURE.md`.
+Live validation reached the upstream `AgentV` configuration stage successfully, confirming that the plugin loads and the scenario reaches the adapter. The current upstream `AgentV` path requires `GEMINI_API_KEY`; without it, the adapter returns a controlled `hcaptcha_solve_failed` error before challenge solving begins. Because Gemini is not intended to become a mandatory paid dependency of the POC, researching a lower-level/local/pluggable vision path is tracked in `../FUTURE.md`.
 
 
 Adapter:
@@ -362,7 +364,7 @@ The method writes `hcaptcha-local-solve-test.json`. If the runtime has no stable
 
 ## v0.5.9 hCaptcha freeze decision
 
-The `hcaptcha-challenger` adapter is retained but frozen/experimental and disabled by default. v0.5.8 live validation confirmed checkbox control but no stable non-Gemini local end-to-end solver (`models=0`, `hcaptcha_local_solver_unavailable`). Bundled hCaptcha scenarios were removed in v0.5.9. Do not treat the adapter as a supported solver. See `FUTURE_BOT.md` before resuming this work.
+The `hcaptcha-challenger` adapter is retained but frozen/experimental and disabled by default. v0.5.8 live validation confirmed checkbox control but no stable non-Gemini local end-to-end solver (`models=0`, `hcaptcha_local_solver_unavailable`). Bundled hCaptcha scenarios were removed in v0.5.9. Do not treat the adapter as a supported solver. See `../FUTURE_BOT.md` before resuming this work.
 
 
 ## v0.5.10 core compatibility note
@@ -469,4 +471,4 @@ The generic plugin framework is implemented and is **not** a roadmap item. Curre
 - `hcaptcha-challenger` — experimental/frozen; retained as implementation/diagnostic history, disabled for normal use.
 - `echo` — internal minimal development/test plugin used to exercise the generic plugin mechanism; it is not intended as an end-user integration.
 
-Future plugin work is limited to concrete enhancements/new adapters listed in `FUTURE.md`; the plugin layer itself already exists.
+Future plugin work is limited to concrete enhancements/new adapters listed in `../FUTURE.md`; the plugin layer itself already exists.

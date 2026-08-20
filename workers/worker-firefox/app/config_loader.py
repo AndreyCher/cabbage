@@ -11,9 +11,11 @@ class ConfigError(ValueError):
 
 
 _REQUIRED_PATHS = {
-    "default_config",
+    "global_default_config",
+    "local_default_config",
     "profiles_dir",
-    "scenarios_dir",
+    "global_scenarios_dir",
+    "local_scenarios_dir",
     "identities_dir",
     "artifacts_dir",
     "browser_source_commit",
@@ -94,29 +96,42 @@ def _profile_path(profile_ref: str, profiles_dir: Path) -> Path:
     return profiles_dir / filename
 
 
-def _scenario_path(name: str, scenarios_dir: Path) -> Path:
+def _scenario_path(name: str, global_dir: Path, local_dir: Path) -> Path:
     if not name or Path(name).name != name:
         raise ConfigError("run.scenario must be a simple scenario name, not a path")
-    return scenarios_dir / f"{name}.json"
+    local_path = local_dir / f"{name}.json"
+    if local_path.is_file():
+        return local_path
+    return global_dir / f"{name}.json"
 
 
 def load_runtime_config(
     profile_ref: str,
     system_config_path: str | Path,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
-    """Resolve default + profile + one external scenario into worker config."""
+    """Resolve global default + optional local default + profile + one scenario."""
     system = load_system_config(system_config_path)
     paths = system["paths"]
 
-    default_path = Path(paths["default_config"])
+    global_default_path = Path(paths["global_default_config"])
+    local_default_path = Path(paths["local_default_config"])
     profiles_dir = Path(paths["profiles_dir"])
-    scenarios_dir = Path(paths["scenarios_dir"])
+    global_scenarios_dir = Path(paths["global_scenarios_dir"])
+    local_scenarios_dir = Path(paths["local_scenarios_dir"])
 
-    default_cfg = _read_json(default_path, "default config")
+    default_cfg = _read_json(global_default_path, "global default config")
     if "scenarios" in default_cfg:
         raise ConfigError(
-            "default.json must not embed 'scenarios'; store one scenario per file in scenarios_dir"
+            "default.json must not embed 'scenarios'; store one scenario per file in a scenarios directory"
         )
+    local_default_loaded = local_default_path.is_file()
+    if local_default_loaded:
+        local_default_cfg = _read_json(local_default_path, "local default config")
+        if "scenarios" in local_default_cfg:
+            raise ConfigError(
+                "local default.json must not embed 'scenarios'; store one scenario per file in a scenarios directory"
+            )
+        default_cfg = deep_merge(default_cfg, local_default_cfg)
 
     profile_path = _profile_path(profile_ref, profiles_dir)
     profile_cfg = _read_json(profile_path, "profile config")
@@ -135,7 +150,9 @@ def load_runtime_config(
     if not isinstance(selected, str) or not selected.strip():
         raise ConfigError("resolved config must contain run.scenario")
 
-    scenario_path = _scenario_path(selected.strip(), scenarios_dir)
+    scenario_path = _scenario_path(
+        selected.strip(), global_scenarios_dir, local_scenarios_dir
+    )
     scenario = _read_json(scenario_path, "scenario")
     scenario_name = scenario.get("name", selected)
     if scenario_name != selected:
@@ -159,7 +176,9 @@ def load_runtime_config(
         "project_name": system["project"]["name"],
         "worker_type": system["worker"]["type"],
         "system_config": system["config_path"],
-        "default_config": str(default_path),
+        "global_default_config": str(global_default_path),
+        "local_default_config": str(local_default_path),
+        "local_default_loaded": local_default_loaded,
         "profile_config": str(profile_path.resolve()),
         "scenario_config": str(scenario_path.resolve()),
         **paths,

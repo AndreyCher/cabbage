@@ -1,14 +1,14 @@
 # Scenario Guide — v0.5.15
 
-> Component root: `worker-firefox/`. Paths and commands in this document are relative to that directory unless stated otherwise.
+> Component files live in `workers/worker-firefox/`. Run Docker Compose commands from the repository root; file paths in this document are relative to the component directory unless stated otherwise.
 
 This file is the practical reference for writing scenario `actions`. Every currently registered action has a purpose, parameter summary, and copy-ready JSON example. `CONFIG.md` remains the broader configuration reference; `API.md` documents runtime input delivery; `PLUGINS.md` documents adapters.
 
 ## Scenario file shape — v0.5.19
 
-Each scenario is stored in its own file under `paths.scenarios_dir` (supplied layout: `config/scenarios/`).
+Shared scenarios are stored under `workers/config/scenarios/`. A worker may provide a same-named file under its local `config/scenarios/`; when present, that file replaces the shared scenario completely. Scenario contents and `actions` arrays are not merged.
 
-Example `config/scenarios/example.json`:
+Example worker-local `workers/worker-firefox/config/scenarios/example.json`:
 
 ```json
 {

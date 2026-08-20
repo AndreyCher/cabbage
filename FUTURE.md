@@ -1,6 +1,6 @@
 # Future / Roadmap
 
-> Component root: `worker-firefox/`. Paths and commands in this document are relative to that directory unless stated otherwise.
+> Firefox worker files live in `workers/worker-firefox/`. Application commands are run from the repository root.
 
 This file contains only work that is **not yet implemented** in the current release. Implemented functionality belongs in README/CONFIG/SCENARIO/API/PLUGINS/CHANGELOG and must be removed from this roadmap after release.
 
@@ -21,7 +21,7 @@ Remaining ideas:
 
 ## Scenario framework enhancements
 
-Current modular actions are documented in `worker-firefox/SCENARIO.md`.
+Current modular actions are documented in `workers/worker-firefox/SCENARIO.md`.
 
 Potential additions when real scenarios require them:
 - URL/title/predicate-based tab selection;
@@ -106,7 +106,7 @@ global defaults
       -> action override
 ```
 
-Audit delays, timeouts, retries, counts/ranges, `mouse_press.hold_ms`, webhook/wait-input behavior, cleanup/watchdog timing and plugin defaults. `worker-firefox/CONFIG.md` becomes authoritative for these values.
+Audit delays, timeouts, retries, counts/ranges, `mouse_press.hold_ms`, webhook/wait-input behavior, cleanup/watchdog timing and plugin defaults. `workers/worker-firefox/CONFIG.md` becomes authoritative for these values.
 
 ## Unscheduled: phase-specific click/mouse timeouts and watchdog cleanup
 
@@ -124,4 +124,4 @@ After watchdog interruption, normalize/drain the pending Playwright operation so
 
 ## Documentation policy
 
-Every release must synchronize the component README/changelog/reference documents, global `README.md` and `CHANGELOG.md`, `FUTURE.md`, `FUTURE_BOT.md`, and `AGENT.md` as applicable. For `worker-firefox`, this includes `worker-firefox/README.md`, `worker-firefox/CONFIG.md`, `worker-firefox/SCENARIO.md`, `worker-firefox/API.md`, `worker-firefox/PLUGINS.md`, `worker-firefox/CHANGELOG.md`, and `worker-firefox/RELEASE_NOTES.md`. `FUTURE.md` must contain only unimplemented work; completed roadmap items are moved to implementation/history documentation.
+Every release must synchronize the component README/changelog/reference documents, global `README.md` and `CHANGELOG.md`, `FUTURE.md`, `FUTURE_BOT.md`, and `AGENT.md` as applicable. For `worker-firefox`, this includes the documents under `workers/worker-firefox/`: `README.md`, `CONFIG.md`, `SCENARIO.md`, `API.md`, `PLUGINS.md`, `CHANGELOG.md`, and `RELEASE_NOTES.md`. `FUTURE.md` must contain only unimplemented work; completed roadmap items are moved to implementation/history documentation.

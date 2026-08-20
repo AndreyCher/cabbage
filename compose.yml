@@ -1,5 +1,5 @@
 include:
-  - path: ./worker-firefox/docker-compose.yml
+  - path: ./workers/worker-firefox/docker-compose.yml
 
 services:
   data-provider:

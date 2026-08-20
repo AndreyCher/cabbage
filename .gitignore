@@ -11,8 +11,8 @@ __pycache__/
 venv/
 
 # Runtime artifacts
-worker-firefox/artifacts/
-worker-firefox/identities/
+workers/worker-firefox/artifacts/
+workers/worker-firefox/identities/
 
 # Logs
 *.log

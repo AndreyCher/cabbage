@@ -1,5 +1,11 @@
 # web-console changelog
 
+## 0.1.1-dev
+
+- Synchronized the console documentation and root deployment workflow with the modular `workers/` layout.
+- Kept runtime component discovery based on the global `config/components.json` registry.
+- Revalidated the production frontend image against the updated root Compose application.
+
 ## 0.1.0-dev
 
 - Added the first React 19 and TypeScript control-plane interface using Material UI.
