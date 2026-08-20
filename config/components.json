@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "components": {
+    "worker-firefox": {
+      "enabled": true,
+      "type": "worker",
+      "display_name": "Firefox Worker",
+      "description": "Browser automation runtime",
+      "api": {
+        "base_url": "http://worker-firefox:8090",
+        "health_path": "/api/v1/health",
+        "console_proxy_path": "/api/worker",
+        "version": "v1"
+      }
+    },
+    "data-provider": {
+      "enabled": true,
+      "type": "data-provider",
+      "display_name": "Data Provider",
+      "description": "Worker data resolution",
+      "api": {
+        "base_url": "http://data-provider:8080",
+        "health_path": "/api/v1/health",
+        "console_proxy_path": "/api/data-provider",
+        "version": "v1"
+      }
+    },
+    "web-console": {
+      "enabled": true,
+      "type": "frontend",
+      "display_name": "Web Console",
+      "description": "Operator control-plane interface",
+      "api": {
+        "base_url": "http://web-console"
+      }
+    },
+    "controller": {
+      "enabled": false,
+      "type": "controller",
+      "display_name": "Controller",
+      "description": "Future worker orchestration control plane",
+      "api": {
+        "base_url": "http://controller:8000",
+        "health_path": "/api/v1/health",
+        "console_proxy_path": "/api/controller",
+        "version": "v1"
+      }
+    }
+  }
+}

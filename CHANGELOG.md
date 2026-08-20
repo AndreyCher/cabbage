@@ -9,6 +9,13 @@ This is the global release history for all application components. Component cha
 
 ## Component releases
 
+### web-console 0.1.0-dev
+
+- Released the first React/TypeScript and Material UI control-plane interface.
+- Added a live component overview backed by the global component registry and temporary Nginx API proxies.
+- Added collapsible navigation, system/light/dark appearance modes and a module extension contract for pages, menu entries and settings.
+- Detailed history: `web-console/CHANGELOG.md`.
+
 ### data-provider 0.1.0
 
 - Promoted the worker-local webhook mock into a standalone, independently versioned data-resolution component.

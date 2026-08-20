@@ -13,3 +13,14 @@ services:
       - "127.0.0.1:8080:8080"
     volumes:
       - ./data-provider/config:/config:ro
+      - ./config/components.json:/etc/cabbage/components.json:ro
+
+  web-console:
+    build:
+      context: ./web-console
+      dockerfile: Dockerfile
+    profiles: ["web-console"]
+    ports:
+      - "0.0.0.0:3000:80"
+    volumes:
+      - ./config/components.json:/usr/share/nginx/html/runtime/components.json:ro

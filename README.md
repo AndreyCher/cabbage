@@ -2,6 +2,8 @@
 
 This directory is the current source of truth for the application and its independently versioned components.
 
+`config/components.json` is the temporary global component/API registry. It contains internal service addresses, API versions and health paths while the Controller/service-discovery layer is not yet implemented.
+
 `cabbage` is an internal configurable project codename. Public component names, APIs, Docker resources and environment variables remain neutral and must not be derived from this codename.
 
 ## Components
@@ -40,6 +42,15 @@ Standalone data-resolution service used by automated workers. The initial backen
 - Code and component documentation: `data-provider/`
 - Overview: `data-provider/README.md`
 - Detailed component history: `data-provider/CHANGELOG.md`
+
+### web-console
+
+Current development release: **0.1.0-dev**
+
+React/TypeScript control-plane interface using Material UI. The first development release provides a responsive infrastructure overview, live component health cards, collapsible navigation, selectable appearance modes and an extension registry for frontend modules.
+
+- Code and documentation: `web-console/`
+- Detailed component history: `web-console/CHANGELOG.md`
 
 ## Documentation ownership
 
