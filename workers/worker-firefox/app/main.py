@@ -552,7 +552,7 @@ def main() -> int:
         summary["message"] = str(exc)
         if exc.details:
             summary["proxy_error"] = exc.details
-        runtime.set_status("failed")
+        runtime.set_failure(exc.reason, str(exc))
         logger.error("Proxy error: %s", str(exc))
         logger.error("Reason: %s", exc.reason)
     except FatalActionError as exc:
@@ -560,7 +560,7 @@ def main() -> int:
         summary["reason"] = exc.reason
         summary["message"] = str(exc)
         summary.update(exc.details)
-        runtime.set_status("failed")
+        runtime.set_failure(exc.reason, str(exc))
         logger.error(
             "Scenario stopped: %s (reason=%s)",
             str(exc), exc.reason,
@@ -572,14 +572,14 @@ def main() -> int:
             summary["reason"] = proxy_error.reason
             summary["message"] = str(proxy_error)
             summary["error"] = repr(exc)
-            runtime.set_status("failed")
+            runtime.set_failure(proxy_error.reason, str(proxy_error))
             logger.error("Proxy error: %s", str(proxy_error))
             logger.error("Reason: %s", proxy_error.reason)
         else:
             summary["status"] = "FAIL"
             summary["reason"] = "unexpected_error"
             summary["error"] = repr(exc)
-            runtime.set_status("failed")
+            runtime.set_failure("unexpected_error", repr(exc))
             logger.exception("Scenario failed due to unexpected error")
     finally:
         if not cfg.get("recording", {}).get("video", False):

@@ -223,7 +223,8 @@ class ActionEngine:
                         index, action_type, exc.reason, str(exc),
                     )
                 else:
-                    data = {"error": repr(exc)}
+                    message = f"Action {index:03d} {action_type!r} failed: {str(exc) or type(exc).__name__}"
+                    data = {"error": message, "reason": "action_failed", "error_type": type(exc).__name__}
                     self.logger.exception("FAIL   %03d %-20s", index, action_type)
 
                 continue_on_error = bool(action.get("continue_on_error", self.continue_on_error_default))
@@ -235,7 +236,11 @@ class ActionEngine:
                 if continue_on_error:
                     self.logger.warning("CONTINUE %03d %-20s after failure", index, action_type)
                     continue
-                raise
+                raise FatalActionError(
+                    message,
+                    reason="action_failed",
+                    details={**data, "failed_action": index, "action_type": action_type},
+                ) from exc
 
             results.append(self._result(index, action, status, started, data))
         return results

@@ -32,6 +32,13 @@ type Service = RegistryComponent & {
 
 const drawerWidth = 248
 const collapsedDrawerWidth = 72
+const pageIds = new Set([...consoleModules.flatMap((module) => module.pages ?? []).map((page) => page.id), 'settings'])
+
+function pageFromLocation() {
+  const page = decodeURIComponent(window.location.hash.replace(/^#\/?/, ''))
+  return pageIds.has(page) ? page : 'overview'
+}
+
 const presentation: Record<string, { icon: typeof DataObjectRounded; accent: string }> = {
   worker: { icon: WebRounded, accent: '#ea580c' },
   'data-provider': { icon: StorageRounded, accent: '#7c3aed' },
@@ -42,7 +49,7 @@ const presentation: Record<string, { icon: typeof DataObjectRounded; accent: str
 function App() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('cabbage.sidebar.collapsed') === 'true')
-  const [activePage, setActivePage] = useState('overview')
+  const [activePage, setActivePage] = useState(pageFromLocation)
   const [loading, setLoading] = useState(true)
   const [health, setHealth] = useState<Record<string, Health | null>>({})
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null)
@@ -52,7 +59,11 @@ function App() {
   const pages = consoleModules.flatMap((module) => module.pages ?? [])
   const settingsSections = consoleModules.flatMap((module) => module.settings ?? [])
   const desktopWidth = collapsed ? collapsedDrawerWidth : drawerWidth
-  const selectPage = (id: string) => { setActivePage(id); setMobileOpen(false) }
+  const selectPage = (id: string) => {
+    setActivePage(id)
+    setMobileOpen(false)
+    if (window.location.hash !== `#/${id}`) window.history.pushState(null, '', `#/${id}`)
+  }
   const toggleCollapsed = () => setCollapsed((value) => {
     localStorage.setItem('cabbage.sidebar.collapsed', String(!value))
     return !value
@@ -94,6 +105,15 @@ function App() {
   }, [])
 
   useEffect(() => { void refresh() }, [refresh])
+  useEffect(() => {
+    const restorePage = () => setActivePage(pageFromLocation())
+    window.addEventListener('hashchange', restorePage)
+    window.addEventListener('popstate', restorePage)
+    return () => {
+      window.removeEventListener('hashchange', restorePage)
+      window.removeEventListener('popstate', restorePage)
+    }
+  }, [])
 
   const navigation = (compact = false) => (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -103,14 +123,15 @@ function App() {
       </Toolbar>
       <Divider />
       <List sx={{ px: compact ? 1 : 1.5, py: 2 }}>
-        {pages.map(({ id, label, icon: Icon }) => (
-          <Tooltip key={id} title={compact ? label : ''} placement="right">
-            <ListItemButton onClick={() => selectPage(id)} selected={activePage === id} sx={{ borderRadius: 2, mb: .5, minHeight: 44, justifyContent: compact ? 'center' : 'initial' }}>
+        {pages.map((page) => {
+          const { id, label, icon: Icon } = page
+          return <Tooltip key={id} title={compact ? label : ''} placement="right">
+            <ListItemButton onClick={() => selectPage(id)} selected={activePage === id} sx={{ borderRadius: 2, mb: .5, minHeight: 44, pl: compact ? 2 : page.parentId ? 4 : 2, justifyContent: compact ? 'center' : 'initial' }}>
               <ListItemIcon sx={{ minWidth: compact ? 0 : 38, justifyContent: 'center' }}><Icon fontSize="small" /></ListItemIcon>
               {!compact && <ListItemText primary={label} primaryTypographyProps={{ fontSize: 14, fontWeight: activePage === id ? 700 : 500 }} />}
             </ListItemButton>
           </Tooltip>
-        ))}
+        })}
       </List>
       <Box sx={{ mt: 'auto', p: 1.5 }}>
         <Tooltip title={compact ? 'Settings' : ''} placement="right"><ListItemButton selected={activePage === 'settings'} onClick={() => selectPage('settings')} sx={{ borderRadius: 2, justifyContent: compact ? 'center' : 'initial' }}><ListItemIcon sx={{ minWidth: compact ? 0 : 38, justifyContent: 'center' }}><SettingsRounded fontSize="small" /></ListItemIcon>{!compact && <ListItemText primary="Settings" />}</ListItemButton></Tooltip>
@@ -150,7 +171,7 @@ function App() {
           </> : activePage !== 'overview' ? (() => { const Page = pages.find((page) => page.id === activePage)?.component; return Page ? <Page /> : null })() : <>
           <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" gap={2} mb={4}>
             <Box><Typography variant="h4">System overview</Typography><Typography color="text.secondary" mt={.5}>Operate workers, scenarios and their data sources.</Typography></Box>
-            <Button variant="contained" startIcon={<PlayArrowRounded />} sx={{ alignSelf: { xs: 'stretch', sm: 'center' } }}>Create run</Button>
+            <Button onClick={() => selectPage('workers')} variant="contained" startIcon={<PlayArrowRounded />} sx={{ alignSelf: { xs: 'stretch', sm: 'center' } }}>Create run</Button>
           </Stack>
           {registryError && <Card sx={{ mb: 3, borderColor: '#f59e0b' }}><CardContent><Typography color="warning.main">Component registry is unavailable. Check `/runtime/components.json`.</Typography></CardContent></Card>}
 

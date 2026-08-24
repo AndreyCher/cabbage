@@ -46,7 +46,7 @@
     },
     {
       "type": "click_link_by_index",
-      "selector": "#mw-content-text a[href^='/wiki/']",
+      "selector": "#mw-content-text .mw-parser-output p a[href]",
       "index": 3
     },
     {

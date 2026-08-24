@@ -1,40 +1,33 @@
-# Release Notes — worker-firefox v0.5.23
+# Release Notes — worker-firefox v0.5.26
 
-## Modular worker layout
+## Reliable random mouse behavior
 
-The component now lives at `workers/worker-firefox/`, leaving the `workers/` namespace ready for additional implementations such as `worker-android`.
+`mouse_move_random` now uses bounded DOM mouse events by default. This avoids the
+Camoufox v152 native IPC stall while preserving observable cursor movement for
+page scripts and recordings. Native Camoufox movement remains available through
+the explicit `"method": "native"` action option. `count` is validated in the
+range 1–100.
 
-The preferred integrated workflow runs from the repository root:
+## Readable action failures
 
-```bash
-docker compose build worker-firefox
-docker compose up worker-firefox
-WORKER_DEBUG_PROFILE=test-user-001-debug docker compose --profile debug up worker-firefox-debug
-```
+Action failures now have a stable structured shape for operators and the
+Controller. Instead of exposing raw Python exceptions, normal output includes a
+short reason, action number and relevant context; technical tracebacks remain in
+debug logs.
 
-`worker-firefox` remains intentionally autonomous and supports the same commands from its component directory.
+`click_link_by_index` distinguishes:
 
-## Shared configuration
+- `selector_no_matches` when the selector finds no links;
+- `link_index_out_of_range` when the requested index exceeds the match count.
 
-Shared worker configuration now lives under `workers/config/`:
+## Immutable UBO layer
 
-```text
-workers/config/default.json
-workers/config/scenarios/*.json
-```
+The runtime uses `worker-firefox-base:152.0.4-beta.28-ubo1`, with UBlock Origin
+1.73.0 installed in the Camoufox addon cache and verified by SHA-256 during the
+image build. Ephemeral workers no longer download and extract UBO on every run.
 
-The shared default is required. `workers/worker-firefox/config/default.json` is optional and is deep-merged over it when present. Profiles remain local to the concrete worker.
+## Verification
 
-Scenario resolution uses complete file replacement: a local file under `workers/worker-firefox/config/scenarios/` wins over a same-named shared file. Scenario files and action arrays are never merged.
-
-## Artifact layout
-
-Runs are now written without the redundant `results/` level:
-
-```text
-workers/worker-firefox/artifacts/<identity>/<scenario>/<run-id>/
-```
-
-Existing artifacts were migrated without deleting historical run data.
-
-This release is verified by 61 unit tests, root and autonomous Docker builds, standalone configuration resolution, and a healthy Control API startup.
+This release is covered by 64 unit tests. The active database scenario
+`example:2` also passed all 24 actions end to end and produced four screenshots
+and three videos.

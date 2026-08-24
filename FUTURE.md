@@ -48,9 +48,13 @@ Implemented naming baseline:
 
 Future components should follow this neutral naming scheme.
 
-## Planned Controller / orchestration layer
+## Controller / orchestration enhancements
 
-After the browser worker is stable, introduce a separate **Controller** control-plane service.
+Controller v0.1 implements the initial local Docker control plane. Remaining work
+includes multi-controller coordination, MinIO/S3 artifacts, an external log
+archiver, a visual scenario builder, a complete proxy editor and a remote Docker executor.
+
+The implemented boundary remains:
 
 ```text
 External systems / future UI
@@ -89,10 +93,6 @@ Approved direction:
 
 Accept stable country data (prefer ISO 3166-1 alpha-2) through the Control API and provide a robust selection mechanism for custom Fluent UI dropdowns. Do not depend on generated `fluent-optionNNNN` IDs.
 
-## Unscheduled: centralized Playwright error normalization
-
-Create one normalization layer for selector/frame/browser-operation errors. Strict-mode multiple matches, missing/detached frames, invalid selectors, closed targets and related Playwright failures should produce concise structured reasons in normal logs; full tracebacks remain debug/trace diagnostics.
-
 ## Unscheduled: centralized configurable runtime defaults
 
 Move operator-tunable defaults out of Python fallback literals and into validated configuration.
@@ -108,9 +108,10 @@ global defaults
 
 Audit delays, timeouts, retries, counts/ranges, `mouse_press.hold_ms`, webhook/wait-input behavior, cleanup/watchdog timing and plugin defaults. `workers/worker-firefox/CONFIG.md` becomes authoritative for these values.
 
-## Unscheduled: phase-specific click/mouse timeouts and watchdog cleanup
+## Unscheduled: phase-specific physical click timeouts and watchdog cleanup
 
-A rare intermittent stall in `page.mouse.move()` / native humanize predates v0.5.18.
+The v0.5.25 bounded default fixed `mouse_move_random`; physical click can still
+opt into native `page.mouse.move()` and needs finer phase diagnostics.
 
 Split physical click diagnostics into:
 1. selector / wait-visible;

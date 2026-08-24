@@ -344,11 +344,11 @@ Camoufox owns the humanized trajectory. Legacy `duration` and `steps` values are
 
 ## 12. `mouse_move_random`
 
-**Purpose:** make several random physical pointer movements inside the viewport.
+**Purpose:** emit several bounded random mouse movements inside the viewport.
 
 **Required:** none.
 
-**Optional:** `count` (default `3`).
+**Optional:** `count` (default `3`, range `1..100`), `method` = `dom|native` (default `dom`).
 
 ```json
 {
@@ -358,6 +358,11 @@ Camoufox owns the humanized trajectory. Legacy `duration` and `steps` values are
 ```
 
 Useful for generic human-like activity when no DOM target is required.
+
+`dom` is the safe default and dispatches bounded mouse events in the page. It
+avoids a Camoufox v152 issue where native synchronous `page.mouse.move()` can
+block indefinitely. Use `native` only when a physical Camoufox cursor movement
+is explicitly required and the selected browser build is known to be stable.
 
 ---
 
@@ -688,15 +693,20 @@ Keep template paths consistent with the actual JSON payload received/stored.
 
 # Engine-level error policy
 
-The action engine supports its existing run/debug failure behavior independently of the action-specific parameters documented above. Some integrations also have their own policies, such as `wait_input.on_timeout` and `webhook.on_error`.
-
-A future centralized Playwright error-normalization layer is documented in `../FUTURE.md` / `../FUTURE_BOT.md`; it is not yet implemented.
+The action engine normalizes failures into structured user-readable errors.
+Controlled errors preserve a stable `reason`, action number/type and relevant
+fields. `click_link_by_index`, for example, returns `selector_no_matches` or
+`link_index_out_of_range` with selector, matched count and requested index.
+Unexpected implementation exceptions become `action_failed`; their traceback
+remains in the technical run log instead of leaking through Controller status.
+Some integrations retain their own policies, such as `wait_input.on_timeout`
+and `webhook.on_error`.
 
 # Duplication / API review notes
 
 - `click_link_by_index` overlaps conceptually with `click`; future generic `click.index` can replace it after migration.
 - `click(method=mouse)`, `hover`, and `mouse_press` intentionally remain separate scenario actions because their user-visible semantics differ, even though they share target-resolution/mouse-movement logic internally.
-- `mouse_move_random` is intentionally a convenience action over generic physical pointer movement.
+- `mouse_move_random` is intentionally a convenience action over bounded DOM movement, with native movement available only as an explicit opt-in.
 - Future refactoring should share selector/frame/bounding-box/offset resolution internally rather than collapsing these readable scenario actions into one overloaded action.
 
 

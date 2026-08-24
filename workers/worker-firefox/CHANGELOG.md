@@ -2,6 +2,22 @@
 
 > Component files live in `workers/worker-firefox/`. Docker Compose commands are run from the repository root.
 
+## 0.5.26
+
+- Replaced raw `RuntimeError`/`unexpected_error` output for scenario actions with structured, user-readable `FatalActionError` messages.
+- Added explicit `selector_no_matches` and `link_index_out_of_range` failures with selector, matched count, requested index, and action number.
+
+## 0.5.25
+
+- Prevented Camoufox v152 native cursor stalls from failing `mouse_move_random`; bounded DOM mouse events are now the safe default and `method: native` remains opt-in.
+- Exposed structured worker failure reason/message through the runtime control API.
+- Updated the versioned `example` scenario's Wikipedia link selector for the current relative-link DOM.
+
+## 0.5.24
+
+- Switched to `worker-firefox-base:152.0.4-beta.28-ubo1` with SHA-256-verified UBO 1.73.0 preinstalled in the Camoufox addon cache.
+- Removed per-run UBO download and extraction from ephemeral Controller workers.
+
 ## 0.5.23
 
 - Moved the component from `worker-firefox/` to `workers/worker-firefox/` to support future worker types such as `worker-android`.

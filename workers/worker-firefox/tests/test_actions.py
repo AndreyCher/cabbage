@@ -4,7 +4,7 @@ import logging
 import tempfile
 import time
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from pathlib import Path
 
 from app.actions import ActionEngine, ScenarioContext, registry
@@ -46,10 +46,16 @@ class FakePage:
         self.url = url
         self.mouse = FakeMouse()
         self.brought_to_front = False
+        self.evaluations = []
     def bring_to_front(self):
         self.brought_to_front = True
     def wait_for_timeout(self, timeout_ms):
         time.sleep(timeout_ms / 1000.0)
+    def evaluate(self, script, arg=None):
+        if "innerWidth" in script:
+            return {"w": 800, "h": 600}
+        self.evaluations.append((script, arg))
+        return None
 
 
 class FakeBrowserContext:
@@ -78,6 +84,12 @@ class BlockingAction:
     def execute(self, ctx, action, index):
         time.sleep(5)
         return {}
+
+
+class ExplodingAction:
+    name = "exploding"
+    def execute(self, ctx, action, index):
+        raise RuntimeError("low-level detail")
 
 
 class ActionFrameworkTests(unittest.TestCase):
@@ -164,12 +176,43 @@ class ActionFrameworkTests(unittest.TestCase):
         self.assertEqual(results[0]["data"], {"delta_x": 12, "delta_y": -34})
         self.assertEqual(browser.pages[0].mouse.wheels, [(12, -34)])
 
-    def test_unknown_action_keeps_fail_fast_behavior(self):
+    def test_random_mouse_move_defaults_to_bounded_dom_events(self):
+        browser = FakeBrowserContext()
+        with tempfile.TemporaryDirectory() as tmp:
+            engine = ActionEngine(browser, Path(tmp), logging.getLogger("test-random-mouse"))
+            results = engine.run([{"type": "mouse_move_random", "count": 4}])
+        self.assertEqual(results[0]["status"], "PASS")
+        self.assertEqual(results[0]["data"]["movement"], "dom_random")
+        self.assertEqual(len(results[0]["data"]["points"]), 4)
+        self.assertEqual(len(browser.pages[0].evaluations), 1)
+
+    def test_click_link_no_matches_is_a_structured_readable_failure(self):
+        page = MagicMock()
+        page.locator.return_value.count.return_value = 0
+        handler = registry.get("click_link_by_index")
+        with self.assertRaises(FatalActionError) as caught:
+            handler.execute(MagicMock(ensure_page=MagicMock(return_value=page)), {"selector": ".missing", "index": 2}, 9)
+        self.assertEqual(caught.exception.reason, "selector_no_matches")
+        self.assertEqual(caught.exception.details["matched_count"], 0)
+        self.assertIn("Action 009", str(caught.exception))
+
+    def test_engine_normalizes_unexpected_action_exception(self):
+        browser = FakeBrowserContext()
+        with tempfile.TemporaryDirectory() as tmp:
+            engine = ActionEngine(browser, Path(tmp), logging.getLogger("test-normalized-error"))
+            with patch.object(registry, "get", return_value=ExplodingAction()):
+                with self.assertRaises(FatalActionError) as caught:
+                    engine.run([{"type": "exploding"}])
+        self.assertEqual(caught.exception.reason, "action_failed")
+        self.assertIn("Action 001 'exploding' failed: low-level detail", str(caught.exception))
+
+    def test_unknown_action_is_normalized_and_keeps_fail_fast_behavior(self):
         browser = FakeBrowserContext()
         with tempfile.TemporaryDirectory() as tmp:
             engine = ActionEngine(browser, Path(tmp), logging.getLogger("test"))
-            with self.assertRaisesRegex(ValueError, "Unsupported action type"):
+            with self.assertRaisesRegex(FatalActionError, "Unsupported action type") as caught:
                 engine.run([{"type": "does_not_exist"}])
+        self.assertEqual(caught.exception.reason, "action_failed")
 
     def test_engine_watchdog_interrupts_stuck_timeout_action(self):
         browser = FakeBrowserContext()
@@ -330,10 +373,11 @@ class SelectActionTests(unittest.TestCase):
         browser = FakeSelectBrowserContext(page)
         with tempfile.TemporaryDirectory() as tmp:
             engine = ActionEngine(browser, Path(tmp), logging.getLogger('select-invalid'))
-            with self.assertRaisesRegex(ValueError, "exactly one"):
+            with self.assertRaisesRegex(FatalActionError, "exactly one") as caught:
                 engine.run([{
                     'type': 'select', 'selector': '#country', 'value': 'DE', 'label': 'Germany'
                 }])
+        self.assertEqual(caught.exception.reason, "action_failed")
 
 
 class WebhookActionTests(unittest.TestCase):

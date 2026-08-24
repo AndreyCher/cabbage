@@ -4,7 +4,7 @@ Standalone source builder for immutable base images consumed by `worker-firefox`
 
 Paths and commands in this document are relative to the current `tools/firefox-image-builder/` directory unless stated otherwise.
 
-Version: **0.2.1**
+Version: **0.3.0**
 
 Unlike v0.1.0, this tool does **not** require a prebuilt `camoufox-custom.zip` or a manually supplied `SOURCE_COMMIT`.
 
@@ -58,34 +58,61 @@ find
 
 The heavy Firefox compiler dependencies run inside Camoufox's official builder image.
 
+Before cloning sources, `build.sh` verifies that the Docker daemon and Buildx
+are available, the Docker architecture is `x86_64`, and the reported CPU and
+memory values are valid. Explicit environment values take precedence over the
+version file, so one-off overrides work as expected:
+
+```bash
+BUILD_JOBS=1 REBUILD_BUILDER=true ./build.sh versions/152.0.4-beta.28.env
+```
+
 ### Automatic resource tuning
 
 Before compilation, `build.sh` detects the CPU count and memory available to
 the Docker daemon. Firefox build parallelism is capped by both resources. By
-default, the builder reserves 1024 MiB for the operating system/build
-orchestration and budgets 2048 MiB for each compiler job. This is deliberately
-conservative because individual optimized Rust and C++ compilation units can
-use substantially more than Firefox's default estimate.
+default, the builder reserves 2048 MiB for the operating system/build
+orchestration and budgets 10240 MiB for each compiler job. The larger per-job
+budget accounts for Firefox's final Rust LTO stages, where one `rustc` process
+can exceed 9 GiB RSS. An unsafe explicit job count is rejected before Firefox
+compilation starts.
 
 The version file can override the policy:
 
 ```text
 BUILD_JOBS="auto"
-BUILD_MEMORY_RESERVE_MIB="1024"
-BUILD_MEMORY_PER_JOB_MIB="2048"
+BUILD_MEMORY_RESERVE_MIB="2048"
+BUILD_MEMORY_PER_JOB_MIB="10240"
 ```
 
 Set `BUILD_JOBS` to a positive integer only when a fixed value is intentional.
 The effective values are printed before compilation. For example, a Docker
-environment with 4 CPUs and 4096 MiB selects one build job with the defaults,
-avoiding OOM kills from four concurrent compiler processes.
+environment with 12 CPUs and 16 GiB selects one build job with the defaults,
+avoiding OOM kills during Rust LTO.
 
 Camoufox's `multibuild.py` does not expose Firefox's jobs option. The builder
 therefore adjusts the cloned temporary checkout's Makefile to pass the
 calculated value as `mach build -jN`. The upstream repository is not modified.
 
+### Reproducible toolchain and compatibility preflight
+
+Known version files pin both the Camoufox source-builder base image and Rust:
+
+```text
+SOURCE_BUILDER_BASE_IMAGE="ubuntu:24.04"
+RUST_TOOLCHAIN="nightly-2026-07-01"
+```
+
+The builder rewrites Camoufox's floating `ubuntu:latest` and default rustup
+toolchain only in the temporary checkout. Before Firefox compilation it verifies
+the active Rust toolchain, the required `x86_64-unknown-linux-gnu` target and
+the absence of the incompatible `x86_64-oe-linux-gnu` target. Unexpected
+upstream Dockerfile structure, insufficient Docker memory, or an incompatible
+toolchain fails early instead of after a partial Firefox build.
+
 The source-builder image uses a deterministic tag derived from the Camoufox
-commit, browser version, target and resource-policy revision. By default this
+commit, browser version, target, pinned build dependencies and resource-policy
+revision. By default this
 multi-gigabyte intermediate image is removed when the invocation finishes,
 because a browser version is normally compiled only once. Set
 `KEEP_BUILDER_IMAGE="true"` to retain it for an expected repeat build or for
@@ -137,10 +164,10 @@ CAMOUFOX_REF=v152.0.4-beta.28
 
 The builder clones the Camoufox repository, checks out that ref and reads Firefox/release values from the checked-out `upstream.sh`.
 
-Expected output image:
+Expected output image (including the pinned UBO layer):
 
 ```text
-worker-firefox-base:152.0.4-beta.28
+worker-firefox-base:152.0.4-beta.28-ubo1
 ```
 
 ## Build another officially supported Firefox/Camoufox version
@@ -268,6 +295,11 @@ No intermediate `camoufox-custom.zip` is required from the operator.
 ```text
 /opt/camoufox-custom/
 ```
+
+It also downloads the exact UBO release declared by `UBO_VERSION` and
+`UBO_URL`, verifies `UBO_SHA256`, and extracts it into Camoufox's shared addon
+cache at `/root/.cache/camoufox/addons/UBO`. Worker containers therefore do not
+download or extract the default addon during startup.
 
 The automatically captured source commit is stored at:
 

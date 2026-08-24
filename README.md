@@ -2,7 +2,7 @@
 
 This directory is the current source of truth for the application and its independently versioned components.
 
-`config/components.json` is the temporary global component/API registry. It contains internal service addresses, API versions and health paths while the Controller/service-discovery layer is not yet implemented.
+`config/components.json` is the global component/API registry used by Web Console for health discovery and internal proxy routing. Controller is the implemented control plane for workers; distributed service discovery remains future work.
 
 `workers/config/` contains configuration shared by worker types: the required global `default.json` and reusable scenarios. A concrete worker may optionally override defaults and fully replace individual scenarios in its own `config/` directory.
 
@@ -12,7 +12,7 @@ This directory is the current source of truth for the application and its indepe
 
 ### worker-firefox
 
-Current version: **0.5.23**
+Current version: **0.5.26**
 
 Firefox/Camoufox execution worker with modular scenario actions, plugin adapters, persistent Identity profiles, recording/debug support and a per-worker Control API.
 
@@ -23,9 +23,9 @@ Firefox/Camoufox execution worker with modular scenario actions, plugin adapters
 
 ### firefox-image-builder
 
-Current version: **0.2.0**
+Current version: **0.3.0**
 
-Standalone source builder for immutable `worker-firefox-base:<browser-version>` images. It owns the Camoufox source checkout, Firefox/Camoufox compilation, browser packaging and embedded source provenance.
+Standalone source builder for immutable `worker-firefox-base:<browser-version>` images. It owns Camoufox compilation, browser provenance and pinned addon layers. The current base `worker-firefox-base:152.0.4-beta.28-ubo1` includes SHA-256-verified UBO 1.73.0.
 
 - Code and component documentation: `tools/firefox-image-builder/`
 - Overview: `tools/firefox-image-builder/README.md`
@@ -33,7 +33,13 @@ Standalone source builder for immutable `worker-firefox-base:<browser-version>` 
 
 ### controller
 
-Planned control-plane component. It will own queues, run state, worker assignment and the external application API. It is not implemented yet; the approved direction is documented in `FUTURE.md` and `FUTURE_BOT.md`.
+Current version: **0.1.8**
+
+FastAPI control plane with authenticated API, PostgreSQL history/configuration,
+Redis queue/live state, resource-aware Docker scheduling and disposable workers.
+
+- Code and documentation: `controller/`
+- SQL migrations: `databases/postgres/migrations/`
 
 ### data-provider
 
@@ -47,9 +53,9 @@ Standalone data-resolution service used by automated workers. The initial backen
 
 ### web-console
 
-Current development release: **0.1.1-dev**
+Current development release: **0.1.16-dev**
 
-React/TypeScript control-plane interface using Material UI. The first development release provides a responsive infrastructure overview, live component health cards, collapsible navigation, selectable appearance modes and an extension registry for frontend modules.
+React/TypeScript control-plane interface using Material UI. It provides Controller-backed worker queue/history, versioned scenario and Identity management, Create Run, live logs, sorting, persisted navigation, settings and service health.
 
 - Code and documentation: `web-console/`
 - Detailed component history: `web-console/CHANGELOG.md`
@@ -74,6 +80,26 @@ Run integrated application Docker Compose commands from the repository root. The
 docker compose build worker-firefox
 docker compose up worker-firefox
 WORKER_DEBUG_PROFILE=test-user-001-debug docker compose --profile debug up worker-firefox-debug
+```
+
+Controller stack:
+
+```bash
+openssl rand -hex 32 > secrets/controller_api_token
+openssl rand 32 | openssl base64 -A | tr '+/' '-_' > secrets/controller_encryption_key
+docker compose build worker-firefox
+docker compose --profile controller --profile web-console up -d --build
+```
+
+Open `http://localhost:3000`, then save the value from
+`secrets/controller_api_token` under **Settings → Controller API**. Database
+migrations execute automatically during Controller startup. Detailed startup,
+status, log and shutdown commands are documented in `controller/README.md`.
+
+Print the Controller API token:
+
+```bash
+cat secrets/controller_api_token
 ```
 
 `worker-firefox` is intentionally the only current autonomous component. In addition to the preferred root workflow, it may be built and run directly from `workers/worker-firefox/`. Other components are not required to provide a standalone Compose workflow unless that requirement is explicitly introduced later.

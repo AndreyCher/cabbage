@@ -1,0 +1,21 @@
+# syntax=docker/dockerfile:1.7
+
+ARG WORKER_FIREFOX_BASE_IMAGE
+FROM ${WORKER_FIREFOX_BASE_IMAGE}
+
+ARG UBO_VERSION
+ARG UBO_URL
+ARG UBO_SHA256
+
+LABEL browser.addon.ubo.version="${UBO_VERSION}"
+
+RUN set -eux; \
+    test -n "${UBO_VERSION}"; \
+    test -n "${UBO_URL}"; \
+    test -n "${UBO_SHA256}"; \
+    mkdir -p /root/.cache/camoufox/addons/UBO; \
+    curl --fail --location --retry 3 --output /tmp/ubo.xpi "${UBO_URL}"; \
+    printf '%s  %s\n' "${UBO_SHA256}" /tmp/ubo.xpi | sha256sum --check --strict; \
+    unzip -q /tmp/ubo.xpi -d /root/.cache/camoufox/addons/UBO; \
+    test -s /root/.cache/camoufox/addons/UBO/manifest.json; \
+    rm -f /tmp/ubo.xpi

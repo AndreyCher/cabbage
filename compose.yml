@@ -2,6 +2,68 @@ include:
   - path: ./workers/worker-firefox/docker-compose.yml
 
 services:
+  postgres:
+    image: postgres:17-alpine
+    profiles: ["controller"]
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:-controller}"
+      POSTGRES_USER: "${POSTGRES_USER:-controller}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-controller-dev-password}"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - controller-postgres:/var/lib/postgresql/data
+
+  redis:
+    image: redis:8-alpine
+    profiles: ["controller"]
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - controller-redis:/data
+
+  controller:
+    build:
+      context: .
+      dockerfile: controller/Dockerfile
+    image: controller:0.1.8
+    profiles: ["controller"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["sh", "-c", "alembic upgrade head && python -m app.main"]
+    environment:
+      CONTROLLER_DATABASE_URL: "postgresql+asyncpg://${POSTGRES_USER:-controller}:${POSTGRES_PASSWORD:-controller-dev-password}@postgres:5432/${POSTGRES_DB:-controller}"
+      CONTROLLER_REDIS_URL: "redis://redis:6379/0"
+      CONTROLLER_DOCKER_HOST_ID: "${CONTROLLER_DOCKER_HOST_ID:-local}"
+      CONTROLLER_DOCKER_NETWORK: "cabbage-internal"
+      CONTROLLER_WORKER_IMAGE: "${CONTROLLER_WORKER_IMAGE:-worker-firefox:latest}"
+      CONTROLLER_MAX_CONCURRENT_RUNS: "${CONTROLLER_MAX_CONCURRENT_RUNS:-4}"
+      CONTROLLER_HOST_MEMORY_RESERVE_MB: "${CONTROLLER_HOST_MEMORY_RESERVE_MB:-2048}"
+      CONTROLLER_HOST_CPU_RESERVE: "${CONTROLLER_HOST_CPU_RESERVE:-1.0}"
+      CONTROLLER_WORKER_MEMORY_MB: "${CONTROLLER_WORKER_MEMORY_MB:-2048}"
+      CONTROLLER_WORKER_CPUS: "${CONTROLLER_WORKER_CPUS:-1.0}"
+      CONTROLLER_API_TOKEN_FILE: "/run/secrets/controller_api_token"
+      CONTROLLER_ENCRYPTION_KEY_FILE: "/run/secrets/controller_encryption_key"
+    ports:
+      - "127.0.0.1:8088:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - controller-runs:/controller-runs
+      - worker-identities:/identities
+      - worker-artifacts:/artifacts
+      - ./secrets/controller_api_token:/run/secrets/controller_api_token:ro
+      - ./secrets/controller_encryption_key:/run/secrets/controller_encryption_key:ro
+
   data-provider:
     build:
       context: ./data-provider
@@ -24,3 +86,17 @@ services:
       - "0.0.0.0:3000:80"
     volumes:
       - ./config/components.json:/usr/share/nginx/html/runtime/components.json:ro
+
+networks:
+  default:
+    name: cabbage-internal
+
+volumes:
+  controller-postgres:
+  controller-redis:
+  controller-runs:
+    name: cabbage-controller-runs
+  worker-identities:
+    name: cabbage-worker-identities
+  worker-artifacts:
+    name: cabbage-worker-artifacts

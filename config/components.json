@@ -35,12 +35,12 @@
       }
     },
     "controller": {
-      "enabled": false,
+      "enabled": true,
       "type": "controller",
       "display_name": "Controller",
-      "description": "Future worker orchestration control plane",
+      "description": "Worker orchestration control plane",
       "api": {
-        "base_url": "http://controller:8000",
+        "base_url": "http://controller:8080",
         "health_path": "/api/v1/health",
         "console_proxy_path": "/api/controller",
         "version": "v1"

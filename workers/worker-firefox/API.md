@@ -394,9 +394,9 @@ No Control API endpoint contract changed in v0.5.11. Scenario execution now rema
 The `webhook` scenario action is outbound and does not add a Control API endpoint. Its successful response is stored in the run's in-memory runtime context and can be consumed by later scenario actions through `{{webhook.<save_as>...}}`.
 
 
-## Future orchestration boundary
+## Controller orchestration boundary
 
-The current `/api/v1/identities/...` API is the Control API of a single browser worker. The approved future architecture introduces a separate Controller. In that architecture external systems will use the Controller API; worker Control APIs remain internal on the Docker network and the Controller routes run status and `wait_input` data to the worker assigned to each run. The public Controller request model will accept validated run/profile/scenario data rather than exposing arbitrary Docker parameters. See `../FUTURE.md` and `../FUTURE_BOT.md`.
+The `/api/v1/identities/...` API is the Control API of a single browser worker. External systems use the implemented Controller API; orchestrated worker Control APIs remain internal on the Docker network, and the Controller routes run status and `wait_input` data to the worker assigned to each run. The public Controller request model accepts validated run/profile/scenario data rather than arbitrary Docker parameters. See `../../FUTURE.md` and `../../FUTURE_BOT.md`.
 
 
 ## Endpoint audit — v0.5.18-2
@@ -411,7 +411,7 @@ The Control API implementation and this reference were cross-checked. Documented
 - `GET /api/v1/identities/{identity}/runs/{run_id}`
 - `POST /api/v1/identities/{identity}/runs/{run_id}/inputs/{key}`
 
-The worker remains intentionally single-run-per-process; broader orchestration belongs to the future Controller.
+The worker remains intentionally single-run-per-process; broader orchestration belongs to Controller.
 
 
 ## Worker configuration model — v0.5.19
@@ -420,4 +420,4 @@ The worker Control API is independent from the new launch-configuration layout. 
 
 The existing `/api/v1/identities/{identity}/config` resource still manages the **persistent Identity override configuration** stored below the Identity storage root. It does not edit shared worker defaults/scenarios, local worker defaults/scenarios, or `config/profiles/*.json`.
 
-The worker treats `default.json` and scenario definitions as read-only input. Future external mutation/orchestration of launch profiles/scenario selection belongs to the Controller/Central Console layer.
+The worker treats `default.json` and scenario definitions as read-only input. External mutation/orchestration of Identity profiles and scenario selection belongs to Controller and Web Console.

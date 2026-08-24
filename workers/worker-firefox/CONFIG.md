@@ -918,7 +918,7 @@ WORKER_FIREFOX_BASE_IMAGE
 Default:
 
 ```text
-worker-firefox-base:152.0.4-beta.28
+worker-firefox-base:152.0.4-beta.28-ubo1
 ```
 
 A separate `firefox-image-builder` tool owns browser bundle extraction, Linux runtime packages, Python runtime dependencies and Camoufox package-manager registration.

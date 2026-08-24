@@ -10,13 +10,17 @@ ARG CAMOUFOX_PRERELEASE=false
 ARG SOURCE_COMMIT_VALUE=unknown
 ARG WORKER_TYPE=firefox
 ARG BROWSER_RUNTIME=camoufox
+ARG UBO_VERSION
+ARG UBO_URL
+ARG UBO_SHA256
 
 LABEL worker.type="${WORKER_TYPE}" \
       browser.runtime="${BROWSER_RUNTIME}" \
       browser.version="${FIREFOX_VERSION}" \
       browser.build="${FIREFOX_BUILD}" \
       browser.runtime_version="${CAMOUFOX_BROWSER_VERSION}" \
-      browser.source_commit="${SOURCE_COMMIT_VALUE}"
+      browser.source_commit="${SOURCE_COMMIT_VALUE}" \
+      browser.addon.ubo.version="${UBO_VERSION}"
 
 ENV PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
@@ -79,6 +83,19 @@ COPY browser/ /opt/camoufox-custom/
 COPY SOURCE_COMMIT /opt/camoufox-custom/SOURCE_COMMIT
 
 RUN test -x /opt/camoufox-custom/camoufox-bin
+
+# Camoufox enables uBlock Origin by default. Keep the extracted addon in its
+# package-manager cache so short-lived worker containers never download it.
+RUN set -eux; \
+    test -n "${UBO_VERSION}"; \
+    test -n "${UBO_URL}"; \
+    test -n "${UBO_SHA256}"; \
+    mkdir -p /root/.cache/camoufox/addons/UBO; \
+    curl --fail --location --retry 3 --output /tmp/ubo.xpi "${UBO_URL}"; \
+    printf '%s  %s\n' "${UBO_SHA256}" /tmp/ubo.xpi | sha256sum --check --strict; \
+    unzip -q /tmp/ubo.xpi -d /root/.cache/camoufox/addons/UBO; \
+    test -s /root/.cache/camoufox/addons/UBO/manifest.json; \
+    rm -f /tmp/ubo.xpi
 
 # Register the custom browser in Camoufox package-manager metadata.
 RUN set -eux; \

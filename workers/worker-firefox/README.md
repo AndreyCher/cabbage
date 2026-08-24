@@ -1,6 +1,15 @@
-# worker-firefox v0.5.23
+# worker-firefox v0.5.26
 
 > Component files live in `workers/worker-firefox/`. The preferred integrated workflow runs Docker Compose from the repository root. This component also intentionally supports autonomous build and execution from its own directory. Paths describing component files are relative to that directory unless stated otherwise.
+
+## v0.5.26 — bounded behavior and readable action failures
+
+- `mouse_move_random` defaults to bounded DOM mouse events because Camoufox v152 native `page.mouse.move()` can stall indefinitely; explicit `"method": "native"` remains available.
+- Action failures are normalized into structured, readable reasons instead of exposing raw Python exception representations.
+- `click_link_by_index` reports `selector_no_matches` or `link_index_out_of_range` with the action number, selector, match count and requested index.
+- Runtime Control API exposes `error_reason` and `error_message` during finalization.
+- The current base image includes pinned, SHA-256-verified UBO 1.73.0, avoiding per-run addon downloads.
+- Verified with 64 unit tests; Controller end-to-end `example:2` completed all 24 actions and produced four screenshots and three videos.
 
 ## v0.5.23 — shared worker configuration and modular layout
 
@@ -426,7 +435,7 @@ For the integrated application, run these commands from the repository root.
 First make sure a compatible base image already exists, for example:
 
 ```bash
-docker image inspect worker-firefox-base:152.0.4-beta.28
+docker image inspect worker-firefox-base:152.0.4-beta.28-ubo1
 ```
 
 If it does not exist, build it separately with the `firefox-image-builder` tool.

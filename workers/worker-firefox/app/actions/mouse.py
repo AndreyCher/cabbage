@@ -71,15 +71,40 @@ class MouseMoveRandomAction(BaseAction):
         page = ctx.ensure_page()
         viewport = page.evaluate("() => ({w: innerWidth, h: innerHeight})")
         count = int(action.get("count", 3))
+        if count < 1 or count > 100:
+            raise ValueError("mouse_move_random.count must be between 1 and 100")
+        method = str(action.get("method", "dom"))
+        if method not in {"dom", "native"}:
+            raise ValueError("mouse_move_random.method must be one of: dom, native")
         points = []
         for _ in range(count):
             x = random.randint(20, max(21, int(viewport["w"]) - 20))
             y = random.randint(20, max(21, int(viewport["h"]) - 20))
-            page.mouse.move(x, y)
-            ctx.move_debug_cursor(x, y, page)
-            points.append([x, y])
-            time.sleep(random.uniform(0.15, 0.65))
-        return {"points": points}
+            delay_ms = random.randint(150, 650)
+            points.append({"x": x, "y": y, "delay_ms": delay_ms})
+        if method == "native":
+            for point in points:
+                page.mouse.move(point["x"], point["y"])
+                ctx.move_debug_cursor(point["x"], point["y"], page)
+                time.sleep(point["delay_ms"] / 1000.0)
+        else:
+            # Camoufox v152 can indefinitely block a synchronous native
+            # page.mouse.move call. Random movement is non-functional behavior,
+            # so dispatch bounded DOM mouse events instead of risking the whole run.
+            page.evaluate(
+                """async (points) => {
+                    for (const point of points) {
+                        const target = document.elementFromPoint(point.x, point.y) || document;
+                        target.dispatchEvent(new MouseEvent('mousemove', {
+                            bubbles: true, cancelable: true, view: window,
+                            clientX: point.x, clientY: point.y,
+                        }));
+                        await new Promise(resolve => setTimeout(resolve, point.delay_ms));
+                    }
+                }""",
+                points,
+            )
+        return {"points": [[point["x"], point["y"]] for point in points], "movement": f"{method}_random"}
 
 
 @register_action

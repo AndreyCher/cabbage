@@ -4,10 +4,39 @@ This is the global release history for all application components. Component cha
 
 ## Unreleased
 
+- Added worker-firefox 0.5.26 with structured, user-readable scenario action failures instead of raw Python exception representations.
+- Fixed example scenario mouse-movement stalls, its current Wikipedia selector, and durable Controller failure finalization with worker-firefox 0.5.25 and Controller 0.1.8.
+- Added Web Console 0.1.16-dev with sorting across all Workers table data columns.
+- Added Web Console 0.1.15-dev with non-wrapping full Identity names in Workers.
+- Added Web Console 0.1.14-dev with compact right-aligned Workers status and log actions.
+- Added Web Console 0.1.13-dev with right-aligned Workers status placement and precise task creation timestamps.
+- Fixed scenario statistics with Controller 0.1.7 and Web Console 0.1.12-dev: Steps and durable per-version Runs are now displayed separately.
+- Added firefox-image-builder 0.3.0 and worker-firefox 0.5.24 with pinned UBO 1.73.0 baked into the immutable base image.
+- Added Web Console 0.1.11-dev with URL-backed section persistence across page reloads.
+- Added Controller 0.1.6 and Web Console 0.1.10-dev with exact `name:version` scenario labels in Workers.
+- Added Web Console 0.1.9-dev with cloning for active versions and compact tooltip-based scenario actions.
+- Added Controller 0.1.5 and Web Console 0.1.8-dev with safe archived-version cloning into uniquely named independent scenarios.
+- Fixed Web Console scenario trees to visibly move the activated version to the root and the previous active version into the archive.
+- Added Controller 0.1.4 and Web Console 0.1.6-dev with collapsible scenario version trees and archived-version activation.
+- Added Controller 0.1.3 and Web Console 0.1.5-dev with history-safe scenario deletion.
+- Added Controller 0.1.2 and Web Console 0.1.4-dev with Identity defaults and guarded profile/account deletion.
+- Added Controller 0.1.1 and Web Console 0.1.3-dev with editable persistent Identity profiles and versioned scenario viewing/editing/import.
+- Fixed Controller bootstrap migration failure when seeding the initial JSON scenario.
+- Fixed Controller scheduler locking for queued runs with optional proxy relations.
+- Added a versioned correction for the initial Controller scenario and documented runtime scenario updates without service redeploy.
+- Added Controller 0.1.0 with authenticated API, PostgreSQL/Redis persistence and resource-aware Docker worker scheduling.
+- Added Web Console 0.1.2-dev Create Run, queue/history, priority and Stop/Cancel workflow.
 - Reorganized documentation by ownership: `worker-firefox` and `firefox-image-builder` now keep their README and detailed changelog beside their code.
 - Established this root changelog as the cross-component release index.
 
 ## Component releases
+
+### firefox-image-builder 0.2.2
+
+- Pinned the source-builder OS and Rust toolchain for the known Firefox 152 build.
+- Added early Docker, architecture, memory and Rust target compatibility checks.
+- Corrected environment override precedence and made automatic parallelism safe for memory-heavy Rust LTO.
+- Detailed history: `tools/firefox-image-builder/CHANGELOG.md`.
 
 ### web-console 0.1.1-dev
 

@@ -39,6 +39,8 @@ class RuntimeContext:
         self.waiting_input: dict[str, Any] | None = None
         self.started_at = datetime.now(timezone.utc).isoformat()
         self.finished_at: str | None = None
+        self.error_reason: str | None = None
+        self.error_message: str | None = None
         self._inputs: dict[str, Any] = {}
         self._webhooks: dict[str, Any] = {}
         self._events: list[dict[str, Any]] = []
@@ -90,6 +92,16 @@ class RuntimeContext:
             self.current_action = index
             if self.status not in {"waiting_input"}:
                 self.status = "running"
+
+    def set_failure(self, reason: str, message: str) -> None:
+        with self._condition:
+            self.error_reason = str(reason)
+            self.error_message = str(message)
+            self.status = "failed"
+            self.current_action = None
+            self.waiting_input = None
+            self.finished_at = datetime.now(timezone.utc).isoformat()
+            self._condition.notify_all()
 
     def put_input(self, key: str, value: Any) -> tuple[bool, str]:
         with self._condition:
@@ -225,6 +237,8 @@ class RuntimeContext:
                 "shutdown_signal": self.shutdown_signal,
                 "started_at": self.started_at,
                 "finished_at": self.finished_at,
+                "error_reason": self.error_reason,
+                "error_message": self.error_message,
             }
 
     def events(self) -> list[dict[str, Any]]:

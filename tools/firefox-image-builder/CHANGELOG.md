@@ -2,6 +2,22 @@
 
 Paths and commands in this document are relative to the current `tools/firefox-image-builder/` directory unless stated otherwise.
 
+## 0.3.0
+
+- Added pinned, SHA-256-verified UBO installation to immutable runtime base images.
+- Added `Dockerfile.addons` for creating an addon-enhanced base from an already verified browser base without recompiling Firefox.
+- Published the local `worker-firefox-base:152.0.4-beta.28-ubo1` base with UBO 1.73.0.
+
+## 0.2.2
+
+- Pinned the known Firefox 152 build to Ubuntu 24.04 and Rust nightly 2026-07-01 instead of Camoufox's floating `ubuntu:latest` and current rustup default.
+- Added an early source-builder compatibility preflight for the active Rust toolchain and Linux x86_64 target list.
+- Added guarded upstream Dockerfile transformations that fail early when Camoufox changes the expected base-image or rustup commands.
+- Increased the automatic memory budget to 10240 MiB per Firefox compiler job plus a 2048 MiB reserve after observing Rust LTO exceed 9 GiB RSS.
+- Added an early memory-policy failure for unsafe explicit job counts.
+- Fixed configuration precedence so explicit environment overrides such as `BUILD_JOBS=1` and `REBUILD_BUILDER=true` are no longer overwritten by the version file.
+- Added an early Docker daemon, Buildx, architecture and resource preflight before cloning sources or starting image builds.
+
 ## 0.2.1
 
 - Added automatic Firefox build parallelism selection based on the CPU count and memory available to the Docker daemon.
