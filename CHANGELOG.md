@@ -4,6 +4,7 @@ This is the global release history for all application components. Component cha
 
 ## Unreleased
 
+- Added Web Console 0.1.26-dev with race-safe queued Priority editing and contextual API error messages.
 - Added worker-firefox 0.5.29 with reliable single-file X11/FFmpeg video capture for ordinary recorded runs, replacing blank Playwright page recordings.
 - Added Web Console 0.1.25-dev with fixed-height Workers rows and a compact queued-run Priority editor.
 - Added Web Console 0.1.24-dev with browser-compatible automatic playback for recorded videos when their media dialog opens.

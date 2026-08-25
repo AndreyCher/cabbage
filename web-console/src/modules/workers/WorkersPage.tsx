@@ -24,6 +24,7 @@ const createdTimeFormatter = new Intl.DateTimeFormat(undefined, {
 })
 
 function token() { return localStorage.getItem('controller.api.token') ?? '' }
+function errorMessage(error: unknown) { return error instanceof Error ? error.message : String(error) }
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${apiRoot}${path}`, { ...init, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}`, ...init?.headers } })
   if (!response.ok) {
@@ -57,6 +58,7 @@ export function WorkersPage() {
   const [viewport, setViewport] = useState({ width: window.innerWidth, height: window.innerHeight })
   const [sortColumn, setSortColumn] = useState<SortColumn>('created')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+  const [priorityDrafts, setPriorityDrafts] = useState<Record<string, string>>({})
   const [form, setForm] = useState({ identity: 'test-user-001', scenario: '', priority: 0, debug: false, recording: true, proxy_mode: 'default', proxy_config_id: '', timeout_seconds: 3600 })
 
   const refresh = useCallback(async () => {
@@ -85,7 +87,27 @@ export function WorkersPage() {
     }
   }
   async function stop(run: Run) { try { await api(`/runs/${run.id}/stop`, { method: 'POST' }); await refresh() } catch (err) { setError(String(err)) } }
-  async function changePriority(run: Run, priority: number) { try { await api(`/runs/${run.id}`, { method: 'PATCH', body: JSON.stringify({ priority }) }); await refresh() } catch (err) { setError(String(err)) } }
+  async function changePriority(run: Run) {
+    const draft = priorityDrafts[run.id]
+    if (draft === undefined) return
+    const priority = Number(draft)
+    if (!Number.isInteger(priority) || priority < -100 || priority > 100) {
+      setError('Priority must be a whole number from -100 to 100')
+      return
+    }
+    setPriorityDrafts((current) => { const next = { ...current }; delete next[run.id]; return next })
+    if (priority === run.priority) return
+    try {
+      await api(`/runs/${run.id}`, { method: 'PATCH', body: JSON.stringify({ priority }) })
+      await refresh()
+    } catch (err) {
+      const message = errorMessage(err)
+      await refresh()
+      setError(message === 'priority_only_available_for_queued_runs'
+        ? 'Priority can only be changed while a run is queued. This run has already started'
+        : message)
+    }
+  }
   async function showLogs(run: Run) {
     setLogRun(run)
     try { const rows = await api<Array<{ message: string }>>(`/runs/${run.id}/logs?count=1000`); setLogs(rows.map((row) => row.message).join('\n')) }
@@ -140,9 +162,9 @@ export function WorkersPage() {
       <Box><Typography variant="h4">Workers</Typography><Typography color="text.secondary" mt={.5}>Queue, run history and live execution state.</Typography></Box>
       <Stack direction="row" gap={1}><Button startIcon={<RefreshRounded />} onClick={() => void refresh()}>Refresh</Button><Button variant="contained" startIcon={<AddRounded />} onClick={() => setOpen(true)}>Create run</Button></Stack>
     </Stack>
-    {error && <Alert severity="error" sx={{ mb: 2 }}>{error}. Configure the Controller token in Settings.</Alert>}
+    {error && <Alert severity="error" sx={{ mb: 2 }}>{error}{error === 'invalid_token' ? '. Configure the Controller token in Settings.' : ''}</Alert>}
     <Card><CardContent sx={{ overflowX: 'auto' }}><Table size="small" sx={{ minWidth: 900 }}><TableHead><TableRow><TableCell sx={{ whiteSpace: 'nowrap' }}>{sortHeader('identity', 'Identity')}</TableCell><TableCell>{sortHeader('scenario', 'Scenario')}</TableCell><TableCell>{sortHeader('stage', 'Stage')}</TableCell><TableCell>{sortHeader('priority', 'Priority')}</TableCell><TableCell>{sortHeader('created', 'Created')}</TableCell><TableCell align="right">{sortHeader('status', 'Status')}</TableCell></TableRow></TableHead><TableBody>
-      {pagination.pageItems.map((run) => { const createdAt = new Date(run.created_at); return <TableRow key={run.id} sx={{ height: 44, '& > td': { py: .5 } }}><TableCell sx={{ whiteSpace: 'nowrap' }}>{run.identity}</TableCell><TableCell><Stack direction="row" alignItems="center" gap={.5}>{run.debug && <Tooltip title="Debug run" enterDelay={600}><BugReportRounded color="warning" sx={{ fontSize: 17 }} /></Tooltip>}<span>{run.scenario_name}:{run.scenario_version}</span></Stack></TableCell><TableCell>{run.current_stage ?? '—'}</TableCell><TableCell>{run.status === 'queued' ? <TextField size="small" type="number" value={run.priority} onChange={(event) => void changePriority(run, Number(event.target.value))} sx={{ width: 72, '& .MuiInputBase-root': { height: 30 }, '& .MuiInputBase-input': { px: 1, py: 0 } }} /> : run.priority}</TableCell><TableCell title={createdAt.toISOString()} sx={{ whiteSpace: 'nowrap' }}>{createdTimeFormatter.format(createdAt)}</TableCell><TableCell align="right" sx={{ width: 1, whiteSpace: 'nowrap' }}><Stack direction="row" alignItems="center" justifyContent="flex-end" gap={.5}><Chip size="small" label={run.status} color={run.status === 'completed' ? 'success' : run.status === 'failed' ? 'error' : run.status === 'running' ? 'primary' : 'default'} />{run.live_stream_available && <Tooltip title="Live stream" enterDelay={600}><IconButton size="small" aria-label="Open live stream" onClick={() => void showMedia(run)}><LiveTvRounded fontSize="small" /></IconButton></Tooltip>}{!run.live_stream_available && run.recorded_video_available && <Tooltip title="Recorded video" enterDelay={600}><IconButton size="small" aria-label="Open recorded video" onClick={() => void showMedia(run)}><PlayCircleRounded fontSize="small" /></IconButton></Tooltip>}<Tooltip title="Logs" enterDelay={600}><IconButton size="small" aria-label="Open run logs" onClick={() => void showLogs(run)}><DescriptionRounded fontSize="small" /></IconButton></Tooltip>{stoppable.has(run.status) && <Tooltip title="Stop" enterDelay={600}><IconButton color="error" size="small" aria-label="Stop run" onClick={() => void stop(run)}><StopRounded fontSize="small" /></IconButton></Tooltip>}</Stack></TableCell></TableRow> })}
+      {pagination.pageItems.map((run) => { const createdAt = new Date(run.created_at); return <TableRow key={run.id} sx={{ height: 44, '& > td': { py: .5 } }}><TableCell sx={{ whiteSpace: 'nowrap' }}>{run.identity}</TableCell><TableCell><Stack direction="row" alignItems="center" gap={.5}>{run.debug && <Tooltip title="Debug run" enterDelay={600}><BugReportRounded color="warning" sx={{ fontSize: 17 }} /></Tooltip>}<span>{run.scenario_name}:{run.scenario_version}</span></Stack></TableCell><TableCell>{run.current_stage ?? '—'}</TableCell><TableCell>{run.status === 'queued' ? <TextField size="small" type="number" value={priorityDrafts[run.id] ?? String(run.priority)} inputProps={{ min: -100, max: 100, step: 1, 'aria-label': `Priority for ${run.identity}` }} onChange={(event) => setPriorityDrafts((current) => ({ ...current, [run.id]: event.target.value }))} onBlur={() => void changePriority(run)} onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.querySelector('input')?.blur() }} sx={{ width: 72, '& .MuiInputBase-root': { height: 30 }, '& .MuiInputBase-input': { px: 1, py: 0 } }} /> : run.priority}</TableCell><TableCell title={createdAt.toISOString()} sx={{ whiteSpace: 'nowrap' }}>{createdTimeFormatter.format(createdAt)}</TableCell><TableCell align="right" sx={{ width: 1, whiteSpace: 'nowrap' }}><Stack direction="row" alignItems="center" justifyContent="flex-end" gap={.5}><Chip size="small" label={run.status} color={run.status === 'completed' ? 'success' : run.status === 'failed' ? 'error' : run.status === 'running' ? 'primary' : 'default'} />{run.live_stream_available && <Tooltip title="Live stream" enterDelay={600}><IconButton size="small" aria-label="Open live stream" onClick={() => void showMedia(run)}><LiveTvRounded fontSize="small" /></IconButton></Tooltip>}{!run.live_stream_available && run.recorded_video_available && <Tooltip title="Recorded video" enterDelay={600}><IconButton size="small" aria-label="Open recorded video" onClick={() => void showMedia(run)}><PlayCircleRounded fontSize="small" /></IconButton></Tooltip>}<Tooltip title="Logs" enterDelay={600}><IconButton size="small" aria-label="Open run logs" onClick={() => void showLogs(run)}><DescriptionRounded fontSize="small" /></IconButton></Tooltip>{stoppable.has(run.status) && <Tooltip title="Stop" enterDelay={600}><IconButton color="error" size="small" aria-label="Stop run" onClick={() => void stop(run)}><StopRounded fontSize="small" /></IconButton></Tooltip>}</Stack></TableCell></TableRow> })}
       {!runs.length && <TableRow><TableCell colSpan={6}><Typography color="text.secondary" textAlign="center" py={4}>No runs yet.</Typography></TableCell></TableRow>}
     </TableBody></Table></CardContent><ClientTablePagination count={runs.length} {...pagination} /></Card>
     <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm"><DialogTitle>Create run</DialogTitle><DialogContent><Stack gap={2} mt={1}>

@@ -1,5 +1,12 @@
 # web-console changelog
 
+## 0.1.26-dev
+
+- Applied queued-run Priority edits on Enter or field blur instead of issuing an API request for every keystroke.
+- Added integer/range validation for priorities from -100 to 100 and refreshed stale queued rows when the scheduler has already started a run.
+- Replaced the raw `priority_only_available_for_queued_runs` response with a clear lifecycle explanation.
+- Limited the Controller-token hint to actual `invalid_token` errors instead of appending it to unrelated failures.
+
 ## 0.1.25-dev
 
 - Fixed Workers data rows at a consistent 44-pixel height across all run statuses.
