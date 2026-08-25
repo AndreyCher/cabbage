@@ -1,5 +1,11 @@
 # web-console changelog
 
+## 0.1.19-dev
+
+- Removed horizontal and vertical scrollbars from live-stream and recorded-video dialogs.
+- Kept noVNC and WebM content contained inside the viewport without cropping or aspect-ratio distortion.
+- Added a compact recording selector when a run contains multiple WebM files instead of stacking videos vertically.
+
 ## 0.1.18-dev
 
 - Sized live-stream and recorded-video dialogs from the actual media aspect ratio.

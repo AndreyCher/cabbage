@@ -1,4 +1,4 @@
-# web-console 0.1.18-dev
+# web-console 0.1.19-dev
 
 Early control-plane web interface built with React, TypeScript and Google Material Design through Material UI. The visual direction follows modern infrastructure dashboards: persistent navigation, compact operational cards, clear health states and responsive layouts.
 
@@ -24,7 +24,8 @@ Current scope:
 - sortable Workers columns, non-wrapping Identity names and compact right-aligned status/log controls;
 - read-only live noVNC modal for running debug tasks, proxied exclusively through Controller;
 - recorded-video icons and in-console WebM playback after artifact finalization;
-- media dialogs sized from the actual noVNC canvas or WebM aspect ratio and constrained by the current browser viewport;
+- scrollbar-free media dialogs sized from the actual noVNC canvas or WebM aspect ratio and constrained by the current browser viewport;
+- a compact selector for runs with multiple recordings, keeping only one fitted video visible at a time;
 - current section persisted in URL hash with reload and browser back/forward support;
 - Controller Bearer token setting stored in the operator's browser;
 - placeholder for data sources and a JSON-based scenario editor ready for a future structured editor.
