@@ -1,5 +1,11 @@
 # web-console changelog
 
+## 0.1.18-dev
+
+- Sized live-stream and recorded-video dialogs from the actual media aspect ratio.
+- Recalculated the dialog against the current Web UI viewport on every browser resize.
+- Kept media fully visible within desktop, tablet and mobile viewport bounds without distortion.
+
 ## 0.1.17-dev
 
 - Added a read-only live-stream icon for active debug runs beside Logs and Stop.

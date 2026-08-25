@@ -51,6 +51,8 @@ export function WorkersPage() {
   const [logRun, setLogRun] = useState<Run | null>(null)
   const [logs, setLogs] = useState('')
   const [mediaDialog, setMediaDialog] = useState<MediaDialog | null>(null)
+  const [mediaAspectRatio, setMediaAspectRatio] = useState(16 / 9)
+  const [viewport, setViewport] = useState({ width: window.innerWidth, height: window.innerHeight })
   const [sortColumn, setSortColumn] = useState<SortColumn>('created')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   const [form, setForm] = useState({ identity: 'test-user-001', scenario: '', priority: 0, debug: false, recording: true, proxy_mode: 'default', proxy_config_id: '', timeout_seconds: 3600 })
@@ -64,6 +66,11 @@ export function WorkersPage() {
     } catch (err) { setError(err instanceof Error ? err.message : 'Controller unavailable') }
   }, [])
   useEffect(() => { void refresh(); const timer = window.setInterval(() => void refresh(), 5000); return () => window.clearInterval(timer) }, [refresh])
+  useEffect(() => {
+    const handleResize = () => setViewport({ width: window.innerWidth, height: window.innerHeight })
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   async function createRun() {
     try {
@@ -88,6 +95,7 @@ export function WorkersPage() {
         api<RunMedia>(`/runs/${run.id}/media`),
         api<{ ticket: string }>(`/runs/${run.id}/stream-ticket`, { method: 'POST' }),
       ])
+      setMediaAspectRatio(16 / 9)
       setMediaDialog({ run, ticket: access.ticket, live: media.live, videos: media.videos })
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to open run media') }
   }
@@ -111,6 +119,16 @@ export function WorkersPage() {
     return sortDirection === 'asc' ? result : -result
   })
   const sortHeader = (column: SortColumn, label: string) => <TableSortLabel active={sortColumn === column} direction={sortColumn === column ? sortDirection : 'asc'} onClick={() => changeSort(column)}>{label}</TableSortLabel>
+  const mediaWidth = Math.max(280, Math.min(viewport.width - 32, (viewport.height - 150) * mediaAspectRatio))
+
+  function detectNovncAspectRatio(iframe: HTMLIFrameElement) {
+    const update = () => {
+      const canvas = iframe.contentDocument?.querySelector<HTMLCanvasElement>('#noVNC_canvas')
+      if (canvas?.width && canvas.height) setMediaAspectRatio(canvas.width / canvas.height)
+    }
+    update()
+    window.setTimeout(update, 750)
+  }
 
   return <>
     <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" gap={2} mb={3}>
@@ -134,9 +152,9 @@ export function WorkersPage() {
       <FormControlLabel control={<Switch checked={form.recording} onChange={(e) => setForm({ ...form, recording: e.target.checked })} />} label="Record video" />
     </Stack></DialogContent><DialogActions><Button onClick={() => setOpen(false)}>Cancel</Button><Button variant="contained" onClick={() => void createRun()} disabled={!form.identity || !form.scenario || (form.proxy_mode === 'selected' && !form.proxy_config_id)}>Create</Button></DialogActions></Dialog>
     <Dialog open={Boolean(logRun)} onClose={() => setLogRun(null)} fullWidth maxWidth="lg"><DialogTitle>Run logs — {logRun?.identity}</DialogTitle><DialogContent><Box component="pre" sx={{ bgcolor: '#0f172a', color: '#e2e8f0', p: 2, borderRadius: 1, minHeight: 320, maxHeight: '60vh', overflow: 'auto', whiteSpace: 'pre-wrap', fontSize: 12 }}>{logs || 'No logs available.'}</Box></DialogContent><DialogActions><Button onClick={() => logRun && void showLogs(logRun)}>Refresh</Button><Button onClick={() => setLogRun(null)}>Close</Button></DialogActions></Dialog>
-    <Dialog open={Boolean(mediaDialog)} onClose={() => setMediaDialog(null)} fullWidth maxWidth="xl"><DialogTitle>{mediaDialog?.live ? 'Live stream' : 'Recorded video'} — {mediaDialog?.run.identity}</DialogTitle><DialogContent sx={{ p: 1, bgcolor: '#05070a' }}>
-      {mediaDialog?.live && <Box component="iframe" title="Read-only noVNC stream" src={`${apiRoot}/runs/${mediaDialog.run.id}/novnc/vnc.html?${new URLSearchParams({ autoconnect: 'true', resize: 'scale', view_only: 'true', path: `${apiRoot.slice(1)}/runs/${mediaDialog.run.id}/novnc/websockify?ticket=${encodeURIComponent(mediaDialog.ticket)}`, ticket: mediaDialog.ticket })}`} sx={{ width: '100%', height: '75vh', border: 0, display: 'block' }} />}
-      {!mediaDialog?.live && <Stack gap={2}>{mediaDialog?.videos.map((video) => <Box key={video.name} component="video" controls preload="metadata" src={`${apiRoot}/runs/${mediaDialog.run.id}/videos/${encodeURIComponent(video.name)}?ticket=${encodeURIComponent(mediaDialog.ticket)}`} sx={{ width: '100%', maxHeight: '72vh', bgcolor: '#000' }} />)}</Stack>}
+    <Dialog open={Boolean(mediaDialog)} onClose={() => setMediaDialog(null)} maxWidth={false} slotProps={{ paper: { sx: { width: mediaWidth, maxWidth: 'calc(100vw - 16px)', m: 1, transition: 'width 160ms ease' } } }}><DialogTitle>{mediaDialog?.live ? 'Live stream' : 'Recorded video'} — {mediaDialog?.run.identity}</DialogTitle><DialogContent sx={{ p: 1, bgcolor: '#05070a', maxHeight: 'calc(100vh - 136px)', overflow: 'auto' }}>
+      {mediaDialog?.live && <Box component="iframe" title="Read-only noVNC stream" onLoad={(event) => detectNovncAspectRatio(event.currentTarget)} src={`${apiRoot}/runs/${mediaDialog.run.id}/novnc/vnc.html?${new URLSearchParams({ autoconnect: 'true', resize: 'scale', view_only: 'true', path: `${apiRoot.slice(1)}/runs/${mediaDialog.run.id}/novnc/websockify?ticket=${encodeURIComponent(mediaDialog.ticket)}`, ticket: mediaDialog.ticket })}`} sx={{ width: '100%', aspectRatio: mediaAspectRatio, border: 0, display: 'block' }} />}
+      {!mediaDialog?.live && <Stack gap={2}>{mediaDialog?.videos.map((video) => <Box key={video.name} component="video" controls preload="metadata" onLoadedMetadata={(event) => { if (event.currentTarget.videoWidth && event.currentTarget.videoHeight) setMediaAspectRatio(event.currentTarget.videoWidth / event.currentTarget.videoHeight) }} src={`${apiRoot}/runs/${mediaDialog.run.id}/videos/${encodeURIComponent(video.name)}?ticket=${encodeURIComponent(mediaDialog.ticket)}`} sx={{ width: '100%', maxHeight: 'calc(100vh - 152px)', bgcolor: '#000', display: 'block' }} />)}</Stack>}
     </DialogContent><DialogActions><Button onClick={() => setMediaDialog(null)}>Close</Button></DialogActions></Dialog>
   </>
 }
