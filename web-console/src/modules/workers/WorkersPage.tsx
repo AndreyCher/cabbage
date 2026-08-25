@@ -82,7 +82,7 @@ export function WorkersPage() {
       setOpen(false); setIdentityHint(''); await refresh()
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to create run'
-      if (message === 'identity_in_use') setIdentityHint(`Identity ${form.identity} is already active. Create or choose another Identity.`)
+      if (message === 'identity_in_use') setIdentityHint(`Identity ${form.identity} is active. The new run will wait in its Identity queue.`)
       else setError(message)
     }
   }
@@ -169,7 +169,7 @@ export function WorkersPage() {
     </TableBody></Table></CardContent><ClientTablePagination count={runs.length} {...pagination} /></Card>
     <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm"><DialogTitle>Create run</DialogTitle><DialogContent><Stack gap={2} mt={1}>
       {identityHint && <Alert severity="warning">{identityHint}</Alert>}
-      <FormControl><InputLabel>Identity</InputLabel><Select label="Identity" value={form.identity} onChange={(e) => setForm({ ...form, identity: e.target.value })}>{identities.map((item) => <MenuItem key={item.identity} value={item.identity} disabled={item.in_use}>{item.identity}{item.in_use ? ' (in use)' : ''}</MenuItem>)}</Select></FormControl>
+      <FormControl><InputLabel>Identity</InputLabel><Select label="Identity" value={form.identity} onChange={(e) => setForm({ ...form, identity: e.target.value })}>{identities.map((item) => <MenuItem key={item.identity} value={item.identity}>{item.identity}{item.in_use ? ' (active — will queue)' : ''}</MenuItem>)}</Select></FormControl>
       <FormControl><InputLabel>Scenario</InputLabel><Select label="Scenario" value={form.scenario} onChange={(e) => setForm({ ...form, scenario: e.target.value })}>{scenarios.map((item) => <MenuItem key={item.id} value={item.name}>{item.name}:{item.version}</MenuItem>)}</Select></FormControl>
       <TextField label="Priority" type="number" value={form.priority} onChange={(e) => setForm({ ...form, priority: Number(e.target.value) })} />
       <TextField label="Timeout (seconds)" type="number" value={form.timeout_seconds} onChange={(e) => setForm({ ...form, timeout_seconds: Number(e.target.value) })} />

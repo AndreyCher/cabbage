@@ -1,5 +1,11 @@
 # web-console changelog
 
+## 0.1.27-dev
+
+- Allowed active Identities to remain selectable in Create Run.
+- Marked busy profiles as `active — will queue` instead of disabling them.
+- Queued new runs behind the currently active run of the same Identity while preserving global scheduling across other profiles.
+
 ## 0.1.26-dev
 
 - Applied queued-run Priority edits on Enter or field blur instead of issuing an API request for every keystroke.

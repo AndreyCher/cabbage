@@ -17,6 +17,20 @@ from .queue import RunQueue
 from .settings import Settings
 
 
+def eligible_runs(queued_runs, active_identities: set[str], free_slots: int):
+    """Select global priority/FIFO candidates while serializing each Identity."""
+    selected = []
+    reserved_identities = set(active_identities)
+    for run in queued_runs:
+        if len(selected) >= free_slots:
+            break
+        if run.identity in reserved_identities:
+            continue
+        selected.append(run)
+        reserved_identities.add(run.identity)
+    return selected
+
+
 class Scheduler:
     def __init__(self, settings: Settings, executor: DockerExecutor, queue: RunQueue) -> None:
         self.settings = settings
@@ -50,16 +64,16 @@ class Scheduler:
             free_slots = max(0, capacity - active_count)
             if not free_slots:
                 return
+            active_identities = set((await session.scalars(
+                select(Run.identity).where(Run.status.in_([s.value for s in ACTIVE_STATUSES]))
+            )).all())
             result = await session.execute(
                 select(Run).where(Run.status == RunStatus.queued.value)
                 .order_by(Run.priority.desc(), Run.created_at.asc())
-                .limit(free_slots)
                 .with_for_update(of=Run, skip_locked=True)
             )
-            for run in result.scalars().unique():
-                identity_busy = await session.scalar(select(func.count()).select_from(Run).where(Run.identity == run.identity, Run.status.in_([s.value for s in ACTIVE_STATUSES])))
-                if identity_busy:
-                    continue
+            candidates = eligible_runs(result.scalars().unique(), active_identities, free_slots)
+            for run in candidates:
                 run.status = RunStatus.allocating.value
                 run.controller_id = self.settings.docker_host_id
                 await session.flush()

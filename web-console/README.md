@@ -1,4 +1,4 @@
-# web-console 0.1.26-dev
+# web-console 0.1.27-dev
 
 Early control-plane web interface built with React, TypeScript and Google Material Design through Material UI. The visual direction follows modern infrastructure dashboards: persistent navigation, compact operational cards, clear health states and responsive layouts.
 
@@ -10,7 +10,7 @@ Current scope:
 - collapsible desktop navigation with icon-only mode;
 - system, light and dark themes with the preference stored in the browser;
 - module registry for contributed pages, menu entries and settings sections;
-- Controller-backed Workers view with queue/history, Create Run, priority and stop;
+- Controller-backed Workers view with queue/history, Create Run, priority and stop, including selectable active Identities whose new runs enter a serialized per-profile queue;
 - nested Workers navigation for editable Identity profiles and versioned scenarios;
 - JSON scenario import and save-as-new-version workflow without redeploy;
 - profile-only and permanent persistent account-data deletion with confirmation;

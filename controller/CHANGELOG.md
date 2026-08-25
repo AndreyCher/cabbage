@@ -1,5 +1,12 @@
 # Controller changelog
 
+## 0.1.12
+
+- Allowed multiple queued runs for an Identity that already has an active or queued run.
+- Added per-Identity serialization on top of global resource capacity: at most one active worker per Identity while other profiles continue using free server slots.
+- Fixed scheduler head-of-line blocking by scanning the global priority/FIFO queue past busy Identities until all available slots are filled.
+- Preserved queued priority changes and cancellation independently for every pending run.
+
 ## 0.1.11
 
 - Increased the authenticated run-list ceiling to 10,000 so Web Console can load a complete client-side pagination dataset without incremental requests.

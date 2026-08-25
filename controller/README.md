@@ -1,4 +1,4 @@
-# Controller 0.1.11
+# Controller 0.1.12
 
 FastAPI control plane for queued, resource-aware execution of disposable
 Firefox workers. PostgreSQL stores durable run/scenario/proxy records; Redis
@@ -113,9 +113,11 @@ legacy summaries are accepted only when Identity, scenario and start timestamp
 match. A recording from another execution cannot enable playback on the wrong
 Workers row.
 
-The scheduler limits concurrency by configured maximum and Docker host CPU/RAM
-capacity. Runs are ordered by priority then creation time, and the same Identity
-cannot execute concurrently. Docker options are generated from a safe internal
+The scheduler limits global concurrency by configured maximum and Docker host
+CPU/RAM capacity. Runs are ordered by priority then creation time. Multiple runs
+may be queued for the same Identity, but its per-Identity queue is serialized to
+one active worker; busy profiles are skipped while free server slots are filled
+with eligible runs from other Identities. Docker options are generated from a safe internal
 template and cannot be overridden through the public API.
 
 A worker-reported terminal state is treated as `finalizing` until Docker really

@@ -38,7 +38,7 @@ def run_read(run: Run) -> RunRead:
 
 @router.get("/health")
 async def health() -> dict:
-    return {"status": "ok", "component": "controller", "version": "0.1.11", "api_version": "v1"}
+    return {"status": "ok", "component": "controller", "version": "0.1.12", "api_version": "v1"}
 
 
 @router.get("/runs", response_model=list[RunRead], dependencies=[Depends(require_token)])
@@ -61,9 +61,6 @@ async def create_run(payload: RunCreate, request: Request, session: AsyncSession
         raise HTTPException(404, detail="scenario_not_found")
     if await session.get(IdentityProfile, payload.identity) is None:
         raise HTTPException(404, detail={"code": "identity_not_found", "identity": payload.identity, "suggestion": "create_identity"})
-    busy = await session.scalar(select(func.count()).select_from(Run).where(Run.identity == payload.identity, Run.status.in_([s.value for s in ACTIVE_STATUSES])))
-    if busy:
-        raise HTTPException(409, detail={"code": "identity_in_use", "identity": payload.identity, "suggestion": "create_new_identity"})
     overrides = dict(payload.overrides)
     if payload.recording is not None:
         overrides.setdefault("recording", {})["video"] = payload.recording
