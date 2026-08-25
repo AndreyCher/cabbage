@@ -1,5 +1,10 @@
 # Controller changelog
 
+## 0.1.11
+
+- Increased the authenticated run-list ceiling to 10,000 so Web Console can load a complete client-side pagination dataset without incremental requests.
+- Kept API-side validation and a bounded response limit.
+
 ## 0.1.10
 
 - Bound artifact discovery to the exact Controller run ID stored in worker summary metadata.

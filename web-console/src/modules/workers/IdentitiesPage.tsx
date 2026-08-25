@@ -6,6 +6,7 @@ import {
 } from '@mui/material'
 import { AddRounded, DeleteForeverRounded, DeleteOutlineRounded, EditRounded, RefreshRounded } from '@mui/icons-material'
 import { controllerApi } from './controllerApi'
+import { ClientTablePagination, useClientPagination } from '../../components/ClientTablePagination'
 
 type Identity = {
   identity: string
@@ -33,6 +34,7 @@ export function IdentitiesPage() {
   const [error, setError] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<Identity | null>(null)
   const [deleteAccountData, setDeleteAccountData] = useState(false)
+  const pagination = useClientPagination(items)
 
   const refresh = useCallback(async () => {
     try { setItems(await controllerApi<Identity[]>('/identities')); setError('') }
@@ -76,9 +78,9 @@ export function IdentitiesPage() {
     </Stack>
     {error && !modalOpen && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
     <Card><CardContent sx={{ overflowX: 'auto' }}><Table><TableHead><TableRow><TableCell>Name</TableCell><TableCell>Status</TableCell><TableCell>Revision</TableCell><TableCell>Updated</TableCell><TableCell /></TableRow></TableHead><TableBody>
-      {items.map((item) => <TableRow key={item.identity}><TableCell><Typography fontWeight={700}>{item.identity}</Typography></TableCell><TableCell><Chip size="small" label={item.in_use ? 'In use' : 'Available'} color={item.in_use ? 'warning' : 'success'} variant="outlined" /></TableCell><TableCell>{item.revision}</TableCell><TableCell>{new Date(item.updated_at).toLocaleString()}</TableCell><TableCell align="right"><Button startIcon={<EditRounded />} onClick={() => edit(item)}>Open</Button><Button color="error" disabled={item.in_use} startIcon={<DeleteOutlineRounded />} onClick={() => { setDeleteTarget(item); setDeleteAccountData(false); setError('') }}>Delete</Button></TableCell></TableRow>)}
+      {pagination.pageItems.map((item) => <TableRow key={item.identity}><TableCell><Typography fontWeight={700}>{item.identity}</Typography></TableCell><TableCell><Chip size="small" label={item.in_use ? 'In use' : 'Available'} color={item.in_use ? 'warning' : 'success'} variant="outlined" /></TableCell><TableCell>{item.revision}</TableCell><TableCell>{new Date(item.updated_at).toLocaleString()}</TableCell><TableCell align="right"><Button startIcon={<EditRounded />} onClick={() => edit(item)}>Open</Button><Button color="error" disabled={item.in_use} startIcon={<DeleteOutlineRounded />} onClick={() => { setDeleteTarget(item); setDeleteAccountData(false); setError('') }}>Delete</Button></TableCell></TableRow>)}
       {!items.length && <TableRow><TableCell colSpan={5}><Typography color="text.secondary" textAlign="center" py={4}>No Identity profiles.</Typography></TableCell></TableRow>}
-    </TableBody></Table></CardContent></Card>
+    </TableBody></Table></CardContent><ClientTablePagination count={items.length} {...pagination} /></Card>
     <Dialog open={modalOpen} onClose={() => { setSelected(null); setCreating(false) }} fullWidth maxWidth="md"><DialogTitle>{creating ? 'Create Identity' : `Edit ${identity}`}</DialogTitle><DialogContent><Stack gap={2} mt={1}>
       {error && <Alert severity="error">{error}</Alert>}
       <TextField label="Identity name" value={identity} disabled={!creating} onChange={(event) => setIdentity(event.target.value)} required helperText="Letters, numbers, dots, underscores and hyphens." />

@@ -1,5 +1,12 @@
 # web-console changelog
 
+## 0.1.21-dev
+
+- Added consistent client-side pagination to Workers, Identities and Scenarios tables.
+- Defaulted every table to 50 items per page with dropdown options for 25, 50, 100 and 150.
+- Added first/previous/next/last page controls without dynamic or incremental loading.
+- Paginated scenario trees by scenario group so immutable versions stay together.
+
 ## 0.1.20-dev
 
 - Added a debug indicator immediately to the left of the scenario name for every debug run.

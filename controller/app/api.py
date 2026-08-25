@@ -38,13 +38,13 @@ def run_read(run: Run) -> RunRead:
 
 @router.get("/health")
 async def health() -> dict:
-    return {"status": "ok", "component": "controller", "version": "0.1.10", "api_version": "v1"}
+    return {"status": "ok", "component": "controller", "version": "0.1.11", "api_version": "v1"}
 
 
 @router.get("/runs", response_model=list[RunRead], dependencies=[Depends(require_token)])
 async def list_runs(
     status_filter: str | None = Query(default=None, alias="status"),
-    limit: int = Query(default=100, ge=1, le=500),
+    limit: int = Query(default=500, ge=1, le=10000),
     session: AsyncSession = Depends(session_dependency),
 ) -> list[RunRead]:
     query = select(Run).order_by(Run.created_at.desc()).limit(limit)

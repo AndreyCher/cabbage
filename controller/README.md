@@ -1,4 +1,4 @@
-# Controller 0.1.10
+# Controller 0.1.11
 
 FastAPI control plane for queued, resource-aware execution of disposable
 Firefox workers. PostgreSQL stores durable run/scenario/proxy records; Redis
@@ -58,7 +58,8 @@ Controller listens on `127.0.0.1:8088`; Web Console proxies it internally at
 ## API
 
 - `GET /api/v1/health` is public.
-- `GET/POST /api/v1/runs` lists or queues runs.
+- `GET/POST /api/v1/runs` lists or queues runs. List requests support a bounded
+  `limit` up to 10,000 for non-dynamic client-side pagination.
 - `PATCH /api/v1/runs/{id}` changes queued priority or cancels a queued run.
 - `POST /api/v1/runs/{id}/stop` performs cooperative-to-forced shutdown.
 - `GET /api/v1/runs/{id}/logs` and `/logs/stream` expose bounded live logs.

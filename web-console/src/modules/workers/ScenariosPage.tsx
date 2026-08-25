@@ -7,6 +7,7 @@ import {
 } from '@mui/material'
 import { AddRounded, ContentCopyRounded, DeleteOutlineRounded, EditRounded, FileUploadRounded, RefreshRounded, RemoveRounded, RestoreRounded } from '@mui/icons-material'
 import { controllerApi } from './controllerApi'
+import { ClientTablePagination, useClientPagination } from '../../components/ClientTablePagination'
 
 type Scenario = {
   id: string
@@ -94,6 +95,7 @@ export function ScenariosPage() {
     ;(result[item.name] ??= []).push(item)
     return result
   }, {})).map((versions) => versions.sort((a, b) => b.version - a.version))
+  const pagination = useClientPagination(groups)
   function toggle(name: string) {
     setExpanded((current) => {
       const next = new Set(current)
@@ -109,7 +111,7 @@ export function ScenariosPage() {
     </Stack>
     {error && !selected && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
     <Card><CardContent sx={{ overflowX: 'auto' }}><Table><TableHead><TableRow><TableCell width={52} /><TableCell>Name</TableCell><TableCell>Version</TableCell><TableCell>Steps</TableCell><TableCell>Runs</TableCell><TableCell>Status</TableCell><TableCell>Created</TableCell><TableCell /></TableRow></TableHead><TableBody>
-      {groups.flatMap((versions) => {
+      {pagination.pageItems.flatMap((versions) => {
         const active = versions.find((item) => item.active) ?? versions[0]
         const isExpanded = expanded.has(active.name)
         const archived = versions.filter((item) => item.id !== active.id)
@@ -125,7 +127,7 @@ export function ScenariosPage() {
         </TableRow>)
       })}
       {!groups.length && <TableRow><TableCell colSpan={8}><Typography color="text.secondary" textAlign="center" py={4}>No scenarios.</Typography></TableCell></TableRow>}
-    </TableBody></Table></CardContent></Card>
+    </TableBody></Table></CardContent><ClientTablePagination count={groups.length} {...pagination} /></Card>
     <Dialog open={Boolean(selected)} onClose={() => setSelected(null)} fullWidth maxWidth="md"><DialogTitle>{selected?.version ? `Edit ${name} v${selected.version}` : 'Import scenario'}</DialogTitle><DialogContent><Stack gap={2} mt={1}>
       {error && <Alert severity="error">{error}</Alert>}
       <TextField label="Scenario name" value={name} onChange={(event) => setName(event.target.value)} required />
