@@ -1,6 +1,12 @@
-# worker-firefox v0.5.26
+# worker-firefox v0.5.27
 
 > Component files live in `workers/worker-firefox/`. The preferred integrated workflow runs Docker Compose from the repository root. This component also intentionally supports autonomous build and execution from its own directory. Paths describing component files are relative to that directory unless stated otherwise.
+
+## v0.5.27 — enforced read-only Controller streams
+
+- `NOVNC_VIEW_ONLY=true` starts x11vnc with server-side `-viewonly`, preventing keyboard and pointer input even if a client changes noVNC URL options.
+- Controller-launched ephemeral workers always set this flag; their noVNC port remains private to the internal Docker network.
+- Autonomous `worker-firefox-debug` keeps its existing interactive behavior because the flag defaults to `false`.
 
 ## v0.5.26 — bounded behavior and readable action failures
 
@@ -486,6 +492,9 @@ WORKER_DEBUG_PROFILE=test-user-004-debug docker compose --profile debug up worke
 ```
 
 noVNC is available on port `6080`; Control API remains on port `8090`.
+Set `NOVNC_VIEW_ONLY=true` to disable remote keyboard and pointer input at the
+x11vnc server. The supplied autonomous debug service remains interactive by
+default; Controller-managed debug sessions always enable view-only mode.
 
 ## Version
 

@@ -43,11 +43,17 @@ class RunRead(BaseModel):
     finished_at: datetime | None
     scenario_name: str
     scenario_version: int
+    live_stream_available: bool = False
+    recorded_video_available: bool = False
 
     @classmethod
     def from_run(cls, run: Any) -> "RunRead":
         return cls(
-            **{name: getattr(run, name) for name in cls.model_fields if name not in {"scenario_name", "scenario_version"}},
+            **{
+                name: getattr(run, name)
+                for name in cls.model_fields
+                if name not in {"scenario_name", "scenario_version", "live_stream_available", "recorded_video_available"}
+            },
             scenario_name=run.scenario.name,
             scenario_version=run.scenario.version,
         )

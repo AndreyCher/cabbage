@@ -46,6 +46,8 @@ class RunMaterializer:
         }
         resolved = deep_merge(default, identity_config or {})
         resolved = deep_merge(resolved, run.overrides or {})
+        if run.debug:
+            resolved.setdefault("browser", {})["mode"] = "debug"
         resolved["identity"] = run.identity
         resolved["run"] = {**resolved.get("run", {}), "scenario": run.scenario.name}
         if proxy is not None:

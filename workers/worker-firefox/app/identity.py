@@ -12,7 +12,7 @@ from camoufox.utils import launch_options
 
 from .proxy import ProxyError, proxy_geo_policy, validate_proxy_config
 
-APP_VERSION = "0.5.26"
+APP_VERSION = "0.5.27"
 IDENTITY_SCHEMA_VERSION = 4
 DEFAULT = "default"
 

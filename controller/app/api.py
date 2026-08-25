@@ -6,19 +6,20 @@ import shutil
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, WebSocket, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .auth import require_token
 from .crypto import SecretCipher
-from .database import session_dependency
+from .database import SessionLocal, session_dependency
 from .executor import DockerExecutor
 from .models import ACTIVE_STATUSES, ControllerSetting, IdentityProfile, ProxyConfig, Run, RunStatus, ScenarioTemplate, TERMINAL_STATUSES
 from .queue import RunQueue
 from .schemas import IdentityCreate, IdentityDefaultsRead, IdentityDefaultsUpdate, IdentityRead, IdentityUpdate, ProxyCreate, RunCreate, RunRead, RunUpdate, ScenarioClone, ScenarioCreate, ScenarioRead
 from .settings import get_settings
+from .streaming import create_stream_ticket, live_stream_available, proxy_novnc_asset, proxy_novnc_websocket, recorded_video_response, validate_stream_ticket, video_files
 
 router = APIRouter(prefix="/api/v1")
 
@@ -27,9 +28,17 @@ def services(request):
     return request.app.state.queue, request.app.state.executor
 
 
+def run_read(run: Run) -> RunRead:
+    settings = get_settings()
+    return RunRead.from_run(run).model_copy(update={
+        "live_stream_available": live_stream_available(run),
+        "recorded_video_available": bool(video_files(run, settings)),
+    })
+
+
 @router.get("/health")
 async def health() -> dict:
-    return {"status": "ok", "component": "controller", "version": "0.1.8", "api_version": "v1"}
+    return {"status": "ok", "component": "controller", "version": "0.1.9", "api_version": "v1"}
 
 
 @router.get("/runs", response_model=list[RunRead], dependencies=[Depends(require_token)])
@@ -42,7 +51,7 @@ async def list_runs(
     if status_filter:
         query = query.where(Run.status == status_filter)
     result = await session.execute(query)
-    return [RunRead.from_run(run) for run in result.scalars().unique()]
+    return [run_read(run) for run in result.scalars().unique()]
 
 
 @router.post("/runs", response_model=RunRead, status_code=status.HTTP_202_ACCEPTED, dependencies=[Depends(require_token)])
@@ -65,7 +74,7 @@ async def create_run(payload: RunCreate, request: Request, session: AsyncSession
     await session.commit()
     await session.refresh(run)
     await request.app.state.queue.enqueue(run.id, run.priority)
-    return RunRead.from_run(run)
+    return run_read(run)
 
 
 @router.get("/runs/{run_id}", response_model=RunRead, dependencies=[Depends(require_token)])
@@ -73,7 +82,7 @@ async def get_run(run_id: uuid.UUID, session: AsyncSession = Depends(session_dep
     run = await session.get(Run, run_id)
     if run is None:
         raise HTTPException(404, detail="run_not_found")
-    return RunRead.from_run(run)
+    return run_read(run)
 
 
 @router.patch("/runs/{run_id}", response_model=RunRead, dependencies=[Depends(require_token)])
@@ -92,7 +101,7 @@ async def update_run(run_id: uuid.UUID, payload: RunUpdate, session: AsyncSessio
         run.finished_at = datetime.now(timezone.utc)
     await session.commit()
     await session.refresh(run)
-    return RunRead.from_run(run)
+    return run_read(run)
 
 
 @router.post("/runs/{run_id}/stop", response_model=RunRead, dependencies=[Depends(require_token)])
@@ -114,7 +123,7 @@ async def stop_run(run_id: uuid.UUID, request: Request, session: AsyncSession = 
     run.current_stage = "stopped"
     await session.commit()
     await session.refresh(run)
-    return RunRead.from_run(run)
+    return run_read(run)
 
 
 @router.get("/runs/{run_id}/logs", dependencies=[Depends(require_token)])
@@ -135,6 +144,71 @@ async def stream_logs(run_id: uuid.UUID, request: Request):
                 break
             await asyncio.sleep(1)
     return StreamingResponse(events(), media_type="text/event-stream")
+
+
+@router.post("/runs/{run_id}/stream-ticket", dependencies=[Depends(require_token)])
+async def issue_stream_ticket(run_id: uuid.UUID, request: Request, session: AsyncSession = Depends(session_dependency)):
+    run = await session.get(Run, run_id)
+    if run is None:
+        raise HTTPException(404, detail="run_not_found")
+    if not live_stream_available(run) and not video_files(run, get_settings()):
+        raise HTTPException(409, detail="run_stream_media_unavailable")
+    return {
+        "ticket": await create_stream_ticket(request, run_id),
+        "expires_in": get_settings().stream_ticket_ttl_seconds,
+    }
+
+
+@router.get("/runs/{run_id}/media", dependencies=[Depends(require_token)])
+async def get_run_media(run_id: uuid.UUID, session: AsyncSession = Depends(session_dependency)):
+    run = await session.get(Run, run_id)
+    if run is None:
+        raise HTTPException(404, detail="run_not_found")
+    files = video_files(run, get_settings())
+    return {
+        "live": live_stream_available(run),
+        "videos": [{"name": path.name, "size": path.stat().st_size} for path in files],
+    }
+
+
+@router.get("/runs/{run_id}/novnc/{asset_path:path}")
+async def get_novnc_asset(
+    run_id: uuid.UUID,
+    asset_path: str,
+    request: Request,
+    ticket: str | None = None,
+    session: AsyncSession = Depends(session_dependency),
+):
+    run = await session.get(Run, run_id)
+    if run is None:
+        raise HTTPException(404, detail="run_not_found")
+    return await proxy_novnc_asset(request, run, asset_path, ticket)
+
+
+@router.websocket("/runs/{run_id}/novnc/websockify")
+async def novnc_websocket(websocket: WebSocket, run_id: uuid.UUID, ticket: str | None = None):
+    async with SessionLocal() as session:
+        run = await session.get(Run, run_id)
+        if run is None:
+            await websocket.close(code=1008)
+            return
+        await proxy_novnc_websocket(websocket, run, ticket)
+
+
+@router.get("/runs/{run_id}/videos/{filename}")
+async def get_recorded_video(
+    run_id: uuid.UUID,
+    filename: str,
+    request: Request,
+    ticket: str | None = None,
+    session: AsyncSession = Depends(session_dependency),
+):
+    if not await validate_stream_ticket(request.app, ticket, run_id):
+        raise HTTPException(401, detail="invalid_stream_ticket")
+    run = await session.get(Run, run_id)
+    if run is None:
+        raise HTTPException(404, detail="run_not_found")
+    return recorded_video_response(run, get_settings(), filename)
 
 
 @router.get("/identities", response_model=list[IdentityRead], dependencies=[Depends(require_token)])

@@ -22,6 +22,8 @@ async def lifespan(app: FastAPI):
     executor = DockerExecutor(settings)
     scheduler = Scheduler(settings, executor, queue)
     app.state.queue = queue
+    app.state.redis = redis
+    app.state.settings = settings
     app.state.executor = executor
     task = asyncio.create_task(scheduler.run_forever())
     yield
@@ -30,7 +32,7 @@ async def lifespan(app: FastAPI):
     await redis.aclose()
 
 
-app = FastAPI(title="Controller API", version="0.1.8", lifespan=lifespan)
+app = FastAPI(title="Controller API", version="0.1.9", lifespan=lifespan)
 app.include_router(router)
 
 

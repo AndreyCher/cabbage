@@ -1,5 +1,13 @@
 # Controller changelog
 
+## 0.1.9
+
+- Added short-lived, run-scoped Redis tickets for browser media access.
+- Added Controller-only HTTP/WebSocket proxying from Web Console to internal debug noVNC endpoints.
+- Added safe recorded WebM discovery and range-capable streaming from validated artifact directories.
+- Forced Controller debug runs to materialize `browser.mode=debug` regardless of Identity configuration.
+- Kept ephemeral worker noVNC ports private to the internal Docker network.
+
 ## 0.1.8
 
 - Kept runs non-terminal while workers finalize artifacts and made Docker exit authoritative.

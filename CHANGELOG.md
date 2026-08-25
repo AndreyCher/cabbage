@@ -4,6 +4,7 @@ This is the global release history for all application components. Component cha
 
 ## Unreleased
 
+- Added Controller 0.1.9, Web Console 0.1.17-dev and worker-firefox 0.5.27 with authenticated Controller-proxied noVNC for active debug runs, server-enforced view-only access and recorded WebM playback after completion.
 - Added worker-firefox 0.5.26 with structured, user-readable scenario action failures instead of raw Python exception representations.
 - Fixed example scenario mouse-movement stalls, its current Wikipedia selector, and durable Controller failure finalization with worker-firefox 0.5.25 and Controller 0.1.8.
 - Added Web Console 0.1.16-dev with sorting across all Workers table data columns.

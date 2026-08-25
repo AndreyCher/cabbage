@@ -5,10 +5,12 @@ import {
   IconButton, MenuItem, Select, Stack, Switch, Table, TableBody, TableCell, TableHead,
   TableRow, TableSortLabel, TextField, Tooltip, Typography,
 } from '@mui/material'
-import { AddRounded, DescriptionRounded, RefreshRounded, StopRounded } from '@mui/icons-material'
+import { AddRounded, DescriptionRounded, LiveTvRounded, PlayCircleRounded, RefreshRounded, StopRounded } from '@mui/icons-material'
 
 const apiRoot = '/api/controller/api/v1'
-type Run = { id: string; identity: string; scenario_name: string; scenario_version: number; status: string; priority: number; current_stage?: string; created_at: string }
+type Run = { id: string; identity: string; scenario_name: string; scenario_version: number; status: string; priority: number; current_stage?: string; created_at: string; debug: boolean; live_stream_available: boolean; recorded_video_available: boolean }
+type RunMedia = { live: boolean; videos: Array<{ name: string; size: number }> }
+type MediaDialog = { run: Run; ticket: string; live: boolean; videos: Array<{ name: string; size: number }> }
 type Scenario = { id: string; name: string; version: number }
 type Proxy = { id: string; name: string }
 type Identity = { identity: string; in_use: boolean }
@@ -48,6 +50,7 @@ export function WorkersPage() {
   const [identityHint, setIdentityHint] = useState('')
   const [logRun, setLogRun] = useState<Run | null>(null)
   const [logs, setLogs] = useState('')
+  const [mediaDialog, setMediaDialog] = useState<MediaDialog | null>(null)
   const [sortColumn, setSortColumn] = useState<SortColumn>('created')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   const [form, setForm] = useState({ identity: 'test-user-001', scenario: '', priority: 0, debug: false, recording: true, proxy_mode: 'default', proxy_config_id: '', timeout_seconds: 3600 })
@@ -79,6 +82,15 @@ export function WorkersPage() {
     try { const rows = await api<Array<{ message: string }>>(`/runs/${run.id}/logs?count=1000`); setLogs(rows.map((row) => row.message).join('\n')) }
     catch (err) { setLogs(`Unable to load logs: ${String(err)}`) }
   }
+  async function showMedia(run: Run) {
+    try {
+      const [media, access] = await Promise.all([
+        api<RunMedia>(`/runs/${run.id}/media`),
+        api<{ ticket: string }>(`/runs/${run.id}/stream-ticket`, { method: 'POST' }),
+      ])
+      setMediaDialog({ run, ticket: access.ticket, live: media.live, videos: media.videos })
+    } catch (err) { setError(err instanceof Error ? err.message : 'Unable to open run media') }
+  }
   const stoppable = new Set(['queued', 'allocating', 'starting', 'running', 'waiting_input', 'stopping'])
   function changeSort(column: SortColumn) {
     if (sortColumn === column) setSortDirection((direction) => direction === 'asc' ? 'desc' : 'asc')
@@ -107,7 +119,7 @@ export function WorkersPage() {
     </Stack>
     {error && <Alert severity="error" sx={{ mb: 2 }}>{error}. Configure the Controller token in Settings.</Alert>}
     <Card><CardContent sx={{ overflowX: 'auto' }}><Table size="small" sx={{ minWidth: 900 }}><TableHead><TableRow><TableCell sx={{ whiteSpace: 'nowrap' }}>{sortHeader('identity', 'Identity')}</TableCell><TableCell>{sortHeader('scenario', 'Scenario')}</TableCell><TableCell>{sortHeader('stage', 'Stage')}</TableCell><TableCell>{sortHeader('priority', 'Priority')}</TableCell><TableCell>{sortHeader('created', 'Created')}</TableCell><TableCell align="right">{sortHeader('status', 'Status')}</TableCell></TableRow></TableHead><TableBody>
-      {sortedRuns.map((run) => { const createdAt = new Date(run.created_at); return <TableRow key={run.id}><TableCell sx={{ whiteSpace: 'nowrap' }}>{run.identity}</TableCell><TableCell>{run.scenario_name}:{run.scenario_version}</TableCell><TableCell>{run.current_stage ?? '—'}</TableCell><TableCell>{run.status === 'queued' ? <TextField size="small" type="number" value={run.priority} onChange={(event) => void changePriority(run, Number(event.target.value))} sx={{ width: 80 }} /> : run.priority}</TableCell><TableCell title={createdAt.toISOString()} sx={{ whiteSpace: 'nowrap' }}>{createdTimeFormatter.format(createdAt)}</TableCell><TableCell align="right" sx={{ width: 1, whiteSpace: 'nowrap' }}><Stack direction="row" alignItems="center" justifyContent="flex-end" gap={.5}><Chip size="small" label={run.status} color={run.status === 'completed' ? 'success' : run.status === 'failed' ? 'error' : run.status === 'running' ? 'primary' : 'default'} /><Tooltip title="Logs" enterDelay={600}><IconButton size="small" aria-label="Open run logs" onClick={() => void showLogs(run)}><DescriptionRounded fontSize="small" /></IconButton></Tooltip>{stoppable.has(run.status) && <Button color="error" size="small" startIcon={<StopRounded />} onClick={() => void stop(run)}>Stop</Button>}</Stack></TableCell></TableRow> })}
+      {sortedRuns.map((run) => { const createdAt = new Date(run.created_at); return <TableRow key={run.id}><TableCell sx={{ whiteSpace: 'nowrap' }}>{run.identity}</TableCell><TableCell>{run.scenario_name}:{run.scenario_version}</TableCell><TableCell>{run.current_stage ?? '—'}</TableCell><TableCell>{run.status === 'queued' ? <TextField size="small" type="number" value={run.priority} onChange={(event) => void changePriority(run, Number(event.target.value))} sx={{ width: 80 }} /> : run.priority}</TableCell><TableCell title={createdAt.toISOString()} sx={{ whiteSpace: 'nowrap' }}>{createdTimeFormatter.format(createdAt)}</TableCell><TableCell align="right" sx={{ width: 1, whiteSpace: 'nowrap' }}><Stack direction="row" alignItems="center" justifyContent="flex-end" gap={.5}><Chip size="small" label={run.status} color={run.status === 'completed' ? 'success' : run.status === 'failed' ? 'error' : run.status === 'running' ? 'primary' : 'default'} />{run.live_stream_available && <Tooltip title="Live stream" enterDelay={600}><IconButton size="small" aria-label="Open live stream" onClick={() => void showMedia(run)}><LiveTvRounded fontSize="small" /></IconButton></Tooltip>}{!run.live_stream_available && run.recorded_video_available && <Tooltip title="Recorded video" enterDelay={600}><IconButton size="small" aria-label="Open recorded video" onClick={() => void showMedia(run)}><PlayCircleRounded fontSize="small" /></IconButton></Tooltip>}<Tooltip title="Logs" enterDelay={600}><IconButton size="small" aria-label="Open run logs" onClick={() => void showLogs(run)}><DescriptionRounded fontSize="small" /></IconButton></Tooltip>{stoppable.has(run.status) && <Tooltip title="Stop" enterDelay={600}><IconButton color="error" size="small" aria-label="Stop run" onClick={() => void stop(run)}><StopRounded fontSize="small" /></IconButton></Tooltip>}</Stack></TableCell></TableRow> })}
       {!runs.length && <TableRow><TableCell colSpan={6}><Typography color="text.secondary" textAlign="center" py={4}>No runs yet.</Typography></TableCell></TableRow>}
     </TableBody></Table></CardContent></Card>
     <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm"><DialogTitle>Create run</DialogTitle><DialogContent><Stack gap={2} mt={1}>
@@ -122,5 +134,9 @@ export function WorkersPage() {
       <FormControlLabel control={<Switch checked={form.recording} onChange={(e) => setForm({ ...form, recording: e.target.checked })} />} label="Record video" />
     </Stack></DialogContent><DialogActions><Button onClick={() => setOpen(false)}>Cancel</Button><Button variant="contained" onClick={() => void createRun()} disabled={!form.identity || !form.scenario || (form.proxy_mode === 'selected' && !form.proxy_config_id)}>Create</Button></DialogActions></Dialog>
     <Dialog open={Boolean(logRun)} onClose={() => setLogRun(null)} fullWidth maxWidth="lg"><DialogTitle>Run logs — {logRun?.identity}</DialogTitle><DialogContent><Box component="pre" sx={{ bgcolor: '#0f172a', color: '#e2e8f0', p: 2, borderRadius: 1, minHeight: 320, maxHeight: '60vh', overflow: 'auto', whiteSpace: 'pre-wrap', fontSize: 12 }}>{logs || 'No logs available.'}</Box></DialogContent><DialogActions><Button onClick={() => logRun && void showLogs(logRun)}>Refresh</Button><Button onClick={() => setLogRun(null)}>Close</Button></DialogActions></Dialog>
+    <Dialog open={Boolean(mediaDialog)} onClose={() => setMediaDialog(null)} fullWidth maxWidth="xl"><DialogTitle>{mediaDialog?.live ? 'Live stream' : 'Recorded video'} — {mediaDialog?.run.identity}</DialogTitle><DialogContent sx={{ p: 1, bgcolor: '#05070a' }}>
+      {mediaDialog?.live && <Box component="iframe" title="Read-only noVNC stream" src={`${apiRoot}/runs/${mediaDialog.run.id}/novnc/vnc.html?${new URLSearchParams({ autoconnect: 'true', resize: 'scale', view_only: 'true', path: `${apiRoot.slice(1)}/runs/${mediaDialog.run.id}/novnc/websockify?ticket=${encodeURIComponent(mediaDialog.ticket)}`, ticket: mediaDialog.ticket })}`} sx={{ width: '100%', height: '75vh', border: 0, display: 'block' }} />}
+      {!mediaDialog?.live && <Stack gap={2}>{mediaDialog?.videos.map((video) => <Box key={video.name} component="video" controls preload="metadata" src={`${apiRoot}/runs/${mediaDialog.run.id}/videos/${encodeURIComponent(video.name)}?ticket=${encodeURIComponent(mediaDialog.ticket)}`} sx={{ width: '100%', maxHeight: '72vh', bgcolor: '#000' }} />)}</Stack>}
+    </DialogContent><DialogActions><Button onClick={() => setMediaDialog(null)}>Close</Button></DialogActions></Dialog>
   </>
 }

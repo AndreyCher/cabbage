@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     stop_kill_seconds: int = Field(default=15, ge=1)
     redis_ttl_seconds: int = Field(default=86400, ge=60)
     log_stream_maxlen: int = Field(default=5000, ge=100)
+    stream_ticket_ttl_seconds: int = Field(default=300, ge=30, le=3600)
 
     def read_secret(self, path: Path, label: str) -> str:
         try:

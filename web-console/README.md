@@ -1,4 +1,4 @@
-# web-console 0.1.16-dev
+# web-console 0.1.17-dev
 
 Early control-plane web interface built with React, TypeScript and Google Material Design through Material UI. The visual direction follows modern infrastructure dashboards: persistent navigation, compact operational cards, clear health states and responsive layouts.
 
@@ -22,6 +22,8 @@ Current scope:
 - separate scenario Steps and per-version Runs statistics;
 - Workers scenario labels in `name:version` format and precise creation timestamps;
 - sortable Workers columns, non-wrapping Identity names and compact right-aligned status/log controls;
+- read-only live noVNC modal for running debug tasks, proxied exclusively through Controller;
+- recorded-video icons and in-console WebM playback after artifact finalization;
 - current section persisted in URL hash with reload and browser back/forward support;
 - Controller Bearer token setting stored in the operator's browser;
 - placeholder for data sources and a JSON-based scenario editor ready for a future structured editor.

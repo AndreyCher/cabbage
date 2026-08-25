@@ -26,6 +26,7 @@ class Executor(Protocol):
     async def stop(self, container_id: str) -> None: ...
     async def remove(self, container_id: str) -> None: ...
     async def logs(self, container_id: str): ...
+    async def internal_endpoint(self, container_id: str, port: int) -> str: ...
 
 
 class DockerExecutor:
@@ -49,6 +50,7 @@ class DockerExecutor:
             "WORKER_SYSTEM_CONFIG": spec.config_path,
             "WORKER_PROFILE": "run",
             "ENABLE_NOVNC": "true" if spec.debug else "false",
+            "NOVNC_VIEW_ONLY": "true",
             "DISPLAY": ":99",
             "CAMOUFOX_EXECUTABLE_PATH": "/opt/camoufox-custom/camoufox-bin",
         }
@@ -76,6 +78,17 @@ class DockerExecutor:
         container = await self._call(self.client.containers.get, container_id)
         await self._call(container.reload)
         return container.attrs
+
+    async def internal_endpoint(self, container_id: str, port: int) -> str:
+        attrs = await self.inspect(container_id)
+        networks = attrs.get("NetworkSettings", {}).get("Networks", {})
+        network = networks.get(self.settings.docker_network)
+        if not network:
+            network = next(iter(networks.values()), {})
+        address = network.get("IPAddress")
+        if not address:
+            raise RuntimeError("worker_internal_address_unavailable")
+        return f"{address}:{port}"
 
     async def stop(self, container_id: str) -> None:
         container = await self._call(self.client.containers.get, container_id)

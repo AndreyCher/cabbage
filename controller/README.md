@@ -1,4 +1,4 @@
-# Controller 0.1.8
+# Controller 0.1.9
 
 FastAPI control plane for queued, resource-aware execution of disposable
 Firefox workers. PostgreSQL stores durable run/scenario/proxy records; Redis
@@ -62,6 +62,9 @@ Controller listens on `127.0.0.1:8088`; Web Console proxies it internally at
 - `PATCH /api/v1/runs/{id}` changes queued priority or cancels a queued run.
 - `POST /api/v1/runs/{id}/stop` performs cooperative-to-forced shutdown.
 - `GET /api/v1/runs/{id}/logs` and `/logs/stream` expose bounded live logs.
+- `POST /api/v1/runs/{id}/stream-ticket` creates a short-lived run-scoped
+  access ticket for browser media. `/novnc/...` proxies a read-only debug
+  session and `/videos/{filename}` streams finalized WebM artifacts.
 - `GET /api/v1/identities`, `/scenarios`, and `/proxies` populate Create Run.
 - Run responses include the immutable `scenario_name` and `scenario_version` selected for that task. Scenario catalog responses include durable `run_count` per version.
 - `POST /api/v1/identities` creates a persistent Identity profile;
@@ -85,6 +88,23 @@ Controller listens on `127.0.0.1:8088`; Web Console proxies it internally at
   logically deleted scenarios.
 
 All endpoints except health require `Authorization: Bearer <token>`.
+
+## Debug stream and recorded video
+
+Debug runs start noVNC only inside the application Docker network. Controller
+resolves the assigned container from `run_id` and proxies both the noVNC assets
+and WebSocket; the worker's port 6080 is never published on the host. Web
+Console first exchanges the configured Bearer token for a short-lived,
+run-scoped media ticket (default TTL: 300 seconds), so the API token is never
+placed in an iframe, WebSocket or video URL.
+
+The Workers live-stream icon is available only while a debug scenario is
+running or waiting for input. The embedded noVNC client is forced into
+view-only mode. When a run finishes and a non-empty `.webm` exists inside its
+validated artifact directory, Web Console replaces the live icon with a
+recorded-video icon and streams the file through Controller with HTTP range
+support. Configure ticket lifetime with
+`CONTROLLER_STREAM_TICKET_TTL_SECONDS` (30–3600 seconds).
 
 The scheduler limits concurrency by configured maximum and Docker host CPU/RAM
 capacity. Runs are ordered by priority then creation time, and the same Identity

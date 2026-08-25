@@ -1,5 +1,12 @@
 # web-console changelog
 
+## 0.1.17-dev
+
+- Added a read-only live-stream icon for active debug runs beside Logs and Stop.
+- Added a modal noVNC viewer whose HTTP and WebSocket traffic is proxied through Controller.
+- Replaced live streaming with recorded-video playback after a run finishes and a WebM artifact exists.
+- Converted the Stop action to the same compact tooltip-icon pattern as neighboring row actions.
+
 ## 0.1.16-dev
 
 - Added ascending and descending sorting to every Workers data column, with numeric priority/version and timestamp-aware ordering.

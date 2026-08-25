@@ -2,6 +2,11 @@
 
 > Component files live in `workers/worker-firefox/`. Docker Compose commands are run from the repository root.
 
+## 0.5.27
+
+- Added `NOVNC_VIEW_ONLY` and server-side x11vnc `-viewonly` enforcement for Controller-managed live streams.
+- Preserved interactive noVNC behavior for autonomous debug runs by keeping the option disabled by default.
+
 ## 0.5.26
 
 - Replaced raw `RuntimeError`/`unexpected_error` output for scenario actions with structured, user-readable `FatalActionError` messages.

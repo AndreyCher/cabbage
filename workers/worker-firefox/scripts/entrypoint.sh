@@ -177,7 +177,11 @@ if [[ "${ENABLE_NOVNC:-false}" == "true" ]]; then
 
   openbox --config-file /root/.config/openbox/rc.xml >/tmp/openbox.log 2>&1 &
   HELPER_PIDS+=("$!")
-  x11vnc -display "$DISPLAY" -forever -shared -nopw -rfbport "${VNC_PORT:-5900}" >/tmp/x11vnc.log 2>&1 &
+  VNC_ACCESS_ARGS=()
+  if [[ "${NOVNC_VIEW_ONLY:-false}" == "true" ]]; then
+    VNC_ACCESS_ARGS+=("-viewonly")
+  fi
+  x11vnc -display "$DISPLAY" -forever -shared -nopw "${VNC_ACCESS_ARGS[@]}" -rfbport "${VNC_PORT:-5900}" >/tmp/x11vnc.log 2>&1 &
   HELPER_PIDS+=("$!")
   websockify --web=/usr/share/novnc/ "${NOVNC_PORT:-6080}" localhost:"${VNC_PORT:-5900}" >/tmp/novnc.log 2>&1 &
   HELPER_PIDS+=("$!")

@@ -419,6 +419,11 @@ Used only when `browser.mode` is `debug`; it does not change the stored fingerpr
 
 With `size: "identity"` and `window: "maximized"`, the debug desktop follows the identity outer window size, avoiding the large unused black area while keeping the same persistent browser geometry.
 
+`NOVNC_VIEW_ONLY=true` is a container-level access control used by Controller.
+It adds x11vnc `-viewonly`, so connected clients cannot inject keyboard or
+pointer events. It defaults to `false` to preserve interactive standalone debug
+operation and is not part of Identity or scenario configuration.
+
 
 ## VM diagnostics logging — v0.4.26
 

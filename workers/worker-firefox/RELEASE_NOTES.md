@@ -1,4 +1,14 @@
-# Release Notes — worker-firefox v0.5.26
+# Release Notes — worker-firefox v0.5.27
+
+## Controller-safe read-only noVNC
+
+Controller-managed debug workers now receive `NOVNC_VIEW_ONLY=true`. The worker
+translates it to x11vnc's server-side `-viewonly` mode, so keyboard and pointer
+events are rejected even if a browser client removes noVNC's `view_only` URL
+option. Port 6080 remains internal in orchestrated mode.
+
+The option defaults to `false`, preserving the existing fully interactive
+standalone `worker-firefox-debug` workflow.
 
 ## Reliable random mouse behavior
 
