@@ -1,5 +1,10 @@
 # web-console changelog
 
+## 0.1.24-dev
+
+- Started recorded videos automatically when their media dialog opens or a different recording is selected.
+- Used muted inline autoplay so browser autoplay policies do not block playback; controls remain available for manual unmuting.
+
 ## 0.1.23-dev
 
 - Persisted the selected page size independently for Workers, Identities and Scenarios tables.
