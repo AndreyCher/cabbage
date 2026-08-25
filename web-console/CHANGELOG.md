@@ -1,5 +1,10 @@
 # web-console changelog
 
+## 0.1.23-dev
+
+- Persisted the selected page size independently for Workers, Identities and Scenarios tables.
+- Restored valid 25/50/100/150 selections after page reload and used 50 only when no preference exists.
+
 ## 0.1.22-dev
 
 - Expanded Workers, Identities and Scenarios tables across the complete available content width.

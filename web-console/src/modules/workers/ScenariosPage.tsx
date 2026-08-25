@@ -95,7 +95,7 @@ export function ScenariosPage() {
     ;(result[item.name] ??= []).push(item)
     return result
   }, {})).map((versions) => versions.sort((a, b) => b.version - a.version))
-  const pagination = useClientPagination(groups)
+  const pagination = useClientPagination(groups, 'scenarios')
   function toggle(name: string) {
     setExpanded((current) => {
       const next = new Set(current)

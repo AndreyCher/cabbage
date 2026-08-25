@@ -3,14 +3,21 @@ import { TablePagination } from '@mui/material'
 
 const pageSizeOptions = [25, 50, 100, 150]
 
-export function useClientPagination<T>(items: T[]) {
+export function useClientPagination<T>(items: T[], storageKey: string) {
   const [page, setPage] = useState(0)
-  const [pageSize, setPageSize] = useState(50)
+  const [pageSize, setPageSize] = useState(() => {
+    const saved = Number(localStorage.getItem(`cabbage.table.page-size.${storageKey}`))
+    return pageSizeOptions.includes(saved) ? saved : 50
+  })
   const pageCount = Math.max(1, Math.ceil(items.length / pageSize))
 
   useEffect(() => {
     if (page >= pageCount) setPage(pageCount - 1)
   }, [page, pageCount])
+
+  useEffect(() => {
+    localStorage.setItem(`cabbage.table.page-size.${storageKey}`, String(pageSize))
+  }, [pageSize, storageKey])
 
   const pageItems = useMemo(
     () => items.slice(page * pageSize, page * pageSize + pageSize),

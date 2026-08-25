@@ -34,7 +34,7 @@ export function IdentitiesPage() {
   const [error, setError] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<Identity | null>(null)
   const [deleteAccountData, setDeleteAccountData] = useState(false)
-  const pagination = useClientPagination(items)
+  const pagination = useClientPagination(items, 'identities')
 
   const refresh = useCallback(async () => {
     try { setItems(await controllerApi<Identity[]>('/identities')); setError('') }

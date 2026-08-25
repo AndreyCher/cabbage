@@ -121,7 +121,7 @@ export function WorkersPage() {
       : String(leftValue).localeCompare(String(rightValue), undefined, { numeric: true, sensitivity: 'base' })
     return sortDirection === 'asc' ? result : -result
   })
-  const pagination = useClientPagination(sortedRuns)
+  const pagination = useClientPagination(sortedRuns, 'workers')
   const sortHeader = (column: SortColumn, label: string) => <TableSortLabel active={sortColumn === column} direction={sortColumn === column ? sortDirection : 'asc'} onClick={() => changeSort(column)}>{label}</TableSortLabel>
   const mediaWidth = Math.max(280, Math.min(viewport.width - 32, (viewport.height - 150) * mediaAspectRatio))
   const selectedVideo = mediaDialog?.videos[mediaVideoIndex]
