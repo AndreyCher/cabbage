@@ -1,6 +1,13 @@
-# worker-firefox v0.5.28
+# worker-firefox v0.5.29
 
 > Component files live in `workers/worker-firefox/`. The preferred integrated workflow runs Docker Compose from the repository root. This component also intentionally supports autonomous build and execution from its own directory. Paths describing component files are relative to that directory unless stated otherwise.
+
+## v0.5.29 — reliable full-session recording
+
+- Normal non-debug recording now captures the hidden Xvfb display through FFmpeg instead of relying on broken Camoufox/Playwright page videos.
+- One run produces one continuous `videos/session.webm`, including navigation and all opened tabs, without enabling noVNC or debug mode.
+- Empty header-only `page-XX.webm` files are no longer exposed as successful recordings.
+- Runs with recording disabled preserve the existing lightweight virtual browser mode.
 
 ## v0.5.28 — exact Controller artifact ownership
 

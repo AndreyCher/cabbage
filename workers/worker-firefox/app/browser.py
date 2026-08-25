@@ -8,6 +8,15 @@ from camoufox.sync_api import Camoufox
 from .proxy import validate_proxy_config
 
 
+def uses_x11_recording(cfg: dict[str, Any]) -> bool:
+    recording = cfg.get("recording", {})
+    if not recording.get("video", False):
+        return False
+    mode = cfg.get("browser", {}).get("mode", "virtual")
+    backend_key = "debug_backend" if mode == "debug" else "backend"
+    return recording.get(backend_key, "x11") == "x11"
+
+
 def _proxy_config(cfg: dict[str, Any]) -> dict[str, str] | None:
     proxy = validate_proxy_config(cfg)
     if proxy is None:
@@ -62,10 +71,11 @@ def build_camoufox_kwargs(cfg: dict[str, Any], identity_state: dict[str, Any], r
     proxy = _proxy_config(cfg)
 
     mode = browser_cfg.get("mode", "virtual")
-    if mode == "debug":
+    x11_recording = uses_x11_recording(cfg)
+    if mode == "debug" or x11_recording:
         headless: bool | str = False
         if not os.getenv("DISPLAY"):
-            raise RuntimeError("Debug mode requires DISPLAY (use docker compose --profile debug)")
+            raise RuntimeError("X11 browser mode requires DISPLAY")
     elif mode == "headless":
         headless = True
     else:
@@ -103,8 +113,7 @@ def build_camoufox_kwargs(cfg: dict[str, Any], identity_state: dict[str, Any], r
         kwargs.pop("browser", None)
 
     recording = cfg.get("recording", {})
-    debug_x11_recording = mode == "debug" and recording.get("debug_backend", "x11") == "x11"
-    if recording.get("video", False) and not debug_x11_recording:
+    if recording.get("video", False) and not x11_recording:
         if not run_dir:
             raise ValueError("run_dir is required when recording.video=true")
         kwargs["record_video_dir"] = f"{run_dir}/videos/.raw"

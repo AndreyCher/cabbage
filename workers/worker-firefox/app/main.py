@@ -18,7 +18,7 @@ from pathlib import Path
 from playwright._impl._errors import TargetClosedError
 
 from .actions import ActionEngine
-from .browser import launch
+from .browser import launch, uses_x11_recording
 from .browser_cleanup import BrowserCleanupTimeout, bounded_manager_exit, terminate_browser_children
 from .config_loader import load_runtime_config
 from .control_api import ControlAPIServer
@@ -60,23 +60,19 @@ def dump_json(path: Path, data) -> None:
         json.dump(data, fh, indent=2, ensure_ascii=False)
 
 
-def start_debug_video_recorder(cfg: dict, run_dir: Path, logger: logging.Logger):
-    recording = cfg.get("recording", {})
-    if not recording.get("video", False):
-        return None
-    if cfg.get("browser", {}).get("mode", "virtual") != "debug":
-        return None
-    if recording.get("debug_backend", "x11") != "x11":
+def start_x11_video_recorder(cfg: dict, run_dir: Path, logger: logging.Logger):
+    if not uses_x11_recording(cfg):
         return None
 
+    recording = cfg.get("recording", {})
     display = os.getenv("DISPLAY")
     size = os.getenv("WORKER_DEBUG_DISPLAY_SIZE")
     if not display or not size:
-        raise RuntimeError("X11 debug recording requires DISPLAY and WORKER_DEBUG_DISPLAY_SIZE")
+        raise RuntimeError("X11 video recording requires DISPLAY and WORKER_DEBUG_DISPLAY_SIZE")
 
     video_dir = run_dir / "videos"
     video_dir.mkdir(parents=True, exist_ok=True)
-    target = video_dir / "debug-session.webm"
+    target = video_dir / ("debug-session.webm" if cfg.get("browser", {}).get("mode") == "debug" else "session.webm")
     log_path = video_dir / "ffmpeg.log"
     log_handle = log_path.open("w", encoding="utf-8")
     command = [
@@ -87,11 +83,11 @@ def start_debug_video_recorder(cfg: dict, run_dir: Path, logger: logging.Logger)
         "-cpu-used", "8", "-pix_fmt", "yuv420p", str(target),
     ]
     process = subprocess.Popen(command, stdout=log_handle, stderr=log_handle)
-    logger.info("Debug X11 video recording started: %s (%s at %s fps)", target, size, recording.get("debug_fps", 15))
+    logger.info("X11 video recording started: %s (%s at %s fps)", target, size, recording.get("debug_fps", 15))
     return {"process": process, "target": target, "log_handle": log_handle, "log_path": log_path}
 
 
-def stop_debug_video_recorder(recorder, logger: logging.Logger) -> dict | None:
+def stop_x11_video_recorder(recorder, logger: logging.Logger) -> dict | None:
     if recorder is None:
         return None
     process = recorder["process"]
@@ -110,9 +106,9 @@ def stop_debug_video_recorder(recorder, logger: logging.Logger) -> dict | None:
     target = recorder["target"]
     if process.returncode not in {0, 255} or not target.is_file() or target.stat().st_size <= 0:
         raise RuntimeError(
-            f"Debug X11 video recording failed (exit={process.returncode}, log={recorder['log_path']})"
+            f"X11 video recording failed (exit={process.returncode}, log={recorder['log_path']})"
         )
-    logger.info("Debug X11 video recording saved: %s (%d bytes)", target, target.stat().st_size)
+    logger.info("X11 video recording saved: %s (%d bytes)", target, target.stat().st_size)
     return {"video": True, "backend": "x11", "files": [str(target)], "errors": []}
 
 
@@ -367,9 +363,9 @@ def main() -> int:
             "graceful": False,
         },
     }
-    debug_video_recorder = None
+    x11_video_recorder = None
     try:
-        debug_video_recorder = start_debug_video_recorder(cfg, run_dir, logger)
+        x11_video_recorder = start_x11_video_recorder(cfg, run_dir, logger)
         validate_proxy_config(cfg)
         summary["network_preflight"] = network_preflight(cfg)
         dump_json(run_dir / "network.json", summary["network_preflight"])
@@ -588,9 +584,9 @@ def main() -> int:
         else:
             logger.info("Finalizing video artifacts")
             try:
-                debug_recording = stop_debug_video_recorder(debug_video_recorder, logger)
+                x11_recording = stop_x11_video_recorder(x11_video_recorder, logger)
             except Exception as recording_exc:
-                logger.error("Debug video finalization failed: %s", recording_exc)
+                logger.error("X11 video finalization failed: %s", recording_exc)
                 summary["recording"] = {
                     "video": True,
                     "backend": "x11",
@@ -598,7 +594,7 @@ def main() -> int:
                     "errors": [str(recording_exc)],
                 }
             else:
-                summary["recording"] = debug_recording or finalize_recorded_videos(run_dir, logger)
+                summary["recording"] = x11_recording or finalize_recorded_videos(run_dir, logger)
 
         summary["runtime"] = runtime.public_status()
         dump_json(run_dir / "runtime-events.json", runtime.events())

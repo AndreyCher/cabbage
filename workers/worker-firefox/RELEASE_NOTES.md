@@ -1,4 +1,16 @@
-# Release Notes — worker-firefox v0.5.28
+# Release Notes — worker-firefox v0.5.29
+
+## Reliable non-debug video recording
+
+Camoufox v152 created Playwright video objects for ordinary virtual runs but
+finalized each recording as a 4,133-byte header-only WebM with no visible
+frames. The worker now starts a private Xvfb/Openbox display whenever normal
+recording is enabled and captures that display through FFmpeg.
+
+The browser remains non-debug from the operator's perspective: no noVNC,
+x11vnc or websockify service is started. All navigation and newly opened tabs
+are captured chronologically in one `videos/session.webm` file. Runs with
+recording disabled continue to use the lightweight virtual browser mode.
 
 ## Exact orchestrated artifact ownership
 
@@ -45,6 +57,8 @@ image build. Ephemeral workers no longer download and extract UBO on every run.
 
 ## Verification
 
-This release is covered by 64 unit tests. The active database scenario
-`example:2` also passed all 24 actions end to end and produced four screenshots
-and three videos.
+This release is covered by 66 unit tests. Controller run
+`6e10076a-d435-42a5-baa9-a77ce2f81d60` executed active database scenario
+`example:2` without debug mode, passed all 24 actions and produced four
+screenshots plus one 39.53-second, 1.88 MB VP9 `session.webm`. Frames from the
+Wikipedia and YouTube phases were visually verified.

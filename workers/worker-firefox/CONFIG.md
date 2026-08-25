@@ -162,10 +162,11 @@ See `API.md` for the complete API contract.
 
 ## `recording`
 
-- `video` — enable video recording.
-- `video_size` — `default` or configured recording dimensions supported by the implementation.
-- `debug_backend` — debug-mode recording backend; `x11` (default) captures the complete Xvfb/noVNC display. Normal virtual/headless runs continue to use Playwright page recording.
-- `debug_fps` — X11 debug recording frame rate, default `15`.
+- `video` — enable full-session video recording.
+- `backend` — normal-run recording backend; `x11` (default) captures the hidden Xvfb display through FFmpeg into one `videos/session.webm`. It does not enable debug mode or noVNC.
+- `video_size` — retained for the optional legacy Playwright backend; X11 capture follows the resolved display size.
+- `debug_backend` — debug-mode recording backend; `x11` (default) captures the complete Xvfb/noVNC display into `videos/debug-session.webm`.
+- `debug_fps` — X11 recording frame rate for normal and debug runs, default `15`.
 
 Browser startup readiness is controlled by:
 

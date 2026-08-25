@@ -12,9 +12,9 @@ This directory is the current source of truth for the application and its indepe
 
 ### worker-firefox
 
-Current version: **0.5.28**
+Current version: **0.5.29**
 
-Firefox/Camoufox execution worker with modular scenario actions, plugin adapters, persistent Identity profiles, recording/debug support and a per-worker Control API.
+Firefox/Camoufox execution worker with modular scenario actions, plugin adapters, persistent Identity profiles, reliable full-session X11/FFmpeg recording, debug support and a per-worker Control API.
 
 - Code and component documentation: `workers/worker-firefox/`
 - Overview: `workers/worker-firefox/README.md`

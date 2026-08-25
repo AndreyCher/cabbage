@@ -101,6 +101,26 @@ print(novnc_scaling)
 PY
 }
 
+resolve_x11_recording() {
+  python - <<'PY'
+import os
+
+from app.browser import uses_x11_recording
+from app.config_loader import load_runtime_config
+
+system_config = os.environ.get("WORKER_SYSTEM_CONFIG")
+profile = os.environ.get("WORKER_PROFILE")
+enabled = False
+if system_config and profile:
+    try:
+        cfg, _ = load_runtime_config(profile, system_config)
+        enabled = uses_x11_recording(cfg)
+    except Exception as exc:
+        print(f"[recording-config-warning] {exc}", file=__import__("sys").stderr)
+print("true" if enabled else "false")
+PY
+}
+
 write_openbox_config() {
   local window_mode="$1"
   local x="$2"
@@ -134,7 +154,8 @@ ${maximize_xml}
 EOF2
 }
 
-if [[ "${ENABLE_NOVNC:-false}" == "true" ]]; then
+X11_RECORDING_ENABLED="$(resolve_x11_recording)"
+if [[ "${ENABLE_NOVNC:-false}" == "true" || "$X11_RECORDING_ENABLED" == "true" ]]; then
   export DISPLAY="${DISPLAY:-:99}"
 
   mapfile -t DEBUG_VALUES < <(resolve_debug_display "$@")
@@ -177,36 +198,38 @@ if [[ "${ENABLE_NOVNC:-false}" == "true" ]]; then
 
   openbox --config-file /root/.config/openbox/rc.xml >/tmp/openbox.log 2>&1 &
   HELPER_PIDS+=("$!")
-  VNC_ACCESS_ARGS=()
-  if [[ "${NOVNC_VIEW_ONLY:-false}" == "true" ]]; then
-    VNC_ACCESS_ARGS+=("-viewonly")
-  fi
-  x11vnc -display "$DISPLAY" -forever -shared -nopw "${VNC_ACCESS_ARGS[@]}" -rfbport "${VNC_PORT:-5900}" >/tmp/x11vnc.log 2>&1 &
-  HELPER_PIDS+=("$!")
-  websockify --web=/usr/share/novnc/ "${NOVNC_PORT:-6080}" localhost:"${VNC_PORT:-5900}" >/tmp/novnc.log 2>&1 &
-  HELPER_PIDS+=("$!")
-
-  novnc_ready=false
-  for _ in $(seq 1 100); do
-    if curl -fsS "http://127.0.0.1:${NOVNC_PORT:-6080}/vnc.html" >/dev/null 2>&1; then
-      novnc_ready=true
-      break
+  if [[ "${ENABLE_NOVNC:-false}" == "true" ]]; then
+    VNC_ACCESS_ARGS=()
+    if [[ "${NOVNC_VIEW_ONLY:-false}" == "true" ]]; then
+      VNC_ACCESS_ARGS+=("-viewonly")
     fi
-    sleep 0.1
-  done
+    x11vnc -display "$DISPLAY" -forever -shared -nopw "${VNC_ACCESS_ARGS[@]}" -rfbport "${VNC_PORT:-5900}" >/tmp/x11vnc.log 2>&1 &
+    HELPER_PIDS+=("$!")
+    websockify --web=/usr/share/novnc/ "${NOVNC_PORT:-6080}" localhost:"${VNC_PORT:-5900}" >/tmp/novnc.log 2>&1 &
+    HELPER_PIDS+=("$!")
 
-  if [[ "$novnc_ready" != "true" ]]; then
-    echo "[debug] ERROR: noVNC failed to become ready on port ${NOVNC_PORT:-6080}" >&2
-    cat /tmp/novnc.log >&2 || true
-    exit 1
-  fi
+    novnc_ready=false
+    for _ in $(seq 1 100); do
+      if curl -fsS "http://127.0.0.1:${NOVNC_PORT:-6080}/vnc.html" >/dev/null 2>&1; then
+        novnc_ready=true
+        break
+      fi
+      sleep 0.1
+    done
 
-  if [[ "$DEBUG_NOVNC_SCALING" == "local" ]]; then
-    NOVNC_URL="http://<docker-host>:${NOVNC_PORT:-6080}/vnc.html?autoconnect=true&resize=scale"
-  else
-    NOVNC_URL="http://<docker-host>:${NOVNC_PORT:-6080}/vnc.html?autoconnect=true&resize=off"
+    if [[ "$novnc_ready" != "true" ]]; then
+      echo "[debug] ERROR: noVNC failed to become ready on port ${NOVNC_PORT:-6080}" >&2
+      cat /tmp/novnc.log >&2 || true
+      exit 1
+    fi
+
+    if [[ "$DEBUG_NOVNC_SCALING" == "local" ]]; then
+      NOVNC_URL="http://<docker-host>:${NOVNC_PORT:-6080}/vnc.html?autoconnect=true&resize=scale"
+    else
+      NOVNC_URL="http://<docker-host>:${NOVNC_PORT:-6080}/vnc.html?autoconnect=true&resize=off"
+    fi
+    echo "[debug] noVNC ready: $NOVNC_URL"
   fi
-  echo "[debug] noVNC ready: $NOVNC_URL"
 fi
 
 "$@" &

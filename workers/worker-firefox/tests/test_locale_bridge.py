@@ -82,3 +82,44 @@ def test_runtime_reconstructs_locale_and_strips_low_level_locale_keys():
     assert not any(key.startswith("locale:") for key in kwargs["config"])
     assert "geoip" not in kwargs
     assert kwargs["i_know_what_im_doing"] is True
+
+
+def test_normal_recording_uses_x11_without_playwright_page_video(monkeypatch):
+    _install_camoufox_stubs()
+    browser = importlib.import_module("app.browser")
+    monkeypatch.setenv("DISPLAY", ":99")
+    cfg = {
+        "browser": {"mode": "virtual"},
+        "proxy": {"enabled": False},
+        "recording": {"video": True, "backend": "x11"},
+    }
+    state = {
+        "camou_config": {},
+        "paths": {"profile": Path("/tmp/profile")},
+    }
+
+    kwargs = browser.build_camoufox_kwargs(cfg, state, run_dir="/tmp/run")
+
+    assert browser.uses_x11_recording(cfg) is True
+    assert kwargs["headless"] is False
+    assert "record_video_dir" not in kwargs
+    assert "record_video_size" not in kwargs
+
+
+def test_recording_disabled_preserves_virtual_browser_mode():
+    _install_camoufox_stubs()
+    browser = importlib.import_module("app.browser")
+    cfg = {
+        "browser": {"mode": "virtual"},
+        "proxy": {"enabled": False},
+        "recording": {"video": False, "backend": "x11"},
+    }
+    state = {
+        "camou_config": {},
+        "paths": {"profile": Path("/tmp/profile")},
+    }
+
+    kwargs = browser.build_camoufox_kwargs(cfg, state)
+
+    assert browser.uses_x11_recording(cfg) is False
+    assert kwargs["headless"] == "virtual"

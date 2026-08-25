@@ -2,6 +2,14 @@
 
 > Component files live in `workers/worker-firefox/`. Docker Compose commands are run from the repository root.
 
+## 0.5.29
+
+- Replaced normal Camoufox/Playwright page recording, which produced 4,133-byte blank WebM containers, with full-session X11/FFmpeg capture.
+- Added an internal Xvfb/Openbox display for recorded non-debug runs without starting noVNC/x11vnc/websockify.
+- Consolidated multi-tab runs into one chronological `videos/session.webm` artifact.
+- Kept non-recorded virtual runs and read-only debug streaming behavior unchanged.
+- Added unit coverage for X11 recording selection and recording-disabled virtual mode.
+
 ## 0.5.28
 
 - Added the owning Controller run ID to `summary.json` when supplied by orchestrated configuration.

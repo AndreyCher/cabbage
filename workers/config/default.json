@@ -68,6 +68,7 @@
   },
   "recording": {
     "video": true,
+    "backend": "x11",
     "video_size": "default",
     "debug_backend": "x11",
     "debug_fps": 15,
