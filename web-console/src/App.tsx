@@ -33,6 +33,7 @@ type Service = RegistryComponent & {
 const drawerWidth = 248
 const collapsedDrawerWidth = 72
 const pageIds = new Set([...consoleModules.flatMap((module) => module.pages ?? []).map((page) => page.id), 'settings'])
+const fullWidthTablePages = new Set(['workers', 'identities', 'scenarios'])
 
 function pageFromLocation() {
   const page = decodeURIComponent(window.location.hash.replace(/^#\/?/, ''))
@@ -58,6 +59,7 @@ function App() {
   const { preference, setPreference } = useThemeMode()
   const pages = consoleModules.flatMap((module) => module.pages ?? [])
   const settingsSections = consoleModules.flatMap((module) => module.settings ?? [])
+  const fullWidthTablePage = fullWidthTablePages.has(activePage)
   const desktopWidth = collapsed ? collapsedDrawerWidth : drawerWidth
   const selectPage = (id: string) => {
     setActivePage(id)
@@ -158,8 +160,8 @@ function App() {
         <Drawer variant="temporary" open={mobileOpen} onClose={() => setMobileOpen(false)} ModalProps={{ keepMounted: true }} sx={{ display: { xs: 'block', md: 'none' }, '& .MuiDrawer-paper': { width: drawerWidth } }}>{navigation()}</Drawer>
         <Drawer variant="permanent" open sx={{ display: { xs: 'none', md: 'block' }, '& .MuiDrawer-paper': { width: desktopWidth, boxSizing: 'border-box', overflowX: 'hidden', transition: 'width 180ms' } }}>{navigation(collapsed)}</Drawer>
       </Box>
-      <Box component="main" sx={{ flexGrow: 1, p: { xs: 2, sm: 3, lg: 4 }, width: { md: `calc(100% - ${desktopWidth}px)` }, mt: 8, transition: 'width 180ms' }}>
-        <Box sx={{ maxWidth: 1240, mx: 'auto' }}>
+      <Box component="main" sx={{ flexGrow: 1, minWidth: 0, p: fullWidthTablePage ? 1.5 : { xs: 2, sm: 3, lg: 4 }, width: { md: `calc(100% - ${desktopWidth}px)` }, mt: 8, transition: 'width 180ms' }}>
+        <Box sx={{ width: '100%', maxWidth: fullWidthTablePage ? 'none' : 1240, mx: fullWidthTablePage ? 0 : 'auto' }}>
           {activePage === 'settings' ? <>
             <Typography variant="h4">Settings</Typography><Typography color="text.secondary" mt={.5} mb={4}>Configure the console and installed modules.</Typography>
             <Card><CardContent sx={{ p: 3 }}><Typography variant="h6">Appearance</Typography><Typography variant="body2" color="text.secondary" mt={.5} mb={2}>Choose a theme or follow your operating system.</Typography>

@@ -1,5 +1,10 @@
 # web-console changelog
 
+## 0.1.22-dev
+
+- Expanded Workers, Identities and Scenarios tables across the complete available content width.
+- Reduced table-page edge spacing to 12 pixels while preserving the constrained layout for non-table pages and dialogs.
+
 ## 0.1.21-dev
 
 - Added consistent client-side pagination to Workers, Identities and Scenarios tables.

@@ -4,6 +4,7 @@ This is the global release history for all application components. Component cha
 
 ## Unreleased
 
+- Added Web Console 0.1.22-dev with full-width table pages and 12-pixel edge spacing.
 - Added Controller 0.1.11 and Web Console 0.1.21-dev with complete client-side pagination for every table, default 50 and selectable 25/50/100/150 page sizes.
 - Added Controller 0.1.10, worker-firefox 0.5.28 and Web Console 0.1.20-dev with exact per-run artifact ownership, accurate video actions and debug scenario indicators.
 - Added Web Console 0.1.19-dev with scrollbar-free noVNC and recorded-video dialogs.
