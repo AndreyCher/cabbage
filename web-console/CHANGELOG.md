@@ -1,5 +1,10 @@
 # web-console changelog
 
+## 0.1.25-dev
+
+- Fixed Workers data rows at a consistent 44-pixel height across all run statuses.
+- Compacted the queued-run Priority editor to fit inside the row without changing table density.
+
 ## 0.1.24-dev
 
 - Started recorded videos automatically when their media dialog opens or a different recording is selected.

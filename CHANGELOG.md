@@ -4,6 +4,7 @@ This is the global release history for all application components. Component cha
 
 ## Unreleased
 
+- Added Web Console 0.1.25-dev with fixed-height Workers rows and a compact queued-run Priority editor.
 - Added Web Console 0.1.24-dev with browser-compatible automatic playback for recorded videos when their media dialog opens.
 - Added Web Console 0.1.23-dev with per-table page-size persistence across reloads.
 - Added Web Console 0.1.22-dev with full-width table pages and 12-pixel edge spacing.
