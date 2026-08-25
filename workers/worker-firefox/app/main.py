@@ -349,6 +349,7 @@ def main() -> int:
         "identity": cfg["identity"],
         "scenario": scenario_name,
         "run_id": run_id,
+        "controller_run_id": cfg.get("run", {}).get("controller_run_id"),
         "browser_source_commit": browser_source_commit,
         "configuration": {
             "system": layout["system_config"],

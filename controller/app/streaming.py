@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import secrets
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
 import httpx
@@ -22,10 +24,47 @@ def video_files(run: Run, settings: Settings) -> list[Path]:
     artifact = Path(run.artifact_path).resolve()
     if artifact != root and root not in artifact.parents:
         return []
+    summary_path = artifact / "summary.json"
+    try:
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    controller_run_id = summary.get("controller_run_id")
+    if controller_run_id:
+        if controller_run_id != str(run.id):
+            return []
+    elif not _legacy_summary_matches_run(run, summary):
+        return []
+    recording = summary.get("recording") or {}
+    recorded_names = {
+        Path(str(filename)).name
+        for filename in recording.get("files", [])
+        if isinstance(filename, str) and filename.endswith(".webm")
+    }
+    if not recording.get("video") or not recorded_names:
+        return []
     videos = artifact / "videos"
     if not videos.is_dir():
         return []
-    return sorted(path for path in videos.glob("*.webm") if path.is_file() and path.stat().st_size > 0)
+    return sorted(
+        path for path in videos.glob("*.webm")
+        if path.name in recorded_names and path.is_file() and path.stat().st_size > 0
+    )
+
+
+def _legacy_summary_matches_run(run: Run, summary: dict) -> bool:
+    if summary.get("identity") != run.identity or summary.get("scenario") != run.scenario.name:
+        return False
+    if run.started_at is None:
+        return False
+    try:
+        summary_started = datetime.fromisoformat(str(summary["started_at"]).replace("Z", "+00:00"))
+    except (KeyError, TypeError, ValueError):
+        return False
+    run_started = run.started_at
+    if run_started.tzinfo is None:
+        run_started = run_started.replace(tzinfo=timezone.utc)
+    return abs((summary_started - run_started).total_seconds()) <= 10
 
 
 def live_stream_available(run: Run) -> bool:

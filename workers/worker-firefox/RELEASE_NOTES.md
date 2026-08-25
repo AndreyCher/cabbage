@@ -1,4 +1,11 @@
-# Release Notes — worker-firefox v0.5.27
+# Release Notes — worker-firefox v0.5.28
+
+## Exact orchestrated artifact ownership
+
+When Controller supplies its run identifier, worker `summary.json` now records
+it as `controller_run_id`. This prevents artifacts from sequential executions
+of the same Identity and scenario from being associated with the wrong task.
+Standalone behavior is unchanged.
 
 ## Controller-safe read-only noVNC
 

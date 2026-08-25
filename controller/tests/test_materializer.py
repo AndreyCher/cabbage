@@ -22,6 +22,8 @@ def test_materializer_creates_worker_layout(tmp_path: Path):
     assert (root / "config.json").is_file()
     assert (root / "profiles/run.json").is_file()
     assert (root / "scenarios/example.json").is_file()
+    profile = json.loads((root / "profiles/run.json").read_text())
+    assert profile["run"]["controller_run_id"] == str(run.id)
 
 
 def test_materializer_forces_debug_browser_mode(tmp_path: Path):

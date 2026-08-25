@@ -1,5 +1,10 @@
 # web-console changelog
 
+## 0.1.20-dev
+
+- Added a debug indicator immediately to the left of the scenario name for every debug run.
+- Showed recorded-video playback only when Controller verifies a non-empty WebM owned by that exact run.
+
 ## 0.1.19-dev
 
 - Removed horizontal and vertical scrollbars from live-stream and recorded-video dialogs.

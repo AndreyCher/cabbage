@@ -4,6 +4,7 @@ This is the global release history for all application components. Component cha
 
 ## Unreleased
 
+- Added Controller 0.1.10, worker-firefox 0.5.28 and Web Console 0.1.20-dev with exact per-run artifact ownership, accurate video actions and debug scenario indicators.
 - Added Web Console 0.1.19-dev with scrollbar-free noVNC and recorded-video dialogs.
 - Added Web Console 0.1.18-dev with media-aspect-aware live/video dialogs that resize with the current browser viewport.
 - Added Controller 0.1.9, Web Console 0.1.17-dev and worker-firefox 0.5.27 with authenticated Controller-proxied noVNC for active debug runs, server-enforced view-only access and recorded WebM playback after completion.

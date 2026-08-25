@@ -1,5 +1,12 @@
 # Controller changelog
 
+## 0.1.10
+
+- Bound artifact discovery to the exact Controller run ID stored in worker summary metadata.
+- Added a timestamp-validated compatibility check for summaries created before Controller run IDs were embedded.
+- Prevented unrelated recordings from another run of the same Identity/scenario from enabling video playback.
+- Required the run summary to explicitly list each non-empty WebM before exposing the playback action.
+
 ## 0.1.9
 
 - Added short-lived, run-scoped Redis tickets for browser media access.

@@ -49,7 +49,11 @@ class RunMaterializer:
         if run.debug:
             resolved.setdefault("browser", {})["mode"] = "debug"
         resolved["identity"] = run.identity
-        resolved["run"] = {**resolved.get("run", {}), "scenario": run.scenario.name}
+        resolved["run"] = {
+            **resolved.get("run", {}),
+            "scenario": run.scenario.name,
+            "controller_run_id": str(run.id),
+        }
         if proxy is not None:
             resolved["proxy"] = proxy
         elif run.proxy_mode == "disabled":

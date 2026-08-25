@@ -1,4 +1,4 @@
-# Controller 0.1.9
+# Controller 0.1.10
 
 FastAPI control plane for queued, resource-aware execution of disposable
 Firefox workers. PostgreSQL stores durable run/scenario/proxy records; Redis
@@ -105,6 +105,12 @@ validated artifact directory, Web Console replaces the live icon with a
 recorded-video icon and streams the file through Controller with HTTP range
 support. Configure ticket lifetime with
 `CONTROLLER_STREAM_TICKET_TTL_SECONDS` (30–3600 seconds).
+
+Each worker summary stores its owning Controller `run_id`. Video discovery
+requires that exact match and an explicit WebM entry in `summary.recording.files`;
+legacy summaries are accepted only when Identity, scenario and start timestamp
+match. A recording from another execution cannot enable playback on the wrong
+Workers row.
 
 The scheduler limits concurrency by configured maximum and Docker host CPU/RAM
 capacity. Runs are ordered by priority then creation time, and the same Identity

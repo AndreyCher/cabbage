@@ -12,7 +12,7 @@ This directory is the current source of truth for the application and its indepe
 
 ### worker-firefox
 
-Current version: **0.5.27**
+Current version: **0.5.28**
 
 Firefox/Camoufox execution worker with modular scenario actions, plugin adapters, persistent Identity profiles, recording/debug support and a per-worker Control API.
 
@@ -33,7 +33,7 @@ Standalone source builder for immutable `worker-firefox-base:<browser-version>` 
 
 ### controller
 
-Current version: **0.1.9**
+Current version: **0.1.10**
 
 FastAPI control plane with authenticated API, PostgreSQL history/configuration,
 Redis queue/live state, resource-aware Docker scheduling, disposable workers
@@ -54,7 +54,7 @@ Standalone data-resolution service used by automated workers. The initial backen
 
 ### web-console
 
-Current development release: **0.1.19-dev**
+Current development release: **0.1.20-dev**
 
 React/TypeScript control-plane interface using Material UI. It provides Controller-backed worker queue/history, versioned scenario and Identity management, Create Run, live logs, responsive read-only debug streams, recorded-video playback, sorting, persisted navigation, settings and service health.
 

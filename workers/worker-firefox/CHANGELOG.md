@@ -2,6 +2,11 @@
 
 > Component files live in `workers/worker-firefox/`. Docker Compose commands are run from the repository root.
 
+## 0.5.28
+
+- Added the owning Controller run ID to `summary.json` when supplied by orchestrated configuration.
+- Kept the field optional so standalone execution remains unchanged.
+
 ## 0.5.27
 
 - Added `NOVNC_VIEW_ONLY` and server-side x11vnc `-viewonly` enforcement for Controller-managed live streams.

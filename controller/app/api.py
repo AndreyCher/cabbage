@@ -38,7 +38,7 @@ def run_read(run: Run) -> RunRead:
 
 @router.get("/health")
 async def health() -> dict:
-    return {"status": "ok", "component": "controller", "version": "0.1.9", "api_version": "v1"}
+    return {"status": "ok", "component": "controller", "version": "0.1.10", "api_version": "v1"}
 
 
 @router.get("/runs", response_model=list[RunRead], dependencies=[Depends(require_token)])

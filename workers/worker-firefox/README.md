@@ -1,6 +1,11 @@
-# worker-firefox v0.5.27
+# worker-firefox v0.5.28
 
 > Component files live in `workers/worker-firefox/`. The preferred integrated workflow runs Docker Compose from the repository root. This component also intentionally supports autonomous build and execution from its own directory. Paths describing component files are relative to that directory unless stated otherwise.
+
+## v0.5.28 — exact Controller artifact ownership
+
+- Orchestrated summaries include `controller_run_id`, allowing Controller to associate screenshots, logs and recordings with one exact task.
+- Standalone runs omit the optional field and preserve the autonomous workflow.
 
 ## v0.5.27 — enforced read-only Controller streams
 

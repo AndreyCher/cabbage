@@ -156,9 +156,22 @@ class Scheduler:
         candidates = list(scenario_root.glob("*/summary.json")) if scenario_root.is_dir() else []
         if not candidates:
             return None
-        path = max(candidates, key=lambda item: item.stat().st_mtime)
-        try:
-            payload = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            return None
-        return {"path": path.parent, "payload": payload}
+        fallback = None
+        for path in sorted(candidates, key=lambda item: item.stat().st_mtime, reverse=True):
+            try:
+                payload = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+            if payload.get("controller_run_id") == str(run.id):
+                return {"path": path.parent, "payload": payload}
+            if not payload.get("controller_run_id") and fallback is None:
+                try:
+                    started = datetime.fromisoformat(str(payload["started_at"]).replace("Z", "+00:00"))
+                    run_started = run.started_at
+                    if run_started is not None and run_started.tzinfo is None:
+                        run_started = run_started.replace(tzinfo=timezone.utc)
+                    if run_started is not None and abs((started - run_started).total_seconds()) <= 10:
+                        fallback = {"path": path.parent, "payload": payload}
+                except (KeyError, TypeError, ValueError):
+                    pass
+        return fallback

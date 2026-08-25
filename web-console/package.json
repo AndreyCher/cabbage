@@ -1,7 +1,7 @@
 {
   "name": "web-console",
   "private": true,
-  "version": "0.1.19-dev",
+  "version": "0.1.20-dev",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
