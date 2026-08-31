@@ -1,4 +1,11 @@
-# Release Notes — worker-firefox v0.5.29
+# Release Notes — worker-firefox v0.5.30
+
+## Controller-driven Identity maintenance
+
+The existing autonomous `--reset-identity` and `--update-identity` operations
+can now be selected through `WORKER_IDENTITY_OPERATION=reset|update`. Controller
+uses this narrow environment bridge for an explicitly requested Identity
+operation; normal standalone CLI and Compose execution remain unchanged.
 
 ## Reliable non-debug video recording
 
@@ -57,7 +64,7 @@ image build. Ephemeral workers no longer download and extract UBO on every run.
 
 ## Verification
 
-This release is covered by 66 unit tests. Controller run
+This release is covered by 69 unit tests. Controller run
 `6e10076a-d435-42a5-baa9-a77ce2f81d60` executed active database scenario
 `example:2` without debug mode, passed all 24 actions and produced four
 screenshots plus one 39.53-second, 1.88 MB VP9 `session.webm`. Frames from the

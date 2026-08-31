@@ -6,6 +6,8 @@ import shutil
 import uuid
 from datetime import datetime, timezone
 
+import httpx
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, WebSocket, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
@@ -17,9 +19,10 @@ from .database import SessionLocal, session_dependency
 from .executor import DockerExecutor
 from .models import ACTIVE_STATUSES, ControllerSetting, IdentityProfile, ProxyConfig, Run, RunStatus, ScenarioTemplate, TERMINAL_STATUSES
 from .queue import RunQueue
-from .schemas import IdentityCreate, IdentityDefaultsRead, IdentityDefaultsUpdate, IdentityRead, IdentityUpdate, ProxyCreate, RunCreate, RunRead, RunUpdate, ScenarioClone, ScenarioCreate, ScenarioRead
+from .schemas import IdentityCreate, IdentityDefaultsRead, IdentityDefaultsUpdate, IdentityRead, IdentityUpdate, ProxyCreate, ProxyUpdate, RunCreate, RunRead, RunUpdate, ScenarioClone, ScenarioCreate, ScenarioRead, WorkerDefaultsRead, WorkerDefaultsUpdate
 from .settings import get_settings
 from .streaming import create_stream_ticket, live_stream_available, proxy_novnc_asset, proxy_novnc_websocket, recorded_video_response, validate_stream_ticket, video_files
+from .worker_config import WorkerConfig
 
 router = APIRouter(prefix="/api/v1")
 
@@ -38,7 +41,13 @@ def run_read(run: Run) -> RunRead:
 
 @router.get("/health")
 async def health() -> dict:
-    return {"status": "ok", "component": "controller", "version": "0.1.12", "api_version": "v1"}
+    return {"status": "ok", "component": "controller", "version": "0.1.13", "api_version": "v1"}
+
+
+@router.get("/worker-config/schema", dependencies=[Depends(require_token)])
+async def worker_config_schema() -> dict:
+    """Machine-readable contract used by API clients and the future settings UI."""
+    return WorkerConfig.model_json_schema()
 
 
 @router.get("/runs", response_model=list[RunRead], dependencies=[Depends(require_token)])
@@ -61,12 +70,10 @@ async def create_run(payload: RunCreate, request: Request, session: AsyncSession
         raise HTTPException(404, detail="scenario_not_found")
     if await session.get(IdentityProfile, payload.identity) is None:
         raise HTTPException(404, detail={"code": "identity_not_found", "identity": payload.identity, "suggestion": "create_identity"})
-    overrides = dict(payload.overrides)
+    overrides = payload.worker_config.overrides()
     if payload.recording is not None:
         overrides.setdefault("recording", {})["video"] = payload.recording
-    if payload.timeout_seconds is not None:
-        overrides.setdefault("run", {})["timeout_seconds"] = payload.timeout_seconds
-    run = Run(identity=payload.identity, scenario=scenario, proxy_config_id=payload.proxy_config_id, status=RunStatus.queued.value, priority=payload.priority, debug=payload.debug, proxy_mode=payload.proxy_mode, overrides=overrides)
+    run = Run(identity=payload.identity, scenario=scenario, proxy_config_id=payload.proxy_config_id, status=RunStatus.queued.value, priority=payload.priority, debug=payload.debug, proxy_mode=payload.proxy_mode, overrides=overrides, timeout_seconds=payload.timeout_seconds)
     session.add(run)
     await session.commit()
     await session.refresh(run)
@@ -80,6 +87,63 @@ async def get_run(run_id: uuid.UUID, session: AsyncSession = Depends(session_dep
     if run is None:
         raise HTTPException(404, detail="run_not_found")
     return run_read(run)
+
+
+@router.get("/runs/{run_id}/runtime", dependencies=[Depends(require_token)])
+async def get_run_runtime(run_id: uuid.UUID, request: Request, session: AsyncSession = Depends(session_dependency)):
+    run = await session.get(Run, run_id)
+    if run is None:
+        raise HTTPException(404, detail="run_not_found")
+    if not run.container_id or run.status in [s.value for s in TERMINAL_STATUSES]:
+        raise HTTPException(409, detail="worker_runtime_unavailable")
+    endpoint = await request.app.state.executor.internal_endpoint(run.container_id, 8090)
+    try:
+        async with httpx.AsyncClient(timeout=get_settings().worker_api_timeout_seconds) as client:
+            response = await client.get(f"http://{endpoint}/api/v1/identities/{run.identity}/runs/current")
+    except httpx.HTTPError as exc:
+        raise HTTPException(503, detail=f"worker_api_unavailable: {exc}")
+    if not response.is_success:
+        raise HTTPException(503, detail="worker_api_unavailable")
+    return response.json()
+
+
+@router.post("/runs/{run_id}/inputs/{key}", status_code=202, dependencies=[Depends(require_token)])
+async def submit_run_input(run_id: uuid.UUID, key: str, request: Request, session: AsyncSession = Depends(session_dependency)):
+    run = await session.get(Run, run_id)
+    if run is None:
+        raise HTTPException(404, detail="run_not_found")
+    if run.status not in {RunStatus.starting.value, RunStatus.running.value, RunStatus.waiting_input.value} or not run.container_id:
+        raise HTTPException(409, detail="run_not_accepting_input")
+    try:
+        payload = await request.json()
+    except Exception:
+        raise HTTPException(400, detail="malformed_json")
+    endpoint = await request.app.state.executor.internal_endpoint(run.container_id, 8090)
+    worker_run_id = run.worker_run_id
+    try:
+        async with httpx.AsyncClient(timeout=get_settings().worker_api_timeout_seconds) as client:
+            if not worker_run_id:
+                current = await client.get(f"http://{endpoint}/api/v1/identities/{run.identity}/runs/current")
+                if not current.is_success:
+                    raise HTTPException(503, detail="worker_api_unavailable")
+                worker_run_id = current.json().get("run_id")
+                if not worker_run_id:
+                    raise HTTPException(503, detail="worker_run_id_unavailable")
+                run.worker_run_id = worker_run_id
+                await session.commit()
+            response = await client.post(
+                f"http://{endpoint}/api/v1/identities/{run.identity}/runs/{worker_run_id}/inputs/{key}",
+                json=payload,
+            )
+    except httpx.HTTPError as exc:
+        raise HTTPException(503, detail=f"worker_api_unavailable: {exc}")
+    try:
+        body = response.json()
+    except ValueError:
+        body = {"error": "invalid_worker_response"}
+    if response.status_code >= 400:
+        raise HTTPException(response.status_code, detail=body)
+    return body
 
 
 @router.patch("/runs/{run_id}", response_model=RunRead, dependencies=[Depends(require_token)])
@@ -112,10 +176,13 @@ async def stop_run(run_id: uuid.UUID, request: Request, session: AsyncSession = 
         raise HTTPException(409, detail="run_already_finished")
     else:
         run.status = RunStatus.stopping.value
+        run.error_reason = "user_interrupt"
+        run.current_stage = "finalizing"
         await session.commit()
         if run.container_id:
             await request.app.state.executor.stop(run.container_id)
-        run.status = RunStatus.stopped.value
+        await session.refresh(run)
+        return run_read(run)
     run.finished_at = datetime.now(timezone.utc)
     run.current_stage = "stopped"
     await session.commit()
@@ -220,7 +287,7 @@ async def create_identity(payload: IdentityCreate, session: AsyncSession = Depen
     if await session.get(IdentityProfile, payload.identity):
         raise HTTPException(409, detail="identity_exists")
     defaults = await session.get(ControllerSetting, "identity_defaults")
-    config = _deep_merge(defaults.value if defaults else {}, payload.config)
+    config = _deep_merge(defaults.value if defaults else {}, payload.config.overrides())
     row = IdentityProfile(identity=payload.identity, config=config)
     session.add(row)
     await session.commit()
@@ -237,16 +304,68 @@ async def get_identity(identity: str, session: AsyncSession = Depends(session_de
     return IdentityRead.model_validate(row).model_copy(update={"in_use": in_use})
 
 
+@router.get("/identities/{identity}/runtime-profile", dependencies=[Depends(require_token)])
+async def get_identity_runtime_profile(identity: str, session: AsyncSession = Depends(session_dependency)):
+    if await session.get(IdentityProfile, identity) is None:
+        raise HTTPException(404, detail="identity_not_found")
+    root = get_settings().identities_root.resolve()
+    target = root / identity / "config.json"
+    if target.parent.parent.resolve() != root or target.is_symlink():
+        raise HTTPException(400, detail="unsafe_identity_path")
+    if not target.is_file():
+        raise HTTPException(404, detail="runtime_profile_not_materialized")
+    try:
+        return json.loads(await asyncio.to_thread(target.read_text, encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise HTTPException(500, detail=f"runtime_profile_invalid: {exc}")
+
+
 @router.put("/identities/{identity}", response_model=IdentityRead, dependencies=[Depends(require_token)])
 async def update_identity(identity: str, payload: IdentityUpdate, session: AsyncSession = Depends(session_dependency)):
     row = await session.get(IdentityProfile, identity)
     if row is None:
         raise HTTPException(404, detail="identity_not_found")
-    row.config = payload.config
+    row.config = payload.config.overrides()
     row.revision += 1
     await session.commit()
     await session.refresh(row)
     return row
+
+
+async def _identity_operation(identity: str, operation: str, session: AsyncSession) -> IdentityProfile:
+    row = await session.get(IdentityProfile, identity)
+    if row is None:
+        raise HTTPException(404, detail="identity_not_found")
+    active = bool(await session.scalar(select(func.count()).select_from(Run).where(Run.identity == identity, Run.status.in_([s.value for s in ACTIVE_STATUSES]))))
+    if active:
+        raise HTTPException(409, detail="identity_in_use")
+    root = get_settings().identities_root.resolve()
+    target = root / identity
+    if target.parent.resolve() != root or target.is_symlink():
+        raise HTTPException(400, detail="unsafe_identity_path")
+    if operation == "update" and not (target / "identity.json").is_file():
+        raise HTTPException(409, detail="identity_not_materialized")
+    if operation == "reset":
+        if target.exists():
+            await asyncio.to_thread(shutil.rmtree, target)
+    # Reset is completed immediately by deleting durable worker state. Update
+    # must be consumed by the next worker process so it can regenerate the
+    # device fingerprint while preserving the browser profile.
+    row.pending_operation = "update" if operation == "update" else None
+    row.revision += 1
+    await session.commit()
+    await session.refresh(row)
+    return row
+
+
+@router.post("/identities/{identity}/reset", response_model=IdentityRead, dependencies=[Depends(require_token)])
+async def reset_identity(identity: str, session: AsyncSession = Depends(session_dependency)):
+    return await _identity_operation(identity, "reset", session)
+
+
+@router.post("/identities/{identity}/update", response_model=IdentityRead, dependencies=[Depends(require_token)])
+async def update_identity_runtime(identity: str, session: AsyncSession = Depends(session_dependency)):
+    return await _identity_operation(identity, "update", session)
 
 
 def _deep_merge(base: dict, override: dict) -> dict:
@@ -295,10 +414,33 @@ async def get_identity_defaults(session: AsyncSession = Depends(session_dependen
 async def update_identity_defaults(payload: IdentityDefaultsUpdate, session: AsyncSession = Depends(session_dependency)):
     row = await session.get(ControllerSetting, "identity_defaults")
     if row is None:
-        row = ControllerSetting(key="identity_defaults", value=payload.config)
+        row = ControllerSetting(key="identity_defaults", value=payload.config.overrides())
         session.add(row)
     else:
-        row.value = payload.config
+        row.value = payload.config.overrides()
+        row.revision += 1
+    await session.commit()
+    await session.refresh(row)
+    return {"config": row.value, "revision": row.revision, "updated_at": row.updated_at}
+
+
+@router.get("/settings/worker-defaults", response_model=WorkerDefaultsRead, dependencies=[Depends(require_token)])
+async def get_worker_defaults(session: AsyncSession = Depends(session_dependency)):
+    row = await session.get(ControllerSetting, "worker_defaults")
+    if row is None:
+        raise HTTPException(404, detail="worker_defaults_not_found")
+    return {"config": row.value, "revision": row.revision, "updated_at": row.updated_at}
+
+
+@router.put("/settings/worker-defaults", response_model=WorkerDefaultsRead, dependencies=[Depends(require_token)])
+async def update_worker_defaults(payload: WorkerDefaultsUpdate, session: AsyncSession = Depends(session_dependency)):
+    value = payload.config.overrides()
+    row = await session.get(ControllerSetting, "worker_defaults")
+    if row is None:
+        row = ControllerSetting(key="worker_defaults", value=value)
+        session.add(row)
+    else:
+        row.value = value
         row.revision += 1
     await session.commit()
     await session.refresh(row)
@@ -383,7 +525,11 @@ async def create_scenario(payload: ScenarioCreate, session: AsyncSession = Depen
 @router.get("/proxies", dependencies=[Depends(require_token)])
 async def list_proxies(session: AsyncSession = Depends(session_dependency)):
     result = await session.execute(select(ProxyConfig).where(ProxyConfig.enabled.is_(True)).order_by(ProxyConfig.name))
-    return [{"id": row.id, "name": row.name, "scheme": row.scheme, "host": row.host, "port": row.port, "username": row.username, "has_password": bool(row.encrypted_password)} for row in result.scalars()]
+    return [_proxy_read(row) for row in result.scalars()]
+
+
+def _proxy_read(row: ProxyConfig) -> dict:
+    return {"id": row.id, "name": row.name, "scheme": row.scheme, "host": row.host, "port": row.port, "username": row.username, "has_password": bool(row.encrypted_password), "bypass": row.bypass, "geoip": row.geoip, "verify_ssl": row.verify_ssl, "enabled": row.enabled}
 
 
 @router.post("/proxies", status_code=201, dependencies=[Depends(require_token)])
@@ -391,8 +537,42 @@ async def create_proxy(payload: ProxyCreate, session: AsyncSession = Depends(ses
     if await session.scalar(select(ProxyConfig).where(ProxyConfig.name == payload.name)):
         raise HTTPException(409, detail="proxy_name_exists")
     cipher = SecretCipher(get_settings())
-    row = ProxyConfig(name=payload.name, scheme=payload.scheme, host=payload.host, port=payload.port, username=payload.username, encrypted_password=cipher.encrypt(payload.password) if payload.password else None)
+    row = ProxyConfig(name=payload.name, scheme=payload.scheme, host=payload.host, port=payload.port, username=payload.username, encrypted_password=cipher.encrypt(payload.password) if payload.password else None, bypass=payload.bypass, geoip=payload.geoip.model_dump(), verify_ssl=payload.verify_ssl)
     session.add(row)
     await session.commit()
     await session.refresh(row)
-    return {"id": row.id, "name": row.name, "scheme": row.scheme, "host": row.host, "port": row.port, "username": row.username, "has_password": bool(row.encrypted_password)}
+    return _proxy_read(row)
+
+
+@router.put("/proxies/{proxy_id}", dependencies=[Depends(require_token)])
+async def update_proxy(proxy_id: uuid.UUID, payload: ProxyUpdate, session: AsyncSession = Depends(session_dependency)):
+    row = await session.get(ProxyConfig, proxy_id)
+    if row is None:
+        raise HTTPException(404, detail="proxy_not_found")
+    changes = payload.model_dump(exclude_unset=True)
+    if "name" in changes and await session.scalar(select(ProxyConfig).where(ProxyConfig.name == changes["name"], ProxyConfig.id != proxy_id)):
+        raise HTTPException(409, detail="proxy_name_exists")
+    password = changes.pop("password", None)
+    geoip = changes.pop("geoip", None)
+    for field, value in changes.items():
+        setattr(row, field, value)
+    if "password" in payload.model_fields_set:
+        row.encrypted_password = SecretCipher(get_settings()).encrypt(password) if password else None
+    if geoip is not None:
+        row.geoip = geoip
+    await session.commit()
+    await session.refresh(row)
+    return _proxy_read(row)
+
+
+@router.delete("/proxies/{proxy_id}", status_code=204, dependencies=[Depends(require_token)])
+async def delete_proxy(proxy_id: uuid.UUID, session: AsyncSession = Depends(session_dependency)):
+    row = await session.get(ProxyConfig, proxy_id)
+    if row is None:
+        raise HTTPException(404, detail="proxy_not_found")
+    active = bool(await session.scalar(select(func.count()).select_from(Run).where(Run.proxy_config_id == proxy_id, Run.status.in_([s.value for s in ACTIVE_STATUSES]))))
+    if active:
+        raise HTTPException(409, detail="proxy_in_use")
+    row.enabled = False
+    await session.commit()
+    return Response(status_code=204)

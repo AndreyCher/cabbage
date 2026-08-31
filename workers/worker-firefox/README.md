@@ -1,6 +1,13 @@
-# worker-firefox v0.5.29
+# worker-firefox v0.5.30
 
 > Component files live in `workers/worker-firefox/`. The preferred integrated workflow runs Docker Compose from the repository root. This component also intentionally supports autonomous build and execution from its own directory. Paths describing component files are relative to that directory unless stated otherwise.
+
+## v0.5.30 — orchestrated Identity maintenance
+
+- Containers may use `WORKER_IDENTITY_OPERATION=reset` or `update` as the exact
+  equivalent of `--reset-identity` / `--update-identity`.
+- The variable is optional; autonomous CLI and Compose launches retain their
+  existing behavior and configuration ownership.
 
 ## v0.5.29 — reliable full-session recording
 

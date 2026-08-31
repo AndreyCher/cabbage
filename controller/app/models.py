@@ -55,6 +55,9 @@ class ProxyConfig(Base):
     port: Mapped[int] = mapped_column(Integer)
     username: Mapped[str | None] = mapped_column(String(255))
     encrypted_password: Mapped[str | None] = mapped_column(Text)
+    bypass: Mapped[str | None] = mapped_column(Text)
+    geoip: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    verify_ssl: Mapped[bool] = mapped_column(Boolean, default=True)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
@@ -63,6 +66,7 @@ class IdentityProfile(Base):
     identity: Mapped[str] = mapped_column(String(128), primary_key=True)
     config: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     revision: Mapped[int] = mapped_column(Integer, default=1)
+    pending_operation: Mapped[str | None] = mapped_column(String(16))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
@@ -86,6 +90,8 @@ class Run(Base):
     debug: Mapped[bool] = mapped_column(Boolean, default=False)
     proxy_mode: Mapped[str] = mapped_column(String(16), default="default")
     overrides: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    timeout_seconds: Mapped[int | None] = mapped_column(Integer)
+    worker_run_id: Mapped[str | None] = mapped_column(String(64))
     current_stage: Mapped[str | None] = mapped_column(String(255))
     current_action: Mapped[int | None] = mapped_column(Integer)
     container_id: Mapped[str | None] = mapped_column(String(128), index=True)

@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from .worker_config import DEFAULT_DOMAIN_CONFIG
+
 if TYPE_CHECKING:
     from .models import Run
 
@@ -27,23 +29,19 @@ class RunMaterializer:
         run: "Run",
         proxy: dict[str, Any] | None = None,
         identity_config: dict[str, Any] | None = None,
+        worker_defaults: dict[str, Any] | None = None,
     ) -> str:
         run_root = self.root / str(run.id)
         (run_root / "profiles").mkdir(parents=True, exist_ok=True)
         (run_root / "scenarios").mkdir(parents=True, exist_ok=True)
-        default = {
+        infrastructure = {
             "identity": "",
             "run": {"scenario": run.scenario.name},
             "api": {"enabled": True, "host": "0.0.0.0", "port": 8090},
-            "browser": {"mode": "virtual"},
-            "recording": {"video": True},
             "proxy": {"enabled": False},
-            "debug": {"keep_alive": False},
-            "plugins": {"enabled": True, "items": {}},
-            "fingerprint": {},
-            "fingerprint_diagnostics": {"enabled": True},
-            "vm_diagnostics": {"enabled": False},
         }
+        default = deep_merge(infrastructure, DEFAULT_DOMAIN_CONFIG)
+        default = deep_merge(default, worker_defaults or {})
         resolved = deep_merge(default, identity_config or {})
         resolved = deep_merge(resolved, run.overrides or {})
         if run.debug:
@@ -77,3 +75,26 @@ class RunMaterializer:
         for path, value in ((run_root / "default.json", default), (run_root / "profiles/run.json", profile), (run_root / f"scenarios/{run.scenario.name}.json", scenario), (run_root / "config.json", system)):
             path.write_text(json.dumps(value, indent=2), encoding="utf-8")
         return f"/controller-runs/{run.id}/config.json"
+
+    @staticmethod
+    def materialize_identity_profile(identity: str, config: dict[str, Any], identities_root: Path) -> Path:
+        """Synchronize the Controller-owned fingerprint profile for the next worker run."""
+        identity_root = identities_root / identity
+        identity_root.mkdir(parents=True, exist_ok=True)
+        target = identity_root / "config.json"
+        current: dict[str, Any] = {}
+        if target.is_file():
+            try:
+                current = json.loads(target.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                current = {}
+        profile = {
+            **current,
+            "schema_version": 1,
+            "identity": identity,
+            "fingerprint": dict(config.get("fingerprint") or {}),
+        }
+        temporary = target.with_suffix(".json.tmp")
+        temporary.write_text(json.dumps(profile, indent=2), encoding="utf-8")
+        temporary.replace(target)
+        return target

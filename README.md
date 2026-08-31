@@ -12,7 +12,7 @@ This directory is the current source of truth for the application and its indepe
 
 ### worker-firefox
 
-Current version: **0.5.29**
+Current version: **0.5.30**
 
 Firefox/Camoufox execution worker with modular scenario actions, plugin adapters, persistent Identity profiles, reliable full-session X11/FFmpeg recording, debug support and a per-worker Control API.
 
@@ -33,11 +33,12 @@ Standalone source builder for immutable `worker-firefox-base:<browser-version>` 
 
 ### controller
 
-Current version: **0.1.12**
+Current version: **0.1.13**
 
 FastAPI control plane with authenticated API, PostgreSQL history/configuration,
 Redis queue/live state, global resource-aware and per-Identity serialized Docker scheduling, disposable workers
-and authenticated noVNC/video proxying without direct worker exposure.
+authenticated noVNC/video proxying, typed complete worker configuration,
+runtime-input routing, readiness and run timeouts without direct worker exposure.
 
 - Code and documentation: `controller/`
 - SQL migrations: `databases/postgres/migrations/`

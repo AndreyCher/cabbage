@@ -254,6 +254,10 @@ An explicit profile JSON path may be used instead of a profile name.
 
 `--update-identity` regenerates fingerprint/device configuration while preserving the existing browser profile.
 
+Container orchestrators may set `WORKER_IDENTITY_OPERATION=reset` or `update`
+instead of adding the corresponding CLI flag. It is optional and does not
+change the standalone configuration resolver or Compose workflow.
+
 ## Artifacts
 
 Run artifacts are stored below `paths.artifacts_dir`:

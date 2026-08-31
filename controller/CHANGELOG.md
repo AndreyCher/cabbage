@@ -1,5 +1,17 @@
 # Controller changelog
 
+## 0.1.13
+
+- Made PostgreSQL the canonical source for typed Identity and per-run worker configuration and exposed its JSON Schema for Web UI form generation.
+- Materialized complete immutable worker defaults, Identity configuration, scenario and run overrides into a read-only per-run configuration tree.
+- Added authenticated runtime status and `wait_input` delivery endpoints addressed by Controller run ID.
+- Added worker health/readiness gating, startup timeout and enforced whole-run timeout handling.
+- Added complete HTTP/HTTPS proxy transport and GEO policy fields, proxy update/disable operations and removed unsupported SOCKS5 creation.
+- Added guarded Identity reset/update operations and actual materialized runtime-profile inspection.
+- Added Docker init and retained safe allow-listed container environment, volumes, network and resource limits.
+- Added `0006_full_worker_control` plus `0007_worker_defaults` migrations and unit coverage for configuration validation, materialization and timeout calculations.
+- Verified 14 Controller unit/OpenAPI tests, 69 worker tests, both Docker image builds, live migrations, DB-backed defaults, normal completion, runtime-input delivery, timeout finalization, manual stop finalization, and Identity create/update/reset cycles.
+
 ## 0.1.12
 
 - Allowed multiple queued runs for an Identity that already has an active or queued run.

@@ -245,7 +245,16 @@ def parse_args() -> argparse.Namespace:
         help="Regenerate the fingerprint/device config from the current JSON while preserving the browser profile.",
     )
     parser.add_argument("--version", action="version", version=APP_VERSION)
-    return parser.parse_args()
+    args = parser.parse_args()
+    operation = os.environ.get("WORKER_IDENTITY_OPERATION", "").strip().lower()
+    if operation:
+        if operation not in {"reset", "update"}:
+            parser.error("WORKER_IDENTITY_OPERATION must be 'reset' or 'update'")
+        if args.reset_identity or args.update_identity:
+            parser.error("WORKER_IDENTITY_OPERATION cannot be combined with identity CLI flags")
+        args.reset_identity = operation == "reset"
+        args.update_identity = operation == "update"
+    return args
 
 
 def main() -> int:

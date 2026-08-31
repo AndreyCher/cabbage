@@ -4,6 +4,7 @@ This is the global release history for all application components. Component cha
 
 ## Unreleased
 
+- Added Controller 0.1.13 and worker-firefox 0.5.30 with Controller-owned typed worker configuration, per-run read-only materialization, runtime input routing, health/readiness handling, enforced run timeouts, complete HTTP/HTTPS proxy policy, and guarded Identity reset/update operations while preserving autonomous worker execution.
 - Added Controller 0.1.12 and Web Console 0.1.27-dev with multiple queued runs per Identity, per-profile serialization and global capacity-aware scheduling without head-of-line blocking.
 - Added Web Console 0.1.26-dev with race-safe queued Priority editing and contextual API error messages.
 - Added worker-firefox 0.5.29 with reliable single-file X11/FFmpeg video capture for ordinary recorded runs, replacing blank Playwright page recordings.

@@ -1,4 +1,4 @@
-# Controller 0.1.12
+# Controller 0.1.13
 
 FastAPI control plane for queued, resource-aware execution of disposable
 Firefox workers. PostgreSQL stores durable run/scenario/proxy records; Redis
@@ -57,11 +57,21 @@ Controller listens on `127.0.0.1:8088`; Web Console proxies it internally at
 
 ## API
 
+- `GET /api/v1/worker-config/schema` returns the authoritative JSON Schema for
+  all user-configurable worker domain settings. This is the contract for API
+  clients and the next Web Console settings/editor phase. Infrastructure fields
+  such as image, mounts, network, API bind address and container environment are
+  never accepted from run requests.
 - `GET /api/v1/health` is public.
 - `GET/POST /api/v1/runs` lists or queues runs. List requests support a bounded
   `limit` up to 10,000 for non-dynamic client-side pagination.
 - `PATCH /api/v1/runs/{id}` changes queued priority or cancels a queued run.
 - `POST /api/v1/runs/{id}/stop` performs cooperative-to-forced shutdown.
+- `GET /api/v1/runs/{id}/runtime` exposes the assigned worker's live status,
+  expected/received input keys and current wait state without exposing its
+  internal address or worker-generated run ID.
+- `POST /api/v1/runs/{id}/inputs/{key}` securely routes arbitrary JSON runtime
+  input to the assigned worker and preserves worker `404`/`409` semantics.
 - `GET /api/v1/runs/{id}/logs` and `/logs/stream` expose bounded live logs.
 - `POST /api/v1/runs/{id}/stream-ticket` creates a short-lived run-scoped
   access ticket for browser media. `/novnc/...` proxies a read-only debug
@@ -71,11 +81,19 @@ Controller listens on `127.0.0.1:8088`; Web Console proxies it internally at
 - `POST /api/v1/identities` creates a persistent Identity profile;
   `GET/PUT /api/v1/identities/{identity}` reads or updates it. Profile changes
   increment `revision` and apply to the next run.
+- `POST /api/v1/identities/{identity}/reset` deletes persistent browser/device
+  state, while `/update` schedules device/fingerprint regeneration on the next
+  run and preserves the browser profile. Both reject active Identities.
+- `GET /api/v1/identities/{identity}/runtime-profile` reads the last
+  materialized worker profile for diagnostics; PostgreSQL remains canonical.
 - `DELETE /api/v1/identities/{identity}` removes only profile metadata;
   `?delete_account_data=true` also removes persistent browser/account data.
   Active Identities cannot be deleted and run history/artifacts are retained.
 - `GET/PUT /api/v1/settings/identity-defaults` manages the versioned base
   profile merged into every newly created Identity.
+- `GET/PUT /api/v1/settings/worker-defaults` manages the versioned PostgreSQL
+  source for global worker behavior. It uses the same typed schema as run and
+  Identity configuration and is materialized into every run.
 - `POST /api/v1/scenarios` creates a new immutable scenario version and makes
   it active. Existing runs keep their selected version; new runs use the latest
   active version. This is the persistence contract for the future scenario
@@ -87,6 +105,9 @@ Controller listens on `127.0.0.1:8088`; Web Console proxies it internally at
 - `POST /api/v1/scenarios/versions/{id}/clone` copies a selected version into
   an independent scenario at v1. Its name must be unique across all current and
   logically deleted scenarios.
+- Proxy create/update supports HTTP/HTTPS, credentials, bypass, GEO validation
+  policy and TLS verification. Delete disables a proxy without breaking run
+  history; SOCKS is rejected consistently with worker-firefox.
 
 All endpoints except health require `Authorization: Bearer <token>`.
 
@@ -128,6 +149,14 @@ finish time and run-specific artifact directory.
 Controller materializes an immutable run configuration into a shared volume.
 The existing worker resolver consumes it without changing the worker's
 standalone Compose/config workflow.
+
+Run configuration precedence is Controller defaults → persisted Identity
+configuration → validated `worker_config` from the run request → Controller
+owned identity/scenario/run/proxy fields. `timeout_seconds` is enforced by the
+Controller from container start. A worker must pass `/api/v1/health` before a
+run leaves `starting`; configure the bounds with
+`CONTROLLER_WORKER_STARTUP_TIMEOUT_SECONDS` and
+`CONTROLLER_WORKER_API_TIMEOUT_SECONDS`.
 
 ## Updating a scenario without redeploy
 

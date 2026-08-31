@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     worker_cpus: float = Field(default=1.0, gt=0)
     worker_shm_size_mb: int = Field(default=2048, ge=64)
     scheduler_interval_seconds: float = Field(default=2.0, gt=0)
+    worker_startup_timeout_seconds: int = Field(default=120, ge=10, le=3600)
+    worker_api_timeout_seconds: float = Field(default=5.0, gt=0, le=60)
     stop_grace_seconds: int = Field(default=30, ge=1)
     stop_kill_seconds: int = Field(default=15, ge=1)
     redis_ttl_seconds: int = Field(default=86400, ge=60)

@@ -17,6 +17,7 @@ class WorkerSpec:
     identity: str
     config_path: str
     debug: bool
+    identity_operation: str | None = None
 
 
 class Executor(Protocol):
@@ -54,6 +55,8 @@ class DockerExecutor:
             "DISPLAY": ":99",
             "CAMOUFOX_EXECUTABLE_PATH": "/opt/camoufox-custom/camoufox-bin",
         }
+        if spec.identity_operation:
+            environment["WORKER_IDENTITY_OPERATION"] = spec.identity_operation
         volumes = {
             self.settings.worker_config_volume: {"bind": "/controller-runs", "mode": "ro"},
             self.settings.identities_volume: {"bind": "/identities", "mode": "rw"},
@@ -70,6 +73,7 @@ class DockerExecutor:
             mem_limit=f"{self.settings.worker_memory_mb}m",
             nano_cpus=int(self.settings.worker_cpus * 1_000_000_000),
             shm_size=f"{self.settings.worker_shm_size_mb}m",
+            init=True,
             labels={"controller.run_id": spec.run_id, "controller.identity": spec.identity, "controller.host_id": self.settings.docker_host_id},
         )
         return container.id

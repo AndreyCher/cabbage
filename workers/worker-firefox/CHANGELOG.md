@@ -2,6 +2,11 @@
 
 > Component files live in `workers/worker-firefox/`. Docker Compose commands are run from the repository root.
 
+## 0.5.30
+
+- Added `WORKER_IDENTITY_OPERATION=reset|update` as the container-safe equivalent of the existing CLI identity maintenance flags.
+- Kept the standalone CLI and Compose workflow unchanged; Controller use of the new environment bridge is optional.
+
 ## 0.5.29
 
 - Replaced normal Camoufox/Playwright page recording, which produced 4,133-byte blank WebM containers, with full-session X11/FFmpeg capture.

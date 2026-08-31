@@ -12,9 +12,10 @@ from .database import SessionLocal
 from .crypto import SecretCipher
 from .executor import DockerExecutor, WorkerSpec
 from .materializer import RunMaterializer
-from .models import ACTIVE_STATUSES, IdentityProfile, Run, RunStatus, TERMINAL_STATUSES
+from .models import ACTIVE_STATUSES, ControllerSetting, IdentityProfile, Run, RunStatus, TERMINAL_STATUSES
 from .queue import RunQueue
 from .settings import Settings
+from .worker_config import WorkerConfig
 
 
 def eligible_runs(queued_runs, active_identities: set[str], free_slots: int):
@@ -29,6 +30,14 @@ def eligible_runs(queued_runs, active_identities: set[str], free_slots: int):
         selected.append(run)
         reserved_identities.add(run.identity)
     return selected
+
+
+def elapsed_seconds(started_at: datetime | None, now: datetime | None = None) -> float:
+    if started_at is None:
+        return 0.0
+    if started_at.tzinfo is None:
+        started_at = started_at.replace(tzinfo=timezone.utc)
+    return ((now or datetime.now(timezone.utc)) - started_at).total_seconds()
 
 
 class Scheduler:
@@ -86,17 +95,30 @@ class Scheduler:
                             "server": f"{run.proxy_config.scheme}://{run.proxy_config.host}:{run.proxy_config.port}",
                             "username": run.proxy_config.username,
                             "password": self.cipher.decrypt(run.proxy_config.encrypted_password) if run.proxy_config.encrypted_password else None,
+                            "bypass": run.proxy_config.bypass,
+                            "geoip": run.proxy_config.geoip,
+                            "verify_ssl": run.proxy_config.verify_ssl,
                         }
                     identity_profile = await session.get(IdentityProfile, run.identity)
-                    identity_config = identity_profile.config if identity_profile else {}
-                    config_path = await asyncio.to_thread(
-                        self.materializer.materialize, run, proxy, identity_config
+                    identity_config = WorkerConfig.model_validate(identity_profile.config if identity_profile else {}).overrides()
+                    defaults_row = await session.get(ControllerSetting, "worker_defaults")
+                    worker_defaults = WorkerConfig.model_validate(defaults_row.value if defaults_row else {}).overrides()
+                    await asyncio.to_thread(
+                        self.materializer.materialize_identity_profile,
+                        run.identity,
+                        identity_config,
+                        self.settings.identities_root,
                     )
-                    container_id = await self.executor.start(WorkerSpec(str(run.id), run.identity, config_path, run.debug))
+                    config_path = await asyncio.to_thread(
+                        self.materializer.materialize, run, proxy, identity_config, worker_defaults
+                    )
+                    container_id = await self.executor.start(WorkerSpec(str(run.id), run.identity, config_path, run.debug, identity_profile.pending_operation if identity_profile else None))
                     run.container_id = container_id
                     run.status = RunStatus.starting.value
                     run.started_at = datetime.now(timezone.utc)
                     run.current_stage = "container_starting"
+                    if identity_profile is not None:
+                        identity_profile.pending_operation = None
                 except Exception as exc:
                     run.status = RunStatus.failed.value
                     run.error_reason = f"container_start_failed: {exc}"
@@ -111,11 +133,27 @@ class Scheduler:
                     state = (await self.executor.inspect(run.container_id))["State"]
                     docker_status = state.get("Status")
                     if docker_status == "running":
-                        run.status = RunStatus.running.value
-                        run.current_stage = "scenario_running"
+                        if run.status == RunStatus.starting.value and elapsed_seconds(run.started_at) > self.settings.worker_startup_timeout_seconds:
+                            run.error_reason = "worker_startup_timeout"
+                            await self.executor.stop(run.container_id)
+                            run.status = RunStatus.stopping.value
+                            run.current_stage = "finalizing"
+                            continue
+                        if run.status != RunStatus.stopping.value and run.timeout_seconds and elapsed_seconds(run.started_at) > run.timeout_seconds:
+                            run.error_reason = "run_timeout"
+                            await self.executor.stop(run.container_id)
+                            run.status = RunStatus.stopping.value
+                            run.current_stage = "finalizing"
+                            continue
+                        if run.status == RunStatus.stopping.value:
+                            continue
                         try:
-                            async with httpx.AsyncClient(timeout=1.5) as client:
-                                response = await client.get(f"http://worker-run-{run.id}:8090/api/v1/identities/{run.identity}/runs/current")
+                            endpoint = await self.executor.internal_endpoint(run.container_id, 8090)
+                            async with httpx.AsyncClient(timeout=self.settings.worker_api_timeout_seconds) as client:
+                                health = await client.get(f"http://{endpoint}/api/v1/health")
+                                if not health.is_success:
+                                    continue
+                                response = await client.get(f"http://{endpoint}/api/v1/identities/{run.identity}/runs/current")
                             if response.is_success:
                                 worker_state = response.json()
                                 worker_status = worker_state.get("status")
@@ -131,6 +169,7 @@ class Scheduler:
                                     run.error_reason = f"{worker_state['error_reason']}: {message}" if message else worker_state["error_reason"]
                                 worker_run_id = worker_state.get("run_id")
                                 if worker_run_id:
+                                    run.worker_run_id = worker_run_id
                                     run.artifact_path = f"/artifacts/{run.identity}/{run.scenario.name}/{worker_run_id}"
                                 run.current_action = worker_state.get("current_action")
                                 if worker_status not in {"completed", "failed", "stopped"}:
@@ -139,7 +178,13 @@ class Scheduler:
                             pass
                     elif docker_status in {"exited", "dead"}:
                         exit_code = int(state.get("ExitCode", 1))
-                        run.status = RunStatus.completed.value if exit_code == 0 else RunStatus.failed.value
+                        controller_failure = run.error_reason in {"run_timeout", "worker_startup_timeout"}
+                        requested_stop = run.status == RunStatus.stopping.value and run.error_reason == "user_interrupt"
+                        run.status = (
+                            RunStatus.failed.value if controller_failure or exit_code != 0
+                            else RunStatus.stopped.value if requested_stop
+                            else RunStatus.completed.value
+                        )
                         summary = await asyncio.to_thread(self._latest_summary, run)
                         if summary is not None:
                             run.artifact_path = str(summary["path"])
@@ -148,8 +193,10 @@ class Scheduler:
                                 reason = payload.get("reason") or f"worker_exit_code_{exit_code}"
                                 message = payload.get("message") or payload.get("error")
                                 run.error_reason = f"{reason}: {message}" if message else reason
+                            elif requested_stop:
+                                run.error_reason = payload.get("reason") or "user_interrupt"
                             run.current_action = payload.get("failed_action")
-                        elif exit_code == 0:
+                        elif exit_code == 0 and not controller_failure and not requested_stop:
                             run.error_reason = None
                         elif not run.error_reason:
                             run.error_reason = f"worker_exit_code_{exit_code}"

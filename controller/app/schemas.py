@@ -6,6 +6,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from .worker_config import ProxyGeoConfig, WorkerConfig
+
 
 class RunCreate(BaseModel):
     identity: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
@@ -16,7 +18,7 @@ class RunCreate(BaseModel):
     proxy_config_id: uuid.UUID | None = None
     recording: bool | None = None
     timeout_seconds: int | None = Field(default=None, ge=1, le=86400)
-    overrides: dict[str, Any] = Field(default_factory=dict)
+    worker_config: WorkerConfig = Field(default_factory=WorkerConfig)
 
     @model_validator(mode="after")
     def validate_proxy(self) -> "RunCreate":
@@ -45,6 +47,9 @@ class RunRead(BaseModel):
     scenario_version: int
     live_stream_available: bool = False
     recorded_video_available: bool = False
+    timeout_seconds: int | None = None
+    worker_run_id: str | None = None
+    worker_config: dict[str, Any] = Field(default_factory=dict)
 
     @classmethod
     def from_run(cls, run: Any) -> "RunRead":
@@ -52,10 +57,11 @@ class RunRead(BaseModel):
             **{
                 name: getattr(run, name)
                 for name in cls.model_fields
-                if name not in {"scenario_name", "scenario_version", "live_stream_available", "recorded_video_available"}
+                if name not in {"scenario_name", "scenario_version", "live_stream_available", "recorded_video_available", "worker_config"}
             },
             scenario_name=run.scenario.name,
             scenario_version=run.scenario.version,
+            worker_config=run.overrides or {},
         )
 
 
@@ -87,20 +93,36 @@ class ScenarioRead(BaseModel):
 
 class ProxyCreate(BaseModel):
     name: str = Field(min_length=1, max_length=128)
-    scheme: Literal["http", "https", "socks5"] = "http"
+    scheme: Literal["http", "https"] = "http"
     host: str = Field(min_length=1, max_length=255)
     port: int = Field(ge=1, le=65535)
     username: str | None = Field(default=None, max_length=255)
     password: str | None = Field(default=None, max_length=4096)
+    bypass: str | None = Field(default=None, max_length=4096)
+    geoip: ProxyGeoConfig = Field(default_factory=ProxyGeoConfig)
+    verify_ssl: bool = True
+
+
+class ProxyUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=128)
+    scheme: Literal["http", "https"] | None = None
+    host: str | None = Field(default=None, min_length=1, max_length=255)
+    port: int | None = Field(default=None, ge=1, le=65535)
+    username: str | None = Field(default=None, max_length=255)
+    password: str | None = Field(default=None, max_length=4096)
+    bypass: str | None = Field(default=None, max_length=4096)
+    geoip: ProxyGeoConfig | None = None
+    verify_ssl: bool | None = None
+    enabled: bool | None = None
 
 
 class IdentityCreate(BaseModel):
     identity: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
-    config: dict[str, Any] = Field(default_factory=dict)
+    config: WorkerConfig = Field(default_factory=WorkerConfig)
 
 
 class IdentityUpdate(BaseModel):
-    config: dict[str, Any]
+    config: WorkerConfig
 
 
 class IdentityRead(BaseModel):
@@ -111,13 +133,24 @@ class IdentityRead(BaseModel):
     created_at: datetime
     updated_at: datetime
     in_use: bool = False
+    pending_operation: str | None = None
 
 
 class IdentityDefaultsUpdate(BaseModel):
-    config: dict[str, Any]
+    config: WorkerConfig
 
 
 class IdentityDefaultsRead(BaseModel):
+    config: dict[str, Any]
+    revision: int
+    updated_at: datetime
+
+
+class WorkerDefaultsUpdate(BaseModel):
+    config: WorkerConfig
+
+
+class WorkerDefaultsRead(BaseModel):
     config: dict[str, Any]
     revision: int
     updated_at: datetime

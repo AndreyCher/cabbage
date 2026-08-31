@@ -24,6 +24,8 @@ def test_materializer_creates_worker_layout(tmp_path: Path):
     assert (root / "scenarios/example.json").is_file()
     profile = json.loads((root / "profiles/run.json").read_text())
     assert profile["run"]["controller_run_id"] == str(run.id)
+    assert profile["plugins"]["items"]["consent-handler"]["enabled"] is True
+    assert profile["browser"]["debug_display"]["size"] == "identity"
 
 
 def test_materializer_forces_debug_browser_mode(tmp_path: Path):
@@ -35,3 +37,36 @@ def test_materializer_forces_debug_browser_mode(tmp_path: Path):
     RunMaterializer(tmp_path).materialize(run, identity_config={"browser": {"mode": "headless"}})
     profile = json.loads((tmp_path / str(run.id) / "profiles/run.json").read_text())
     assert profile["browser"]["mode"] == "debug"
+
+
+def test_materializer_synchronizes_controller_owned_identity_profile(tmp_path: Path):
+    target = RunMaterializer.materialize_identity_profile(
+        "identity-1",
+        {"fingerprint": {"locale": "uk-UA", "window": {"width": 1280, "height": 720}}},
+        tmp_path,
+    )
+    profile = json.loads(target.read_text())
+    assert profile["identity"] == "identity-1"
+    assert profile["fingerprint"]["locale"] == "uk-UA"
+
+    RunMaterializer.materialize_identity_profile(
+        "identity-1", {"fingerprint": {"locale": "en-US"}}, tmp_path
+    )
+    updated = json.loads(target.read_text())
+    assert updated["fingerprint"] == {"locale": "en-US"}
+
+
+def test_database_worker_defaults_are_applied_before_identity_and_run(tmp_path: Path):
+    run = SimpleNamespace(
+        id=uuid4(), identity="identity-1", debug=False, proxy_mode="disabled",
+        overrides={"browser": {"humanize": 3.0}},
+        scenario=SimpleNamespace(name="example", definition={"name": "example", "actions": []}),
+    )
+    RunMaterializer(tmp_path).materialize(
+        run,
+        identity_config={"recording": {"video": False}},
+        worker_defaults={"browser": {"humanize": 2.0}, "recording": {"video": True}},
+    )
+    profile = json.loads((tmp_path / str(run.id) / "profiles/run.json").read_text())
+    assert profile["browser"]["humanize"] == 3.0
+    assert profile["recording"]["video"] is False

@@ -33,7 +33,7 @@ services:
     build:
       context: .
       dockerfile: controller/Dockerfile
-    image: controller:0.1.12
+    image: controller:0.1.13
     profiles: ["controller"]
     depends_on:
       postgres:
@@ -52,6 +52,9 @@ services:
       CONTROLLER_HOST_CPU_RESERVE: "${CONTROLLER_HOST_CPU_RESERVE:-1.0}"
       CONTROLLER_WORKER_MEMORY_MB: "${CONTROLLER_WORKER_MEMORY_MB:-2048}"
       CONTROLLER_WORKER_CPUS: "${CONTROLLER_WORKER_CPUS:-1.0}"
+      CONTROLLER_WORKER_SHM_SIZE_MB: "${CONTROLLER_WORKER_SHM_SIZE_MB:-2048}"
+      CONTROLLER_WORKER_STARTUP_TIMEOUT_SECONDS: "${CONTROLLER_WORKER_STARTUP_TIMEOUT_SECONDS:-120}"
+      CONTROLLER_WORKER_API_TIMEOUT_SECONDS: "${CONTROLLER_WORKER_API_TIMEOUT_SECONDS:-5.0}"
       CONTROLLER_STREAM_TICKET_TTL_SECONDS: "${CONTROLLER_STREAM_TICKET_TTL_SECONDS:-300}"
       CONTROLLER_API_TOKEN_FILE: "/run/secrets/controller_api_token"
       CONTROLLER_ENCRYPTION_KEY_FILE: "/run/secrets/controller_encryption_key"
