@@ -43,8 +43,7 @@ def test_controller_proxy_contract_matches_worker_transport():
 
 
 def test_proxy_resolution_precedence():
-    assert resolve_proxy_config_id("selected", "run", "scenario", "identity") == "run"
-    assert resolve_proxy_config_id("default", None, "scenario", "identity") == "scenario"
-    assert resolve_proxy_config_id("default", None, None, "identity") == "identity"
-    assert resolve_proxy_config_id("default", None, None, None) is None
-    assert resolve_proxy_config_id("disabled", "run", "scenario", "identity") is None
+    assert resolve_proxy_config_id("selected", "run", "identity") == "run"
+    assert resolve_proxy_config_id("default", None, "identity") == "identity"
+    assert resolve_proxy_config_id("default", None, None) is None
+    assert resolve_proxy_config_id("disabled", "run", "identity") is None

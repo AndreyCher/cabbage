@@ -26,5 +26,5 @@ def test_context_defaults_expose_proxy_configuration_references():
     assert "default_proxy_config_id" in schemas["IdentityCreate"]["properties"]
     assert "default_proxy_config_id" in schemas["IdentityUpdate"]["properties"]
     assert "default_proxy_config_id" in schemas["IdentityRead"]["properties"]
-    assert "default_proxy_config_id" in schemas["ScenarioCreate"]["properties"]
-    assert "default_proxy_config_id" in schemas["ScenarioRead"]["properties"]
+    assert "default_proxy_config_id" not in schemas["ScenarioCreate"]["properties"]
+    assert "default_proxy_config_id" not in schemas["ScenarioRead"]["properties"]

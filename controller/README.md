@@ -1,4 +1,4 @@
-# Controller 0.1.14
+# Controller 0.1.15
 
 FastAPI control plane for queued, resource-aware execution of disposable
 Firefox workers. PostgreSQL stores durable run/scenario/proxy records; Redis
@@ -108,9 +108,9 @@ Controller listens on `127.0.0.1:8088`; Web Console proxies it internally at
 - Proxy create/update supports HTTP/HTTPS, credentials, bypass, GEO validation
   policy and TLS verification. Delete disables a proxy without breaking run
   history; SOCKS is rejected consistently with worker-firefox.
-- Identity and Scenario records may each reference a reusable default proxy.
-  Resolution is deterministic: an explicit run proxy wins, then the Scenario
-  default, then the Identity default; `proxy_mode=disabled` disables all three.
+- Identity records may reference a reusable default browser proxy. Resolution
+  is deterministic: an explicit run proxy wins, then the Identity default;
+  `proxy_mode=disabled` disables both. Scenarios never own proxy configuration.
 
 All endpoints except health require `Authorization: Bearer <token>`.
 

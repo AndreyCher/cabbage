@@ -1,4 +1,4 @@
-# web-console 0.1.28-dev
+# web-console 0.1.29-dev
 
 Early control-plane web interface built with React, TypeScript and Google Material Design through Material UI. The visual direction follows modern infrastructure dashboards: persistent navigation, compact operational cards, clear health states and responsive layouts.
 
@@ -14,8 +14,8 @@ Current scope:
 - nested Workers navigation for editable Identity profiles, versioned scenarios and a dedicated reusable Proxies catalog;
 - grouped Browser, Fingerprint, Recording, Diagnostics, Plugins and Advanced JSON worker settings for global defaults, Identity profiles and per-run overrides;
 - Identity tabs for profile settings, default proxy and guarded profile maintenance/runtime inspection;
-- Scenario tabs for actions, external `wait_input`/`webhook` integrations and a Scenario-level default proxy;
-- deterministic run proxy controls using explicit selection, Scenario default, Identity default or forced disabled mode;
+- Scenario tabs for actions and external `wait_input`/`webhook` integrations;
+- deterministic browser proxy controls using explicit run selection, Identity default or forced disabled mode; Scenarios do not own proxy settings;
 - JSON scenario import and save-as-new-version workflow without redeploy;
 - profile-only and permanent persistent account-data deletion with confirmation;
 - editable Default Identity profile under Settings, used by New Identity;

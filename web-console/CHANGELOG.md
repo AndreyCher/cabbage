@@ -1,5 +1,10 @@
 # web-console changelog
 
+## 0.1.29-dev
+
+- Removed the Proxy tab and proxy fields from Scenario editing.
+- Kept proxy ownership at the browser level through Identity defaults and explicit Create Run selection.
+
 ## 0.1.28-dev
 
 - Added a dedicated Proxies page with HTTP/HTTPS endpoint, credentials, bypass, TLS and GEO policy management.

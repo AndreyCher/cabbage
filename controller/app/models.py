@@ -43,7 +43,6 @@ class ScenarioTemplate(Base):
     definition: Mapped[dict[str, Any]] = mapped_column(JSONB)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     deleted: Mapped[bool] = mapped_column(Boolean, default=False)
-    default_proxy_config_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("proxy_configs.id"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

@@ -1,5 +1,11 @@
 # Controller changelog
 
+## 0.1.15
+
+- Removed proxy configuration from Scenario models and API contracts because proxy ownership belongs to the browser Identity or an explicit run override.
+- Simplified proxy precedence to explicit run configuration, Identity default, then no proxy; explicit disabled mode always wins.
+- Added migration `0009_remove_scenario_proxy` for databases that already applied Controller 0.1.14.
+
 ## 0.1.14
 
 - Added reusable default proxy references to Identity profiles and immutable Scenario versions.

@@ -34,5 +34,4 @@ export type Scenario = {
   deleted: boolean
   created_at: string
   run_count: number
-  default_proxy_config_id?: string | null
 }

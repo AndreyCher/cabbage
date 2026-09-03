@@ -73,7 +73,6 @@ class RunUpdate(BaseModel):
 class ScenarioCreate(BaseModel):
     name: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
     definition: dict[str, Any]
-    default_proxy_config_id: uuid.UUID | None = None
 
 
 class ScenarioClone(BaseModel):
@@ -90,7 +89,6 @@ class ScenarioRead(BaseModel):
     deleted: bool
     created_at: datetime
     run_count: int = 0
-    default_proxy_config_id: uuid.UUID | None = None
 
 
 class ProxyCreate(BaseModel):

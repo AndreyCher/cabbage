@@ -4,6 +4,8 @@ This is the global release history for all application components. Component cha
 
 ## Unreleased
 
+- Added Controller 0.1.15 and Web Console 0.1.29-dev: removed Scenario-level proxy ownership and kept proxy selection at the browser Identity or explicit run level.
+
 - Added Controller 0.1.14 and Web Console 0.1.28-dev with Identity/Scenario default-proxy precedence, a dedicated proxy-management section, grouped global/Identity/run worker configuration, categorized Scenario external requests and Identity maintenance/runtime inspection.
 
 - Added Controller 0.1.13 and worker-firefox 0.5.30 with Controller-owned typed worker configuration, per-run read-only materialization, runtime input routing, health/readiness handling, enforced run timeouts, complete HTTP/HTTPS proxy policy, and guarded Identity reset/update operations while preserving autonomous worker execution.
