@@ -39,9 +39,17 @@ def run_read(run: Run) -> RunRead:
     })
 
 
+def resolve_proxy_config_id(proxy_mode: str, explicit_id, scenario_default_id, identity_default_id):
+    if proxy_mode == "disabled":
+        return None
+    if proxy_mode == "selected":
+        return explicit_id
+    return scenario_default_id or identity_default_id
+
+
 @router.get("/health")
 async def health() -> dict:
-    return {"status": "ok", "component": "controller", "version": "0.1.13", "api_version": "v1"}
+    return {"status": "ok", "component": "controller", "version": "0.1.14", "api_version": "v1"}
 
 
 @router.get("/worker-config/schema", dependencies=[Depends(require_token)])
@@ -68,12 +76,18 @@ async def create_run(payload: RunCreate, request: Request, session: AsyncSession
     scenario = await session.scalar(select(ScenarioTemplate).where(ScenarioTemplate.name == payload.scenario, ScenarioTemplate.active.is_(True)).order_by(ScenarioTemplate.version.desc()).limit(1))
     if scenario is None:
         raise HTTPException(404, detail="scenario_not_found")
-    if await session.get(IdentityProfile, payload.identity) is None:
+    identity_profile = await session.get(IdentityProfile, payload.identity)
+    if identity_profile is None:
         raise HTTPException(404, detail={"code": "identity_not_found", "identity": payload.identity, "suggestion": "create_identity"})
+    proxy_config_id = resolve_proxy_config_id(payload.proxy_mode, payload.proxy_config_id, scenario.default_proxy_config_id, identity_profile.default_proxy_config_id)
+    if proxy_config_id is not None:
+        proxy = await session.get(ProxyConfig, proxy_config_id)
+        if proxy is None or not proxy.enabled:
+            raise HTTPException(422, detail="proxy_not_available")
     overrides = payload.worker_config.overrides()
     if payload.recording is not None:
         overrides.setdefault("recording", {})["video"] = payload.recording
-    run = Run(identity=payload.identity, scenario=scenario, proxy_config_id=payload.proxy_config_id, status=RunStatus.queued.value, priority=payload.priority, debug=payload.debug, proxy_mode=payload.proxy_mode, overrides=overrides, timeout_seconds=payload.timeout_seconds)
+    run = Run(identity=payload.identity, scenario=scenario, proxy_config_id=proxy_config_id, status=RunStatus.queued.value, priority=payload.priority, debug=payload.debug, proxy_mode=payload.proxy_mode, overrides=overrides, timeout_seconds=payload.timeout_seconds)
     session.add(run)
     await session.commit()
     await session.refresh(run)
@@ -288,7 +302,11 @@ async def create_identity(payload: IdentityCreate, session: AsyncSession = Depen
         raise HTTPException(409, detail="identity_exists")
     defaults = await session.get(ControllerSetting, "identity_defaults")
     config = _deep_merge(defaults.value if defaults else {}, payload.config.overrides())
-    row = IdentityProfile(identity=payload.identity, config=config)
+    if payload.default_proxy_config_id is not None:
+        proxy = await session.get(ProxyConfig, payload.default_proxy_config_id)
+        if proxy is None or not proxy.enabled:
+            raise HTTPException(422, detail="proxy_not_available")
+    row = IdentityProfile(identity=payload.identity, config=config, default_proxy_config_id=payload.default_proxy_config_id)
     session.add(row)
     await session.commit()
     await session.refresh(row)
@@ -326,6 +344,11 @@ async def update_identity(identity: str, payload: IdentityUpdate, session: Async
     if row is None:
         raise HTTPException(404, detail="identity_not_found")
     row.config = payload.config.overrides()
+    if payload.default_proxy_config_id is not None:
+        proxy = await session.get(ProxyConfig, payload.default_proxy_config_id)
+        if proxy is None or not proxy.enabled:
+            raise HTTPException(422, detail="proxy_not_available")
+    row.default_proxy_config_id = payload.default_proxy_config_id
     row.revision += 1
     await session.commit()
     await session.refresh(row)
@@ -497,7 +520,7 @@ async def clone_scenario_version(scenario_id: uuid.UUID, payload: ScenarioClone,
     definition = dict(source.definition)
     definition["name"] = payload.name
     definition["version"] = 1
-    scenario = ScenarioTemplate(name=payload.name, version=1, definition=definition, active=True, deleted=False)
+    scenario = ScenarioTemplate(name=payload.name, version=1, definition=definition, active=True, deleted=False, default_proxy_config_id=source.default_proxy_config_id)
     session.add(scenario)
     await session.commit()
     await session.refresh(scenario)
@@ -510,12 +533,16 @@ async def create_scenario(payload: ScenarioCreate, session: AsyncSession = Depen
     if not isinstance(actions, list):
         raise HTTPException(422, detail="scenario_actions_must_be_array")
     definition = dict(payload.definition)
+    if payload.default_proxy_config_id is not None:
+        proxy = await session.get(ProxyConfig, payload.default_proxy_config_id)
+        if proxy is None or not proxy.enabled:
+            raise HTTPException(422, detail="proxy_not_available")
     definition["name"] = payload.name
     version = (await session.scalar(select(func.max(ScenarioTemplate.version)).where(ScenarioTemplate.name == payload.name)) or 0) + 1
     for current in (await session.scalars(select(ScenarioTemplate).where(ScenarioTemplate.name == payload.name, ScenarioTemplate.active.is_(True)))).all():
         current.active = False
     definition["version"] = version
-    scenario = ScenarioTemplate(name=payload.name, version=version, definition=definition)
+    scenario = ScenarioTemplate(name=payload.name, version=version, definition=definition, default_proxy_config_id=payload.default_proxy_config_id)
     session.add(scenario)
     await session.commit()
     await session.refresh(scenario)

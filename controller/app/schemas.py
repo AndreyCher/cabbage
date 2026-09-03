@@ -73,6 +73,7 @@ class RunUpdate(BaseModel):
 class ScenarioCreate(BaseModel):
     name: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
     definition: dict[str, Any]
+    default_proxy_config_id: uuid.UUID | None = None
 
 
 class ScenarioClone(BaseModel):
@@ -89,6 +90,7 @@ class ScenarioRead(BaseModel):
     deleted: bool
     created_at: datetime
     run_count: int = 0
+    default_proxy_config_id: uuid.UUID | None = None
 
 
 class ProxyCreate(BaseModel):
@@ -119,10 +121,12 @@ class ProxyUpdate(BaseModel):
 class IdentityCreate(BaseModel):
     identity: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
     config: WorkerConfig = Field(default_factory=WorkerConfig)
+    default_proxy_config_id: uuid.UUID | None = None
 
 
 class IdentityUpdate(BaseModel):
     config: WorkerConfig
+    default_proxy_config_id: uuid.UUID | None = None
 
 
 class IdentityRead(BaseModel):
@@ -134,6 +138,7 @@ class IdentityRead(BaseModel):
     updated_at: datetime
     in_use: bool = False
     pending_operation: str | None = None
+    default_proxy_config_id: uuid.UUID | None = None
 
 
 class IdentityDefaultsUpdate(BaseModel):

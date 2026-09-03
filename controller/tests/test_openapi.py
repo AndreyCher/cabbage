@@ -19,3 +19,12 @@ def test_run_create_schema_does_not_expose_raw_docker_or_worker_api_fields():
     assert "worker_config" in properties
     for forbidden in ("overrides", "image", "mounts", "network", "environment", "api"):
         assert forbidden not in properties
+
+
+def test_context_defaults_expose_proxy_configuration_references():
+    schemas = app.openapi()["components"]["schemas"]
+    assert "default_proxy_config_id" in schemas["IdentityCreate"]["properties"]
+    assert "default_proxy_config_id" in schemas["IdentityUpdate"]["properties"]
+    assert "default_proxy_config_id" in schemas["IdentityRead"]["properties"]
+    assert "default_proxy_config_id" in schemas["ScenarioCreate"]["properties"]
+    assert "default_proxy_config_id" in schemas["ScenarioRead"]["properties"]

@@ -33,7 +33,7 @@ Standalone source builder for immutable `worker-firefox-base:<browser-version>` 
 
 ### controller
 
-Current version: **0.1.13**
+Current version: **0.1.14**
 
 FastAPI control plane with authenticated API, PostgreSQL history/configuration,
 Redis queue/live state, global resource-aware and per-Identity serialized Docker scheduling, disposable workers
@@ -55,9 +55,9 @@ Standalone data-resolution service used by automated workers. The initial backen
 
 ### web-console
 
-Current development release: **0.1.27-dev**
+Current development release: **0.1.28-dev**
 
-React/TypeScript control-plane interface using Material UI. It provides Controller-backed worker queue/history, versioned scenario and Identity management, Create Run, live logs, responsive read-only debug streams, automatic recorded-video playback, sorting, persisted navigation, settings and service health.
+React/TypeScript control-plane interface using Material UI. It provides Controller-backed worker queue/history, grouped worker configuration, versioned Scenario and Identity management, a dedicated reusable Proxies catalog with Identity/Scenario defaults, Create Run overrides, live logs, responsive read-only debug streams, automatic recorded-video playback, sorting, persisted navigation, settings and service health.
 
 - Code and documentation: `web-console/`
 - Detailed component history: `web-console/CHANGELOG.md`

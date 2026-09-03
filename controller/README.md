@@ -1,4 +1,4 @@
-# Controller 0.1.13
+# Controller 0.1.14
 
 FastAPI control plane for queued, resource-aware execution of disposable
 Firefox workers. PostgreSQL stores durable run/scenario/proxy records; Redis
@@ -59,7 +59,7 @@ Controller listens on `127.0.0.1:8088`; Web Console proxies it internally at
 
 - `GET /api/v1/worker-config/schema` returns the authoritative JSON Schema for
   all user-configurable worker domain settings. This is the contract for API
-  clients and the next Web Console settings/editor phase. Infrastructure fields
+  clients and the grouped Web Console settings/editor. Infrastructure fields
   such as image, mounts, network, API bind address and container environment are
   never accepted from run requests.
 - `GET /api/v1/health` is public.
@@ -108,6 +108,9 @@ Controller listens on `127.0.0.1:8088`; Web Console proxies it internally at
 - Proxy create/update supports HTTP/HTTPS, credentials, bypass, GEO validation
   policy and TLS verification. Delete disables a proxy without breaking run
   history; SOCKS is rejected consistently with worker-firefox.
+- Identity and Scenario records may each reference a reusable default proxy.
+  Resolution is deterministic: an explicit run proxy wins, then the Scenario
+  default, then the Identity default; `proxy_mode=disabled` disables all three.
 
 All endpoints except health require `Authorization: Bearer <token>`.
 

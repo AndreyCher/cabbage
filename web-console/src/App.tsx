@@ -33,7 +33,7 @@ type Service = RegistryComponent & {
 const drawerWidth = 248
 const collapsedDrawerWidth = 72
 const pageIds = new Set([...consoleModules.flatMap((module) => module.pages ?? []).map((page) => page.id), 'settings'])
-const fullWidthTablePages = new Set(['workers', 'identities', 'scenarios'])
+const fullWidthTablePages = new Set(['workers', 'identities', 'scenarios', 'proxies'])
 
 function pageFromLocation() {
   const page = decodeURIComponent(window.location.hash.replace(/^#\/?/, ''))

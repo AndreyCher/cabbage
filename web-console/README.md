@@ -1,4 +1,4 @@
-# web-console 0.1.27-dev
+# web-console 0.1.28-dev
 
 Early control-plane web interface built with React, TypeScript and Google Material Design through Material UI. The visual direction follows modern infrastructure dashboards: persistent navigation, compact operational cards, clear health states and responsive layouts.
 
@@ -11,7 +11,11 @@ Current scope:
 - system, light and dark themes with the preference stored in the browser;
 - module registry for contributed pages, menu entries and settings sections;
 - Controller-backed Workers view with queue/history, Create Run, priority and stop, including selectable active Identities whose new runs enter a serialized per-profile queue;
-- nested Workers navigation for editable Identity profiles and versioned scenarios;
+- nested Workers navigation for editable Identity profiles, versioned scenarios and a dedicated reusable Proxies catalog;
+- grouped Browser, Fingerprint, Recording, Diagnostics, Plugins and Advanced JSON worker settings for global defaults, Identity profiles and per-run overrides;
+- Identity tabs for profile settings, default proxy and guarded profile maintenance/runtime inspection;
+- Scenario tabs for actions, external `wait_input`/`webhook` integrations and a Scenario-level default proxy;
+- deterministic run proxy controls using explicit selection, Scenario default, Identity default or forced disabled mode;
 - JSON scenario import and save-as-new-version workflow without redeploy;
 - profile-only and permanent persistent account-data deletion with confirmation;
 - editable Default Identity profile under Settings, used by New Identity;
@@ -32,7 +36,7 @@ Current scope:
 - a compact selector for runs with multiple recordings, keeping only one fitted video visible at a time;
 - current section persisted in URL hash with reload and browser back/forward support;
 - Controller Bearer token setting stored in the operator's browser;
-- placeholder for data sources and a JSON-based scenario editor ready for a future structured editor.
+- placeholder for data sources and a lossless JSON scenario-actions editor with categorized external integrations.
 
 ## Console modules
 

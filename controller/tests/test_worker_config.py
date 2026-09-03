@@ -2,6 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.schemas import ProxyCreate, RunCreate
+from app.api import resolve_proxy_config_id
 from app.worker_config import WorkerConfig
 
 
@@ -39,3 +40,11 @@ def test_controller_proxy_contract_matches_worker_transport():
     assert ProxyCreate(name="p", host="proxy", port=8080, scheme="https").scheme == "https"
     with pytest.raises(ValidationError):
         ProxyCreate(name="p", host="proxy", port=1080, scheme="socks5")
+
+
+def test_proxy_resolution_precedence():
+    assert resolve_proxy_config_id("selected", "run", "scenario", "identity") == "run"
+    assert resolve_proxy_config_id("default", None, "scenario", "identity") == "scenario"
+    assert resolve_proxy_config_id("default", None, None, "identity") == "identity"
+    assert resolve_proxy_config_id("default", None, None, None) is None
+    assert resolve_proxy_config_id("disabled", "run", "scenario", "identity") is None

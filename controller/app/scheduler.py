@@ -88,7 +88,7 @@ class Scheduler:
                 await session.flush()
                 try:
                     proxy = None
-                    if run.proxy_mode == "selected" and run.proxy_config is not None:
+                    if run.proxy_mode != "disabled" and run.proxy_config is not None:
                         proxy = {
                             "enabled": True,
                             "proxy_id": run.proxy_config.name,

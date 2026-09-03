@@ -43,6 +43,7 @@ class ScenarioTemplate(Base):
     definition: Mapped[dict[str, Any]] = mapped_column(JSONB)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     deleted: Mapped[bool] = mapped_column(Boolean, default=False)
+    default_proxy_config_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("proxy_configs.id"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -67,6 +68,7 @@ class IdentityProfile(Base):
     config: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     revision: Mapped[int] = mapped_column(Integer, default=1)
     pending_operation: Mapped[str | None] = mapped_column(String(16))
+    default_proxy_config_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("proxy_configs.id"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

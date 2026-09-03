@@ -3,28 +3,21 @@ import type { ChangeEvent } from 'react'
 import {
   Alert, Box, Button, Card, CardContent, Chip, Dialog, DialogActions,
   DialogContent, DialogTitle, IconButton, Stack, Table, TableBody, TableCell, TableHead,
-  TableRow, TextField, Tooltip, Typography,
+  TableRow, Tab, Tabs, TextField, Tooltip, Typography,
 } from '@mui/material'
 import { AddRounded, ContentCopyRounded, DeleteOutlineRounded, EditRounded, FileUploadRounded, RefreshRounded, RemoveRounded, RestoreRounded } from '@mui/icons-material'
 import { controllerApi } from './controllerApi'
 import { ClientTablePagination, useClientPagination } from '../../components/ClientTablePagination'
-
-type Scenario = {
-  id: string
-  name: string
-  version: number
-  definition: Record<string, unknown>
-  active: boolean
-  deleted: boolean
-  created_at: string
-  run_count: number
-}
+import { ProxySelect } from './ProxiesPage'
+import type { Scenario } from './types'
 
 export function ScenariosPage() {
   const [items, setItems] = useState<Scenario[]>([])
   const [selected, setSelected] = useState<Scenario | null>(null)
   const [name, setName] = useState('')
   const [json, setJson] = useState('')
+  const [defaultProxyId, setDefaultProxyId] = useState<string | null>(null)
+  const [editorTab, setEditorTab] = useState('actions')
   const [error, setError] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<Scenario | null>(null)
   const [cloneSource, setCloneSource] = useState<Scenario | null>(null)
@@ -40,7 +33,7 @@ export function ScenariosPage() {
   useEffect(() => { void refresh() }, [refresh])
 
   function open(item: Scenario) {
-    setSelected(item); setName(item.name); setJson(JSON.stringify(item.definition, null, 2)); setError('')
+    setSelected(item); setName(item.name); setJson(JSON.stringify(item.definition, null, 2)); setDefaultProxyId(item.default_proxy_config_id ?? null); setEditorTab('actions'); setError('')
   }
   async function importFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
@@ -51,8 +44,8 @@ export function ScenariosPage() {
       if (!definition || Array.isArray(definition) || typeof definition !== 'object') throw new Error('Scenario file must contain a JSON object')
       if (!Array.isArray(definition.actions)) throw new Error('Scenario must contain an actions array')
       const importedName = typeof definition.name === 'string' && definition.name ? definition.name : file.name.replace(/\.json$/i, '')
-      setSelected({ id: '', name: importedName, version: 0, definition, active: false, deleted: false, created_at: '', run_count: 0 })
-      setName(importedName); setJson(JSON.stringify({ ...definition, name: importedName }, null, 2)); setError('')
+      setSelected({ id: '', name: importedName, version: 0, definition, active: false, deleted: false, created_at: '', run_count: 0, default_proxy_config_id: null })
+      setName(importedName); setJson(JSON.stringify({ ...definition, name: importedName }, null, 2)); setDefaultProxyId(null); setEditorTab('actions'); setError('')
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to import scenario') }
   }
   async function save() {
@@ -61,7 +54,7 @@ export function ScenariosPage() {
       if (!definition || Array.isArray(definition) || typeof definition !== 'object') throw new Error('Scenario must be a JSON object')
       if (!Array.isArray(definition.actions)) throw new Error('Scenario must contain an actions array')
       definition.name = name
-      await controllerApi('/scenarios', { method: 'POST', body: JSON.stringify({ name, definition }) })
+      await controllerApi('/scenarios', { method: 'POST', body: JSON.stringify({ name, definition, default_proxy_config_id: defaultProxyId }) })
       setSelected(null); await refresh()
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to save scenario') }
   }
@@ -103,6 +96,11 @@ export function ScenariosPage() {
       return next
     })
   }
+  let externalActions: unknown[] = []
+  try {
+    const definition = JSON.parse(json) as { actions?: unknown[] }
+    externalActions = (definition.actions ?? []).filter((action) => action && typeof action === 'object' && ['wait_input', 'webhook'].includes(String((action as Record<string, unknown>).type)))
+  } catch { /* validation remains in Save */ }
 
   return <>
     <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" gap={2} mb={3}>
@@ -131,7 +129,10 @@ export function ScenariosPage() {
     <Dialog open={Boolean(selected)} onClose={() => setSelected(null)} fullWidth maxWidth="md"><DialogTitle>{selected?.version ? `Edit ${name} v${selected.version}` : 'Import scenario'}</DialogTitle><DialogContent><Stack gap={2} mt={1}>
       {error && <Alert severity="error">{error}</Alert>}
       <TextField label="Scenario name" value={name} onChange={(event) => setName(event.target.value)} required />
-      <TextField label="Scenario JSON" value={json} onChange={(event) => setJson(event.target.value)} multiline minRows={20} maxRows={32} InputProps={{ sx: { fontFamily: 'monospace', fontSize: 13 } }} />
+      <Tabs value={editorTab} onChange={(_, next) => setEditorTab(next)} variant="scrollable" scrollButtons="auto"><Tab value="actions" label="Scenario actions" /><Tab value="external" label={`External requests (${externalActions.length})`} /><Tab value="proxy" label="Proxy" /></Tabs>
+      {editorTab === 'actions' && <><Alert severity="info">The complete scenario definition remains editable here, including all autonomous worker actions.</Alert><TextField label="Scenario JSON" value={json} onChange={(event) => setJson(event.target.value)} multiline minRows={20} maxRows={32} InputProps={{ sx: { fontFamily: 'monospace', fontSize: 13 } }} /></>}
+      {editorTab === 'external' && <Stack gap={1}><Typography color="text.secondary">Actions that pause for Controller input or call an external webhook. Edit their full definitions in Scenario actions.</Typography>{externalActions.map((action, index) => <Box key={index} component="pre" sx={{ m: 0, p: 2, bgcolor: 'action.hover', borderRadius: 1, overflow: 'auto', fontSize: 12 }}>{JSON.stringify(action, null, 2)}</Box>)}{!externalActions.length && <Alert severity="info">No wait_input or webhook actions in this scenario.</Alert>}</Stack>}
+      {editorTab === 'proxy' && <Stack gap={2}><Typography color="text.secondary">Scenario proxy overrides the Identity default. A run can still select a different proxy or explicitly disable proxying.</Typography><ProxySelect value={defaultProxyId} onChange={setDefaultProxyId} label="Scenario default proxy" /></Stack>}
       {selected?.version ? <Alert severity="info">Saving preserves v{selected.version} and creates a new active version.</Alert> : null}
     </Stack></DialogContent><DialogActions><Button onClick={() => setSelected(null)}>Cancel</Button><Button variant="contained" onClick={() => void save()} disabled={!name.trim() || !json.trim()}>Save new version</Button></DialogActions></Dialog>
     <Dialog open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)} maxWidth="sm" fullWidth><DialogTitle>Delete scenario {deleteTarget?.name}?</DialogTitle><DialogContent><Alert severity="warning" sx={{ mt: 1 }}>The scenario and all its versions will disappear from Create Run and the scenario list. Historical run records remain intact.</Alert>{error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}</DialogContent><DialogActions><Button onClick={() => setDeleteTarget(null)}>Cancel</Button><Button color="error" variant="contained" onClick={() => void remove()}>Delete scenario</Button></DialogActions></Dialog>

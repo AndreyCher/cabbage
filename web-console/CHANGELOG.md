@@ -1,5 +1,14 @@
 # web-console changelog
 
+## 0.1.28-dev
+
+- Added a dedicated Proxies page with HTTP/HTTPS endpoint, credentials, bypass, TLS and GEO policy management.
+- Added default proxy selection directly inside Identity and Scenario editors.
+- Grouped all typed worker settings into Browser, Fingerprint, Recording, Diagnostics, Plugins and Advanced JSON tabs.
+- Reused the grouped editor for global worker defaults, Default Identity profiles and per-run advanced overrides.
+- Added Identity maintenance controls and materialized runtime-profile inspection.
+- Split Scenario editing into actions, external requests and proxy tabs while retaining complete lossless JSON access.
+
 ## 0.1.27-dev
 
 - Allowed active Identities to remain selectable in Create Run.

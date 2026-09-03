@@ -1,5 +1,12 @@
 # Controller changelog
 
+## 0.1.14
+
+- Added reusable default proxy references to Identity profiles and immutable Scenario versions.
+- Resolved run proxy selection as explicit run configuration, Scenario default, Identity default, then no proxy; explicit disabled mode always wins.
+- Added the `0008_context_proxy_defaults` migration and exposed both references through the typed Controller API.
+- Added OpenAPI contract coverage for the new Identity and Scenario proxy fields.
+
 ## 0.1.13
 
 - Made PostgreSQL the canonical source for typed Identity and per-run worker configuration and exposed its JSON Schema for Web UI form generation.
