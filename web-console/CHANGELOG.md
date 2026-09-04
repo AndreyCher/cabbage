@@ -1,5 +1,9 @@
 # web-console changelog
 
+## 0.1.38-dev
+
+- Removed bold emphasis from proxy names in the Proxies table.
+
 ## 0.1.37-dev
 
 - Made proxy names optional and compacted proxy rows to match the Workers table density.
