@@ -31,3 +31,10 @@ def test_context_defaults_expose_proxy_configuration_references():
     assert "default_proxy_config_id" not in schemas["ScenarioCreate"]["properties"]
     assert "default_proxy_config_id" not in schemas["ScenarioRead"]["properties"]
     assert "/api/v1/proxies/{proxy_id}/verify" in app.openapi()["paths"]
+
+
+def test_proxy_checker_settings_expose_provider_usage_and_toggles():
+    schema = app.openapi()["components"]["schemas"]
+    assert "services" in schema["ProxyCheckerSettingsRead"]["properties"]
+    service = schema["ProxyCheckerServiceRead"]["properties"]
+    assert {"id", "name", "enabled", "used", "limit", "window"} <= set(service)

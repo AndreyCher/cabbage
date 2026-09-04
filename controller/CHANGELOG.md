@@ -1,5 +1,9 @@
 # Controller changelog
 
+## 0.1.18
+
+- Exposed proxy-location provider state and quota-window usage counters from persisted check history for the Web Console settings page.
+
 ## 0.1.17
 
 - Replaced synchronous external GEO calls with durable asynchronous proxy-check jobs.

@@ -28,7 +28,7 @@ export function DefaultIdentitySettings() {
   return <Stack gap={2}>
     <Typography variant="body2" color="text.secondary">Base configuration merged into every newly created Identity profile. Existing profiles are not changed.</Typography>
     {error && <Alert severity="error">{error}</Alert>}{message && <Alert severity="success">{message}</Alert>}
-    <WorkerConfigEditor value={config} onChange={(next) => { setConfig(next); setMessage('') }} />
+    <WorkerConfigEditor sections={['browser', 'profile', 'advanced']} value={config} onChange={(next) => { setConfig(next); setMessage('') }} />
     <Stack direction="row" justifyContent="space-between" alignItems="center"><Typography variant="caption" color="text.secondary">Revision: {revision ?? '—'}</Typography><Button variant="contained" onClick={() => void save()}>Save defaults</Button></Stack>
   </Stack>
 }

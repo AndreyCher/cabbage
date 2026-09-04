@@ -1,4 +1,4 @@
-# Controller 0.1.17
+# Controller 0.1.18
 
 FastAPI control plane for queued, resource-aware execution of disposable
 Firefox workers. PostgreSQL stores durable run/scenario/proxy records; Redis
@@ -114,7 +114,8 @@ Controller listens on `127.0.0.1:8088`; Web Console proxies it internally at
   and proxy-checker asynchronously verifies exit IP, country and timezone.
 - `GET/PUT /api/v1/settings/proxy-checker` manages database overrides for
   intervals, stale lifetime, timeout, retries, concurrency, failure threshold
-  and provider order.
+  and enabled providers. Read responses also expose each built-in provider's
+  current quota-window usage from durable check-attempt history.
 - Identity records reference an ISO country pool rather than a concrete proxy.
   Controller selects the least-recently-used verified endpoint in that country;
   an explicit matching run proxy may override it and `proxy_mode=disabled`

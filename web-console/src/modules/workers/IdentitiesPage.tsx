@@ -89,7 +89,7 @@ export function IdentitiesPage() {
       {error && <Alert severity="error">{error}</Alert>}
       <TextField label="Identity name" value={identity} disabled={!creating} onChange={(event) => setIdentity(event.target.value)} required helperText="Letters, numbers, dots, underscores and hyphens." />
       <Tabs value={tab} onChange={(_, next) => setTab(next)} variant="scrollable" scrollButtons="auto"><Tab value="profile" label="Profile settings" /><Tab value="proxy" label="Proxy" />{!creating && <Tab value="maintenance" label="Maintenance" />}</Tabs>
-      {tab === 'profile' && <WorkerConfigEditor value={config} onChange={setConfig} />}
+      {tab === 'profile' && <WorkerConfigEditor sections={['browser', 'profile', 'advanced']} value={config} onChange={setConfig} />}
       {tab === 'proxy' && <Stack gap={2}><Typography color="text.secondary">Bind the browser Identity to a country pool. Controller rotates verified endpoints from that country; worker validates the actual exit GEO on every run.</Typography><ProxyCountrySelect value={proxyCountry} onChange={setProxyCountry} /></Stack>}
       {tab === 'maintenance' && <Stack gap={2}><Alert severity="info">Operations are queued safely when the Identity is active.</Alert><Stack direction={{ xs: 'column', sm: 'row' }} gap={1}><Button variant="outlined" onClick={() => void inspectRuntime()}>Inspect runtime profile</Button><Button variant="outlined" onClick={() => void maintenance('update')}>Update profile files</Button><Button color="warning" variant="outlined" onClick={() => void maintenance('reset')}>Reset profile files</Button></Stack></Stack>}
       {!creating && selected?.in_use && <Alert severity="warning">This Identity is active. Saved changes apply to the next run.</Alert>}

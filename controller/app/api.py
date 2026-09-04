@@ -4,7 +4,7 @@ import asyncio
 import json
 import shutil
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import httpx
 
@@ -17,7 +17,7 @@ from .auth import require_token
 from .crypto import SecretCipher
 from .database import SessionLocal, session_dependency
 from .executor import DockerExecutor
-from .models import ACTIVE_STATUSES, ControllerSetting, IdentityProfile, ProxyCheckJob, ProxyConfig, Run, RunStatus, ScenarioTemplate, TERMINAL_STATUSES
+from .models import ACTIVE_STATUSES, ControllerSetting, IdentityProfile, ProxyCheckJob, ProxyCheckResult, ProxyConfig, Run, RunStatus, ScenarioTemplate, TERMINAL_STATUSES
 from .queue import RunQueue
 from .schemas import IdentityCreate, IdentityDefaultsRead, IdentityDefaultsUpdate, IdentityRead, IdentityUpdate, ProxyCheckerSettingsRead, ProxyCheckerSettingsUpdate, ProxyCreate, ProxyUpdate, RunCreate, RunRead, RunUpdate, ScenarioClone, ScenarioCreate, ScenarioRead, WorkerDefaultsRead, WorkerDefaultsUpdate
 from .settings import get_settings
@@ -25,6 +25,12 @@ from .streaming import create_stream_ticket, live_stream_available, proxy_novnc_
 from .worker_config import WorkerConfig
 
 router = APIRouter(prefix="/api/v1")
+
+PROXY_CHECKER_SERVICES = (
+    {"id": "ipwhois", "name": "ipwho.is", "limit": 1000, "window": "day", "period": timedelta(days=1)},
+    {"id": "freeipapi", "name": "FreeIPAPI", "limit": 60, "window": "minute", "period": timedelta(minutes=1)},
+    {"id": "ipapi_co", "name": "ipapi.co", "limit": 1000, "window": "day", "period": timedelta(days=1)},
+)
 
 
 def services(request):
@@ -48,7 +54,7 @@ async def select_country_proxy(session: AsyncSession, country_code: str) -> Prox
 
 @router.get("/health")
 async def health() -> dict:
-    return {"status": "ok", "component": "controller", "version": "0.1.17", "api_version": "v1"}
+    return {"status": "ok", "component": "controller", "version": "0.1.18", "api_version": "v1"}
 
 
 @router.get("/worker-config/schema", dependencies=[Depends(require_token)])
@@ -474,11 +480,23 @@ async def update_worker_defaults(payload: WorkerDefaultsUpdate, session: AsyncSe
     return {"config": row.value, "revision": row.revision, "updated_at": row.updated_at}
 
 
+async def proxy_checker_settings_read(session: AsyncSession, row: ControllerSetting | None) -> dict:
+    defaults = ProxyCheckerSettingsUpdate().model_dump()
+    settings = {**defaults, **(row.value if row else {})}
+    enabled = set(settings["providers"])
+    now = datetime.now(timezone.utc)
+    services = []
+    for provider in PROXY_CHECKER_SERVICES:
+        used = await session.scalar(select(func.count(ProxyCheckResult.id)).where(
+            ProxyCheckResult.provider == provider["id"], ProxyCheckResult.checked_at >= now - provider["period"]
+        ))
+        services.append({key: value for key, value in provider.items() if key != "period"} | {"enabled": provider["id"] in enabled, "used": used or 0})
+    return {**settings, "revision": row.revision if row else 0, "updated_at": row.updated_at if row else None, "services": services}
+
+
 @router.get("/settings/proxy-checker", response_model=ProxyCheckerSettingsRead, dependencies=[Depends(require_token)])
 async def get_proxy_checker_settings(session: AsyncSession = Depends(session_dependency)):
-    defaults = ProxyCheckerSettingsUpdate().model_dump()
-    row = await session.get(ControllerSetting, "proxy_checker")
-    return {**defaults, **(row.value if row else {}), "revision": row.revision if row else 0, "updated_at": row.updated_at if row else None}
+    return await proxy_checker_settings_read(session, await session.get(ControllerSetting, "proxy_checker"))
 
 
 @router.put("/settings/proxy-checker", response_model=ProxyCheckerSettingsRead, dependencies=[Depends(require_token)])
@@ -489,7 +507,7 @@ async def update_proxy_checker_settings(payload: ProxyCheckerSettingsUpdate, ses
     else:
         row.value = payload.model_dump(); row.revision += 1
     await session.commit(); await session.refresh(row)
-    return {**row.value, "revision": row.revision, "updated_at": row.updated_at}
+    return await proxy_checker_settings_read(session, row)
 
 
 @router.get("/scenarios", response_model=list[ScenarioRead], dependencies=[Depends(require_token)])

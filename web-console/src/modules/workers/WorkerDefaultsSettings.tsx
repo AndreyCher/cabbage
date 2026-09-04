@@ -23,7 +23,7 @@ export function WorkerDefaultsSettings() {
   return <Stack gap={2}>
     <Typography variant="body2" color="text.secondary">Base worker configuration for every run. Run overrides and Identity settings are merged on top; the standalone worker remains compatible with files mounted directly into its config directory.</Typography>
     {error && <Alert severity="error">{error}</Alert>}{message && <Alert severity="success">{message}</Alert>}
-    <WorkerConfigEditor value={config} onChange={(next) => { setConfig(next); setMessage('') }} />
+    <WorkerConfigEditor sections={['recording', 'diagnostics', 'plugins', 'advanced']} value={config} onChange={(next) => { setConfig(next); setMessage('') }} />
     <Stack direction="row" justifyContent="space-between" alignItems="center"><Typography variant="caption" color="text.secondary">Revision: {revision ?? '—'}</Typography><Button variant="contained" onClick={() => void save()}>Save worker defaults</Button></Stack>
   </Stack>
 }

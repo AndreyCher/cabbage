@@ -172,6 +172,16 @@ class ProxyCheckerSettingsUpdate(BaseModel):
     providers: list[str] = Field(default_factory=lambda: ["ipwhois", "freeipapi", "ipapi_co"])
 
 
+class ProxyCheckerServiceRead(BaseModel):
+    id: str
+    name: str
+    enabled: bool
+    used: int
+    limit: int
+    window: str
+
+
 class ProxyCheckerSettingsRead(ProxyCheckerSettingsUpdate):
     revision: int = 1
     updated_at: datetime | None = None
+    services: list[ProxyCheckerServiceRead] = Field(default_factory=list)

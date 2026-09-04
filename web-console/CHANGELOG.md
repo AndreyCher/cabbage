@@ -1,5 +1,10 @@
 # web-console changelog
 
+## 0.1.32-dev
+
+- Split global worker defaults into Recording, Diagnostics, Plugins and Advanced JSON, while Identity profiles now expose only Browser, Fingerprint and Advanced JSON.
+- Added per-provider enable switches and live quota-window usage counters to Proxy Checker settings.
+
 ## 0.1.31-dev
 
 - Added Proxy Checker settings for periodic and unhealthy retry intervals, stale lifetime, timeout, retries, concurrency, failure threshold and provider order.

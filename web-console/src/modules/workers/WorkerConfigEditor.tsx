@@ -9,6 +9,14 @@ type Props = {
   value: JsonObject
   onChange: (value: JsonObject) => void
   compact?: boolean
+  sections?: Section[]
+}
+
+export type Section = 'browser' | 'profile' | 'recording' | 'diagnostics' | 'plugins' | 'advanced'
+
+const ALL_SECTIONS: Section[] = ['browser', 'profile', 'recording', 'diagnostics', 'plugins', 'advanced']
+const SECTION_LABELS: Record<Section, string> = {
+  browser: 'Browser', profile: 'Fingerprint', recording: 'Recording', diagnostics: 'Diagnostics', plugins: 'Plugins', advanced: 'Advanced JSON',
 }
 
 function nested(source: JsonObject, group: string): JsonObject {
@@ -37,8 +45,8 @@ function JsonValueField({ label, value, onChange, helperText }: { label: string;
     InputProps={{ sx: { fontFamily: 'monospace', fontSize: 12 } }} />
 }
 
-export function WorkerConfigEditor({ value, onChange, compact = false }: Props) {
-  const [tab, setTab] = useState('browser')
+export function WorkerConfigEditor({ value, onChange, compact = false, sections = ALL_SECTIONS }: Props) {
+  const [tab, setTab] = useState<Section>(sections[0] ?? 'advanced')
   const browser = nested(value, 'browser')
   const recording = nested(value, 'recording')
   const fingerprint = nested(value, 'fingerprint')
@@ -50,14 +58,16 @@ export function WorkerConfigEditor({ value, onChange, compact = false }: Props) 
   const [advancedDraft, setAdvancedDraft] = useState(() => JSON.stringify(value, null, 2))
   const [advancedError, setAdvancedError] = useState('')
   useEffect(() => setAdvancedDraft(JSON.stringify(value, null, 2)), [value])
+  useEffect(() => {
+    if (!sections.includes(tab)) setTab(sections[0] ?? 'advanced')
+  }, [sections, tab])
 
   const group = (name: string, key: string, next: unknown) => onChange(setGroup(value, name, key, next))
   const grid = { display: 'grid', gridTemplateColumns: { xs: '1fr', sm: compact ? '1fr' : 'repeat(2, minmax(0, 1fr))' }, gap: 2 }
 
   return <Box>
     <Tabs value={tab} onChange={(_, next) => setTab(next)} variant="scrollable" scrollButtons="auto" sx={{ mb: 2 }}>
-      <Tab value="browser" label="Browser" /><Tab value="profile" label="Fingerprint" /><Tab value="recording" label="Recording" />
-      <Tab value="diagnostics" label="Diagnostics" /><Tab value="plugins" label="Plugins" /><Tab value="advanced" label="Advanced JSON" />
+      {sections.map((section) => <Tab key={section} value={section} label={SECTION_LABELS[section]} />)}
     </Tabs>
     {tab === 'browser' && <Stack gap={2}>
       <Box sx={grid}>
