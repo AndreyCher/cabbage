@@ -81,7 +81,7 @@ export function IdentitiesPage() {
   return <>
     <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" gap={2} mb={3}>
       <Box><Typography variant="h4">Identities</Typography><Typography color="text.secondary" mt={.5}>Persistent browser profiles used by worker runs.</Typography></Box>
-      <Stack direction="row" gap={1}><Button startIcon={<RefreshRounded />} onClick={() => void refresh()}>Refresh</Button><Button size="small" variant="contained" startIcon={<AddRounded />} sx={{ px: 1.5 }} onClick={() => void create(false)}>New Identity</Button></Stack>
+      <Stack direction="row" gap={1}><Button startIcon={<RefreshRounded />} onClick={() => void refresh()}>Refresh</Button><Button size="small" variant="contained" startIcon={<AddRounded />} sx={{ px: 1.5, py: '5px', minHeight: 0 }} onClick={() => void create(false)}>New Identity</Button></Stack>
     </Stack>
     {error && !modalOpen && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
     <Card><CardContent sx={{ overflowX: 'auto' }}><Table size="small" sx={{ width: '100%' }}><TableHead><TableRow><TableCell sx={{ width: '1%', whiteSpace: 'nowrap' }}>Status</TableCell><TableCell sx={{ width: 'auto' }}>Name</TableCell><TableCell align="right" sx={{ width: '1%', whiteSpace: 'nowrap' }}>Revision</TableCell><TableCell align="right" sx={{ width: '1%', whiteSpace: 'nowrap' }}>Updated</TableCell><TableCell sx={{ width: '1%' }} /></TableRow></TableHead><TableBody>

@@ -4,6 +4,8 @@ This is the global release history for all application components. Component cha
 
 ## Unreleased
 
+- Added Web Console 0.1.49-dev with exact compact vertical spacing for New Identity.
+
 - Added Web Console 0.1.48-dev integrating bulk mode into the compact New Identity flow.
 
 - Added Controller 0.1.24 and Web Console 0.1.47-dev with bulk Identity creation, shared configuration and localized generated names.

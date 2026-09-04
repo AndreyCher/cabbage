@@ -1,5 +1,9 @@
 # web-console changelog
 
+## 0.1.49-dev
+
+- Set the compact New Identity action to exactly 5 px of vertical text padding.
+
 ## 0.1.48-dev
 
 - Moved Bulk create into the New Identity dialog as a switch above the name field and compacted the header action.
