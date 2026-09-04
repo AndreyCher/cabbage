@@ -1,5 +1,9 @@
 # web-console changelog
 
+## 0.1.36-dev
+
+- Removed verbose transport errors from the Proxies status column; unhealthy endpoints now show only the red status badge and last-check time.
+
 ## 0.1.35-dev
 
 - Displayed real pending, healthy and unhealthy proxy states with last-check time and actionable errors instead of the ambiguous `Not verified` label.
