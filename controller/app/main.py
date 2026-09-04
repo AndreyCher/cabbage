@@ -32,7 +32,7 @@ async def lifespan(app: FastAPI):
     await redis.aclose()
 
 
-app = FastAPI(title="Controller API", version="0.1.16", lifespan=lifespan)
+app = FastAPI(title="Controller API", version="0.1.17", lifespan=lifespan)
 app.include_router(router)
 
 

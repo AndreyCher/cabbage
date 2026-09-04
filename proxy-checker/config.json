@@ -1,0 +1,17 @@
+{
+  "check_interval_seconds": 3600,
+  "unhealthy_retry_seconds": 300,
+  "stale_after_seconds": 7200,
+  "timeout_seconds": 20,
+  "retries": 1,
+  "concurrency": 4,
+  "failure_threshold": 2,
+  "poll_seconds": 5,
+  "providers": ["ipwhois", "freeipapi", "ipapi_co"],
+  "provider_config": {
+    "ipwhois": {"enabled": true, "url": "https://ipwho.is/"},
+    "freeipapi": {"enabled": true, "url": "https://free.freeipapi.com/api/json"},
+    "ipapi_co": {"enabled": true, "url": "https://ipapi.co/json/"},
+    "paid_template": {"enabled": false, "url": "", "token_secret_file": ""}
+  }
+}

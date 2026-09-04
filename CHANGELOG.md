@@ -4,6 +4,8 @@ This is the global release history for all application components. Component cha
 
 ## Unreleased
 
+- Added proxy-checker 0.1.0, Controller 0.1.17 and Web Console 0.1.31-dev with asynchronous proxy verification, three-provider fallback, durable jobs/history and database-backed scheduling settings.
+
 - Added Controller 0.1.16 and Web Console 0.1.30-dev with verified proxy exit locations, country-based Identity pools, least-recently-used endpoint rotation and worker-compatible country proxy identities.
 
 - Added Controller 0.1.15 and Web Console 0.1.29-dev: removed Scenario-level proxy ownership and kept proxy selection at the browser Identity or explicit run level.

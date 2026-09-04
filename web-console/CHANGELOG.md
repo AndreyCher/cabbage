@@ -1,5 +1,10 @@
 # web-console changelog
 
+## 0.1.31-dev
+
+- Added Proxy Checker settings for periodic and unhealthy retry intervals, stale lifetime, timeout, retries, concurrency, failure threshold and provider order.
+- Changed manual Verify to queue a high-priority background job while preserving active checks.
+
 ## 0.1.30-dev
 
 - Added verified country, exit IP and timezone to the Proxies catalog plus an explicit Verify action.

@@ -1,5 +1,12 @@
 # Controller changelog
 
+## 0.1.17
+
+- Replaced synchronous external GEO calls with durable asynchronous proxy-check jobs.
+- Added high-priority idempotent manual verification and non-blocking create/update checks.
+- Added proxy-checker settings API, health fields and immutable provider-attempt persistence.
+- Restricted country pools to healthy endpoints and added migration `0011_proxy_checker_jobs`.
+
 ## 0.1.16
 
 - Added proxy exit-IP and location verification through the same `ipwho.is` service used by worker runtime diagnostics.

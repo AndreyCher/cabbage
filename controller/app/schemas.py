@@ -159,3 +159,19 @@ class WorkerDefaultsRead(BaseModel):
     config: dict[str, Any]
     revision: int
     updated_at: datetime
+
+
+class ProxyCheckerSettingsUpdate(BaseModel):
+    check_interval_seconds: int = Field(default=3600, ge=60, le=604800)
+    unhealthy_retry_seconds: int = Field(default=300, ge=30, le=86400)
+    stale_after_seconds: int = Field(default=7200, ge=60, le=1209600)
+    timeout_seconds: int = Field(default=20, ge=2, le=120)
+    retries: int = Field(default=1, ge=0, le=10)
+    concurrency: int = Field(default=4, ge=1, le=100)
+    failure_threshold: int = Field(default=2, ge=1, le=20)
+    providers: list[str] = Field(default_factory=lambda: ["ipwhois", "freeipapi", "ipapi_co"])
+
+
+class ProxyCheckerSettingsRead(ProxyCheckerSettingsUpdate):
+    revision: int = 1
+    updated_at: datetime | None = None

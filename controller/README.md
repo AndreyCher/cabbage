@@ -1,4 +1,4 @@
-# Controller 0.1.16
+# Controller 0.1.17
 
 FastAPI control plane for queued, resource-aware execution of disposable
 Firefox workers. PostgreSQL stores durable run/scenario/proxy records; Redis
@@ -108,11 +108,13 @@ Controller listens on `127.0.0.1:8088`; Web Console proxies it internally at
 - Proxy create/update supports HTTP/HTTPS, credentials, bypass, GEO validation
   policy and TLS verification. Delete disables a proxy without breaking run
   history; SOCKS is rejected consistently with worker-firefox.
-- `POST /api/v1/proxies/{id}/verify` rechecks the endpoint through the proxy
-  and refreshes its exit IP, country, timezone and verification timestamp.
-- Every proxy is tested through its own transport against `ipwho.is` when
-  created, when connection settings change, or through the verify endpoint.
-  Controller stores its exit IP, ISO country, timezone and verification time.
+- `POST /api/v1/proxies/{id}/verify` queues an idempotent high-priority check;
+  it never interrupts an already running check for that endpoint.
+- Proxy creation/update is non-blocking. Controller stores a pending endpoint
+  and proxy-checker asynchronously verifies exit IP, country and timezone.
+- `GET/PUT /api/v1/settings/proxy-checker` manages database overrides for
+  intervals, stale lifetime, timeout, retries, concurrency, failure threshold
+  and provider order.
 - Identity records reference an ISO country pool rather than a concrete proxy.
   Controller selects the least-recently-used verified endpoint in that country;
   an explicit matching run proxy may override it and `proxy_mode=disabled`

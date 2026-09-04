@@ -60,11 +60,44 @@ class ProxyConfig(Base):
     verify_ssl: Mapped[bool] = mapped_column(Boolean, default=True)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     country_code: Mapped[str | None] = mapped_column(String(2), index=True)
+    expected_country_code: Mapped[str | None] = mapped_column(String(2))
     country_name: Mapped[str | None] = mapped_column(String(128))
     exit_ip: Mapped[str | None] = mapped_column(String(64))
     timezone: Mapped[str | None] = mapped_column(String(128))
     last_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    check_status: Mapped[str] = mapped_column(String(32), default="pending", index=True)
+    check_error: Mapped[str | None] = mapped_column(Text)
+    consecutive_failures: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class ProxyCheckJob(Base):
+    __tablename__ = "proxy_check_jobs"
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    proxy_config_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("proxy_configs.id"), index=True)
+    priority: Mapped[int] = mapped_column(Integer, default=0, index=True)
+    status: Mapped[str] = mapped_column(String(24), default="queued", index=True)
+    requested_by: Mapped[str] = mapped_column(String(32), default="scheduler")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    error: Mapped[str | None] = mapped_column(Text)
+
+
+class ProxyCheckResult(Base):
+    __tablename__ = "proxy_check_results"
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    job_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("proxy_check_jobs.id"), index=True)
+    proxy_config_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("proxy_configs.id"), index=True)
+    provider: Mapped[str] = mapped_column(String(64))
+    success: Mapped[bool] = mapped_column(Boolean)
+    exit_ip: Mapped[str | None] = mapped_column(String(64))
+    country_code: Mapped[str | None] = mapped_column(String(2))
+    country_name: Mapped[str | None] = mapped_column(String(128))
+    timezone: Mapped[str | None] = mapped_column(String(128))
+    latency_ms: Mapped[int | None] = mapped_column(Integer)
+    error: Mapped[str | None] = mapped_column(Text)
+    checked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class IdentityProfile(Base):

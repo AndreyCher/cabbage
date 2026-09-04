@@ -45,6 +45,18 @@
         "console_proxy_path": "/api/controller",
         "version": "v1"
       }
+    },
+    "proxy-checker": {
+      "enabled": true,
+      "type": "proxy-checker",
+      "display_name": "Proxy Checker",
+      "description": "Asynchronous proxy health and location verification",
+      "api": {
+        "base_url": "http://proxy-checker:8080",
+        "health_path": "/api/v1/health",
+        "console_proxy_path": "/api/proxy-checker",
+        "version": "v1"
+      }
     }
   }
 }

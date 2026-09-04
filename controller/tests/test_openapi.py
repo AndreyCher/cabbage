@@ -11,6 +11,8 @@ def test_openapi_exposes_complete_worker_control_contract():
     assert "/api/v1/identities/{identity}/update" in paths
     assert "/api/v1/proxies/{proxy_id}" in paths
     assert "/api/v1/settings/worker-defaults" in paths
+    assert "/api/v1/settings/proxy-checker" in paths
+    assert "/api/v1/proxies/{proxy_id}/verify" in paths
 
 
 def test_run_create_schema_does_not_expose_raw_docker_or_worker_api_fields():

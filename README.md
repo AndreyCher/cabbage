@@ -33,7 +33,7 @@ Standalone source builder for immutable `worker-firefox-base:<browser-version>` 
 
 ### controller
 
-Current version: **0.1.16**
+Current version: **0.1.17**
 
 FastAPI control plane with authenticated API, PostgreSQL history/configuration,
 Redis queue/live state, global resource-aware and per-Identity serialized Docker scheduling, disposable workers
@@ -42,6 +42,16 @@ runtime-input routing, readiness and run timeouts without direct worker exposure
 
 - Code and documentation: `controller/`
 - SQL migrations: `databases/postgres/migrations/`
+
+### proxy-checker
+
+Current version: **0.1.0**
+
+Autonomous PostgreSQL-backed service for asynchronous proxy health and exit-location verification, provider fallback and durable check history. Local JSON defaults are overridden by settings managed through Controller/Web Console.
+
+- Code and documentation: `proxy-checker/`
+- Overview: `proxy-checker/README.md`
+- Detailed history: `proxy-checker/CHANGELOG.md`
 
 ### data-provider
 
@@ -55,7 +65,7 @@ Standalone data-resolution service used by automated workers. The initial backen
 
 ### web-console
 
-Current development release: **0.1.30-dev**
+Current development release: **0.1.31-dev**
 
 React/TypeScript control-plane interface using Material UI. It provides Controller-backed worker queue/history, grouped worker configuration, versioned Scenario and Identity management, verified country-based proxy pools for browser Identities, Create Run overrides, live logs, responsive read-only debug streams, automatic recorded-video playback, sorting, persisted navigation, settings and service health.
 
@@ -70,6 +80,7 @@ React/TypeScript control-plane interface using Material UI. It provides Controll
 - `FUTURE_BOT.md` — detailed implementation-oriented notes for deferred work.
 - `workers/worker-firefox/*.md` — documentation owned by the Firefox worker module.
 - `data-provider/*.md` — documentation owned by the worker-facing data-resolution component.
+- `proxy-checker/*.md` — documentation owned by the proxy verification component.
 - `tools/firefox-image-builder/*.md` — documentation owned by the base-image builder module.
 
 Each component keeps its detailed release history beside its code. Every component release must also receive a concise entry in the global `CHANGELOG.md`.

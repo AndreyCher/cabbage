@@ -18,6 +18,10 @@ export type ProxyConfig = {
   timezone?: string | null
   last_checked_at?: string | null
   last_used_at?: string | null
+  expected_country_code?: string | null
+  check_status?: 'pending' | 'healthy' | 'unhealthy' | null
+  check_error?: string | null
+  consecutive_failures?: number
 }
 
 export type Identity = {

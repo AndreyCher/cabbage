@@ -7,6 +7,7 @@ import { ScenariosPage } from './workers/ScenariosPage'
 import { DefaultIdentitySettings } from './workers/DefaultIdentitySettings'
 import { ProxiesPage } from './workers/ProxiesPage'
 import { WorkerDefaultsSettings } from './workers/WorkerDefaultsSettings'
+import { ProxyCheckerSettings } from './workers/ProxyCheckerSettings'
 
 function Placeholder({ title }: { title: string }) {
   return <><Typography variant="h4">{title}</Typography><Typography color="text.secondary" mt={1}>This module is ready for its component-specific interface.</Typography></>
@@ -23,6 +24,7 @@ export const consoleModules: ConsoleModule[] = [
   ], settings: [
     { id: 'controller-auth', title: 'Controller API', component: ControllerSettings },
     { id: 'worker-defaults', title: 'Global worker defaults', component: WorkerDefaultsSettings },
+    { id: 'proxy-checker', title: 'Proxy checker', component: ProxyCheckerSettings },
     { id: 'identity-defaults', title: 'Default Identity profile', component: DefaultIdentitySettings },
   ] },
   { id: 'data-sources', pages: [{ id: 'data-sources', label: 'Data sources', icon: DataObjectRounded, component: () => <Placeholder title="Data sources" /> }] },

@@ -33,7 +33,7 @@ services:
     build:
       context: .
       dockerfile: controller/Dockerfile
-    image: controller:0.1.16
+    image: controller:0.1.17
     profiles: ["controller"]
     depends_on:
       postgres:
@@ -66,6 +66,25 @@ services:
       - worker-identities:/identities
       - worker-artifacts:/artifacts
       - ./secrets/controller_api_token:/run/secrets/controller_api_token:ro
+      - ./secrets/controller_encryption_key:/run/secrets/controller_encryption_key:ro
+
+  proxy-checker:
+    build:
+      context: .
+      dockerfile: proxy-checker/Dockerfile
+    image: proxy-checker:0.1.0
+    profiles: ["controller"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      controller:
+        condition: service_started
+    environment:
+      PROXY_CHECKER_DATABASE_URL: "postgresql://${POSTGRES_USER:-controller}:${POSTGRES_PASSWORD:-controller-dev-password}@postgres:5432/${POSTGRES_DB:-controller}"
+      PROXY_CHECKER_CONFIG_PATH: "/app/config.json"
+      PROXY_CHECKER_ENCRYPTION_KEY_FILE: "/run/secrets/controller_encryption_key"
+    volumes:
+      - ./proxy-checker/config.json:/app/config.json:ro
       - ./secrets/controller_encryption_key:/run/secrets/controller_encryption_key:ro
 
   data-provider:

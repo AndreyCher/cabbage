@@ -17,9 +17,9 @@ from .auth import require_token
 from .crypto import SecretCipher
 from .database import SessionLocal, session_dependency
 from .executor import DockerExecutor
-from .models import ACTIVE_STATUSES, ControllerSetting, IdentityProfile, ProxyConfig, Run, RunStatus, ScenarioTemplate, TERMINAL_STATUSES
+from .models import ACTIVE_STATUSES, ControllerSetting, IdentityProfile, ProxyCheckJob, ProxyConfig, Run, RunStatus, ScenarioTemplate, TERMINAL_STATUSES
 from .queue import RunQueue
-from .schemas import IdentityCreate, IdentityDefaultsRead, IdentityDefaultsUpdate, IdentityRead, IdentityUpdate, ProxyCreate, ProxyUpdate, RunCreate, RunRead, RunUpdate, ScenarioClone, ScenarioCreate, ScenarioRead, WorkerDefaultsRead, WorkerDefaultsUpdate
+from .schemas import IdentityCreate, IdentityDefaultsRead, IdentityDefaultsUpdate, IdentityRead, IdentityUpdate, ProxyCheckerSettingsRead, ProxyCheckerSettingsUpdate, ProxyCreate, ProxyUpdate, RunCreate, RunRead, RunUpdate, ScenarioClone, ScenarioCreate, ScenarioRead, WorkerDefaultsRead, WorkerDefaultsUpdate
 from .settings import get_settings
 from .streaming import create_stream_ticket, live_stream_available, proxy_novnc_asset, proxy_novnc_websocket, recorded_video_response, validate_stream_ticket, video_files
 from .worker_config import WorkerConfig
@@ -39,38 +39,16 @@ def run_read(run: Run) -> RunRead:
     })
 
 
-def parse_proxy_location(data: dict) -> dict:
-    if data.get("success") is False or not data.get("country_code"):
-        raise ValueError(data.get("message") or "Country was not detected")
-    timezone_data = data.get("timezone") or {}
-    return {"country_code": str(data["country_code"]).upper(), "country_name": data.get("country"), "exit_ip": data.get("ip"), "timezone": timezone_data.get("id") if isinstance(timezone_data, dict) else timezone_data, "last_checked_at": datetime.now(timezone.utc)}
-
-
-async def detect_proxy_location(scheme: str, host: str, port: int, username: str | None, password: str | None, verify_ssl: bool) -> dict:
-    proxy_url = httpx.URL(f"{scheme}://{host}:{port}", username=username or None, password=password or None)
-    try:
-        async with httpx.AsyncClient(proxy=proxy_url, verify=verify_ssl, timeout=20) as client:
-            response = await client.get("https://ipwho.is/")
-            response.raise_for_status()
-            data = response.json()
-    except Exception as exc:
-        raise HTTPException(422, detail={"code": "proxy_location_unavailable", "message": str(exc)}) from exc
-    try:
-        return parse_proxy_location(data)
-    except ValueError as exc:
-        raise HTTPException(422, detail={"code": "proxy_location_unavailable", "message": str(exc)}) from exc
-
-
 async def select_country_proxy(session: AsyncSession, country_code: str) -> ProxyConfig | None:
     return await session.scalar(
-        select(ProxyConfig).where(ProxyConfig.enabled.is_(True), ProxyConfig.country_code == country_code.upper())
+        select(ProxyConfig).where(ProxyConfig.enabled.is_(True), ProxyConfig.check_status == "healthy", ProxyConfig.country_code == country_code.upper())
         .order_by(ProxyConfig.last_used_at.asc().nullsfirst(), ProxyConfig.name).with_for_update(skip_locked=True).limit(1)
     )
 
 
 @router.get("/health")
 async def health() -> dict:
-    return {"status": "ok", "component": "controller", "version": "0.1.16", "api_version": "v1"}
+    return {"status": "ok", "component": "controller", "version": "0.1.17", "api_version": "v1"}
 
 
 @router.get("/worker-config/schema", dependencies=[Depends(require_token)])
@@ -496,6 +474,24 @@ async def update_worker_defaults(payload: WorkerDefaultsUpdate, session: AsyncSe
     return {"config": row.value, "revision": row.revision, "updated_at": row.updated_at}
 
 
+@router.get("/settings/proxy-checker", response_model=ProxyCheckerSettingsRead, dependencies=[Depends(require_token)])
+async def get_proxy_checker_settings(session: AsyncSession = Depends(session_dependency)):
+    defaults = ProxyCheckerSettingsUpdate().model_dump()
+    row = await session.get(ControllerSetting, "proxy_checker")
+    return {**defaults, **(row.value if row else {}), "revision": row.revision if row else 0, "updated_at": row.updated_at if row else None}
+
+
+@router.put("/settings/proxy-checker", response_model=ProxyCheckerSettingsRead, dependencies=[Depends(require_token)])
+async def update_proxy_checker_settings(payload: ProxyCheckerSettingsUpdate, session: AsyncSession = Depends(session_dependency)):
+    row = await session.get(ControllerSetting, "proxy_checker")
+    if row is None:
+        row = ControllerSetting(key="proxy_checker", value=payload.model_dump()); session.add(row)
+    else:
+        row.value = payload.model_dump(); row.revision += 1
+    await session.commit(); await session.refresh(row)
+    return {**row.value, "revision": row.revision, "updated_at": row.updated_at}
+
+
 @router.get("/scenarios", response_model=list[ScenarioRead], dependencies=[Depends(require_token)])
 async def list_scenarios(include_archived: bool = False, session: AsyncSession = Depends(session_dependency)):
     query = (
@@ -578,7 +574,19 @@ async def list_proxies(session: AsyncSession = Depends(session_dependency)):
 
 
 def _proxy_read(row: ProxyConfig) -> dict:
-    return {"id": row.id, "name": row.name, "scheme": row.scheme, "host": row.host, "port": row.port, "username": row.username, "has_password": bool(row.encrypted_password), "bypass": row.bypass, "geoip": row.geoip, "verify_ssl": row.verify_ssl, "enabled": row.enabled, "country_code": row.country_code, "country_name": row.country_name, "exit_ip": row.exit_ip, "timezone": row.timezone, "last_checked_at": row.last_checked_at, "last_used_at": row.last_used_at}
+    return {"id": row.id, "name": row.name, "scheme": row.scheme, "host": row.host, "port": row.port, "username": row.username, "has_password": bool(row.encrypted_password), "bypass": row.bypass, "geoip": row.geoip, "verify_ssl": row.verify_ssl, "enabled": row.enabled, "country_code": row.country_code, "country_name": row.country_name, "exit_ip": row.exit_ip, "timezone": row.timezone, "last_checked_at": row.last_checked_at, "last_used_at": row.last_used_at, "expected_country_code": row.expected_country_code, "check_status": row.check_status, "check_error": row.check_error, "consecutive_failures": row.consecutive_failures}
+
+
+async def enqueue_proxy_check(session: AsyncSession, proxy_id: uuid.UUID, requested_by: str, priority: int) -> ProxyCheckJob:
+    existing = await session.scalar(select(ProxyCheckJob).where(ProxyCheckJob.proxy_config_id == proxy_id, ProxyCheckJob.status.in_(["queued", "running"])).order_by(ProxyCheckJob.priority.desc()).limit(1))
+    if existing:
+        if existing.status == "queued" and priority > existing.priority:
+            existing.priority = priority
+            existing.requested_by = requested_by
+        return existing
+    job = ProxyCheckJob(proxy_config_id=proxy_id, priority=priority, requested_by=requested_by)
+    session.add(job)
+    return job
 
 
 @router.post("/proxies", status_code=201, dependencies=[Depends(require_token)])
@@ -586,11 +594,10 @@ async def create_proxy(payload: ProxyCreate, session: AsyncSession = Depends(ses
     if await session.scalar(select(ProxyConfig).where(ProxyConfig.name == payload.name)):
         raise HTTPException(409, detail="proxy_name_exists")
     cipher = SecretCipher(get_settings())
-    location = await detect_proxy_location(payload.scheme, payload.host, payload.port, payload.username, payload.password, payload.verify_ssl)
-    if payload.expected_country_code and location["country_code"] != payload.expected_country_code.upper():
-        raise HTTPException(422, detail={"code": "proxy_country_mismatch", "expected": payload.expected_country_code.upper(), "actual": location["country_code"]})
-    row = ProxyConfig(name=payload.name, scheme=payload.scheme, host=payload.host, port=payload.port, username=payload.username, encrypted_password=cipher.encrypt(payload.password) if payload.password else None, bypass=payload.bypass, geoip=payload.geoip.model_dump(), verify_ssl=payload.verify_ssl, **location)
+    row = ProxyConfig(name=payload.name, scheme=payload.scheme, host=payload.host, port=payload.port, username=payload.username, encrypted_password=cipher.encrypt(payload.password) if payload.password else None, bypass=payload.bypass, geoip=payload.geoip.model_dump(), verify_ssl=payload.verify_ssl, expected_country_code=payload.expected_country_code.upper() if payload.expected_country_code else None, check_status="pending")
     session.add(row)
+    await session.flush()
+    await enqueue_proxy_check(session, row.id, "create", 50)
     await session.commit()
     await session.refresh(row)
     return _proxy_read(row)
@@ -613,14 +620,12 @@ async def update_proxy(proxy_id: uuid.UUID, payload: ProxyUpdate, session: Async
         row.encrypted_password = SecretCipher(get_settings()).encrypt(password) if password else None
     if geoip is not None:
         row.geoip = geoip
-    connection_changed = bool({"scheme", "host", "port", "username", "password", "verify_ssl"} & payload.model_fields_set)
-    if connection_changed or expected_country:
-        plain_password = password if "password" in payload.model_fields_set else (SecretCipher(get_settings()).decrypt(row.encrypted_password) if row.encrypted_password else None)
-        location = await detect_proxy_location(row.scheme, row.host, row.port, row.username, plain_password, row.verify_ssl)
-        if expected_country and location["country_code"] != expected_country.upper():
-            raise HTTPException(422, detail={"code": "proxy_country_mismatch", "expected": expected_country.upper(), "actual": location["country_code"]})
-        for field, value in location.items():
-            setattr(row, field, value)
+    if "expected_country_code" in payload.model_fields_set:
+        row.expected_country_code = expected_country.upper() if expected_country else None
+    connection_changed = bool({"scheme", "host", "port", "username", "password", "verify_ssl", "expected_country_code"} & payload.model_fields_set)
+    if connection_changed:
+        row.check_status = "pending"; row.check_error = None
+        await enqueue_proxy_check(session, row.id, "update", 50)
     await session.commit()
     await session.refresh(row)
     return _proxy_read(row)
@@ -631,12 +636,9 @@ async def verify_proxy(proxy_id: uuid.UUID, session: AsyncSession = Depends(sess
     row = await session.get(ProxyConfig, proxy_id)
     if row is None:
         raise HTTPException(404, detail="proxy_not_found")
-    password = SecretCipher(get_settings()).decrypt(row.encrypted_password) if row.encrypted_password else None
-    location = await detect_proxy_location(row.scheme, row.host, row.port, row.username, password, row.verify_ssl)
-    for field, value in location.items():
-        setattr(row, field, value)
-    await session.commit(); await session.refresh(row)
-    return _proxy_read(row)
+    job = await enqueue_proxy_check(session, row.id, "manual", 100)
+    await session.commit(); await session.refresh(job)
+    return {"job_id": job.id, "status": job.status, "priority": job.priority}
 
 
 @router.delete("/proxies/{proxy_id}", status_code=204, dependencies=[Depends(require_token)])
