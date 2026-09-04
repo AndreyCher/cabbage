@@ -1,5 +1,9 @@
 # web-console changelog
 
+## 0.1.43-dev
+
+- Corrected Workers table sizing so Identity receives the remaining width and Status stays content-sized.
+
 ## 0.1.42-dev
 
 - Made Identity consume the remaining Workers table width while all other columns shrink to their content.
