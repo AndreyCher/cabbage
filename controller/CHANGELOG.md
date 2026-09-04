@@ -1,5 +1,11 @@
 # Controller changelog
 
+## 0.1.21
+
+- Counted provider quota usage only when the GEO provider was actually reached and added migration `0013_proxy_attempt_accounting`.
+- Made manual Verify visibly transition an endpoint to pending while preserving an already running check.
+- Initialized new durable jobs explicitly as queued so the pending transition is visible before the database flush.
+
 ## 0.1.20
 
 - Split the run bypass into independent Identity-location and proxy-requirement flags and persisted both policies on each run.

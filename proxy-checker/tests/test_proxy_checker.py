@@ -1,6 +1,6 @@
 import pytest
 
-from app.main import deep_merge, normalize
+from app.main import ProviderAttemptError, deep_merge, error_text, normalize
 
 
 def test_database_settings_deep_merge_over_local_defaults():
@@ -25,3 +25,8 @@ def test_invalid_provider_response_is_rejected():
 def test_location_without_timezone_is_rejected():
     with pytest.raises(ValueError, match="timezone"):
         normalize("ipwhois", {"ip": "1.2.3.4", "country_code": "DE", "country": "Germany"})
+
+
+def test_empty_transport_exception_is_still_actionable():
+    assert error_text(TimeoutError()) == "TimeoutError: TimeoutError()"
+    assert ProviderAttemptError("ReadTimeout: ReadTimeout('')", False).provider_reached is False

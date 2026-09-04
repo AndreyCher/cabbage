@@ -166,8 +166,7 @@ class WorkerDefaultsRead(BaseModel):
 
 
 class ProxyCheckerSettingsUpdate(BaseModel):
-    check_interval_seconds: int = Field(default=3600, ge=60, le=604800)
-    unhealthy_retry_seconds: int = Field(default=300, ge=30, le=86400)
+    check_interval_seconds: int = Field(default=300, ge=60, le=604800)
     stale_after_seconds: int = Field(default=7200, ge=60, le=1209600)
     timeout_seconds: int = Field(default=20, ge=2, le=120)
     retries: int = Field(default=1, ge=0, le=10)

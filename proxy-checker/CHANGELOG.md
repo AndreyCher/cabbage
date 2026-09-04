@@ -1,5 +1,13 @@
 # Proxy Checker changelog
 
+## 0.1.2
+
+- Stopped all automatic scheduling for unhealthy endpoints; only manual Verify can reactivate them.
+- Changed the default healthy/pending monitoring interval to five minutes.
+- Persisted actionable transport errors and logged failed endpoint checks without exposing credentials.
+- Distinguished requests reaching a GEO provider from proxy connection failures for accurate quota accounting.
+- Recovered interrupted durable jobs on startup without rescheduling unhealthy endpoints.
+
 ## 0.1.1
 
 - Required provider responses to include timezone before a proxy can become healthy.

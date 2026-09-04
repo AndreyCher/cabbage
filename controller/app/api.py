@@ -55,7 +55,7 @@ async def select_country_proxy(session: AsyncSession, country_code: str) -> Prox
 
 @router.get("/health")
 async def health() -> dict:
-    return {"status": "ok", "component": "controller", "version": "0.1.20", "api_version": "v1"}
+    return {"status": "ok", "component": "controller", "version": "0.1.21", "api_version": "v1"}
 
 
 @router.get("/worker-config/schema", dependencies=[Depends(require_token)])
@@ -495,7 +495,7 @@ async def proxy_checker_settings_read(session: AsyncSession, row: ControllerSett
     services = []
     for provider in PROXY_CHECKER_SERVICES:
         used = await session.scalar(select(func.count(ProxyCheckResult.id)).where(
-            ProxyCheckResult.provider == provider["id"], ProxyCheckResult.checked_at >= now - provider["period"]
+            ProxyCheckResult.provider == provider["id"], ProxyCheckResult.provider_reached.is_(True), ProxyCheckResult.checked_at >= now - provider["period"]
         ))
         services.append({key: value for key, value in provider.items() if key != "period"} | {"enabled": provider["id"] in enabled, "used": used or 0})
     return {**settings, "revision": row.revision if row else 0, "updated_at": row.updated_at if row else None, "services": services}
@@ -609,7 +609,7 @@ async def enqueue_proxy_check(session: AsyncSession, proxy_id: uuid.UUID, reques
             existing.priority = priority
             existing.requested_by = requested_by
         return existing
-    job = ProxyCheckJob(proxy_config_id=proxy_id, priority=priority, requested_by=requested_by)
+    job = ProxyCheckJob(proxy_config_id=proxy_id, priority=priority, status="queued", requested_by=requested_by)
     session.add(job)
     return job
 
@@ -662,6 +662,9 @@ async def verify_proxy(proxy_id: uuid.UUID, session: AsyncSession = Depends(sess
     if row is None:
         raise HTTPException(404, detail="proxy_not_found")
     job = await enqueue_proxy_check(session, row.id, "manual", 100)
+    if job.status == "queued":
+        row.check_status = "pending"
+        row.check_error = None
     await session.commit(); await session.refresh(job)
     return {"job_id": job.id, "status": job.status, "priority": job.priority}
 

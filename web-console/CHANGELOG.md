@@ -1,5 +1,11 @@
 # web-console changelog
 
+## 0.1.35-dev
+
+- Displayed real pending, healthy and unhealthy proxy states with last-check time and actionable errors instead of the ambiguous `Not verified` label.
+- Added five-second table refresh after manual Verify and restricted country selectors to healthy endpoints.
+- Removed the obsolete unhealthy retry interval and clarified reached-provider quota accounting.
+
 ## 0.1.34-dev
 
 - Split the combined run override into independent `Ignore Identity location` and `Ignore proxy requirement` switches.

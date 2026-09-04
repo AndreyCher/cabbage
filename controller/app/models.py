@@ -90,6 +90,7 @@ class ProxyCheckResult(Base):
     job_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("proxy_check_jobs.id"), index=True)
     proxy_config_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("proxy_configs.id"), index=True)
     provider: Mapped[str] = mapped_column(String(64))
+    provider_reached: Mapped[bool] = mapped_column(Boolean, default=False)
     success: Mapped[bool] = mapped_column(Boolean)
     exit_ip: Mapped[str | None] = mapped_column(String(64))
     country_code: Mapped[str | None] = mapped_column(String(2))

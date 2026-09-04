@@ -33,7 +33,7 @@ Standalone source builder for immutable `worker-firefox-base:<browser-version>` 
 
 ### controller
 
-Current version: **0.1.20**
+Current version: **0.1.21**
 
 FastAPI control plane with authenticated API, PostgreSQL history/configuration,
 Redis queue/live state, global resource-aware and per-Identity serialized Docker scheduling, disposable workers
@@ -45,7 +45,7 @@ runtime-input routing, readiness and run timeouts without direct worker exposure
 
 ### proxy-checker
 
-Current version: **0.1.1**
+Current version: **0.1.2**
 
 Autonomous PostgreSQL-backed service for asynchronous proxy health and exit-location verification, provider fallback and durable check history. Local JSON defaults are overridden by settings managed through Controller/Web Console.
 
@@ -65,7 +65,7 @@ Standalone data-resolution service used by automated workers. The initial backen
 
 ### web-console
 
-Current development release: **0.1.34-dev**
+Current development release: **0.1.35-dev**
 
 React/TypeScript control-plane interface using Material UI. It provides Controller-backed worker queue/history, grouped worker configuration, versioned Scenario and Identity management, verified country-based proxy pools for browser Identities, Create Run overrides, live logs, responsive read-only debug streams, automatic recorded-video playback, sorting, persisted navigation, settings and service health.
 

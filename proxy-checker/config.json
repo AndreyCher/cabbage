@@ -1,6 +1,5 @@
 {
-  "check_interval_seconds": 3600,
-  "unhealthy_retry_seconds": 300,
+  "check_interval_seconds": 300,
   "stale_after_seconds": 7200,
   "timeout_seconds": 20,
   "retries": 1,

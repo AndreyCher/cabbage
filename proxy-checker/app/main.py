@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 import time
 import uuid
@@ -14,11 +15,23 @@ import httpx
 from cryptography.fernet import Fernet
 from fastapi import FastAPI
 
-VERSION = "0.1.1"
+VERSION = "0.1.2"
 _container_config = Path("/app/config.json")
 DEFAULT_CONFIG_PATH = Path(os.getenv("PROXY_CHECKER_CONFIG_PATH", str(_container_config if _container_config.exists() else Path(__file__).parents[1] / "config.json")))
 DATABASE_URL = os.getenv("PROXY_CHECKER_DATABASE_URL", "postgresql://controller:controller@postgres:5432/controller").replace("postgresql+asyncpg://", "postgresql://")
 KEY_FILE = Path(os.getenv("PROXY_CHECKER_ENCRYPTION_KEY_FILE", "/run/secrets/controller_encryption_key"))
+logger = logging.getLogger("proxy-checker")
+
+
+class ProviderAttemptError(Exception):
+    def __init__(self, message: str, provider_reached: bool) -> None:
+        super().__init__(message)
+        self.provider_reached = provider_reached
+
+
+def error_text(exc: Exception) -> str:
+    message = str(exc).strip()
+    return f"{type(exc).__name__}: {message or repr(exc)}"[:2000]
 
 
 def deep_merge(base: dict, override: dict) -> dict:
@@ -61,15 +74,28 @@ class Checker:
         if isinstance(value, str): value = json.loads(value)
         return deep_merge(self.local, dict(value or {}))
 
+    async def recover_interrupted_jobs(self) -> None:
+        async with self.pool.acquire() as conn:
+            await conn.execute("""
+                UPDATE proxy_check_jobs j SET status='failed', finished_at=now(), error='checker_restarted_after_proxy_became_unhealthy'
+                FROM proxy_configs p
+                WHERE j.proxy_config_id=p.id AND j.status='running' AND j.requested_by='scheduler' AND p.check_status='unhealthy'
+            """)
+            await conn.execute("""
+                UPDATE proxy_check_jobs SET status='queued', started_at=NULL, error='requeued_after_checker_restart'
+                WHERE status='running'
+            """)
+
     async def enqueue_due(self, cfg: dict) -> None:
         async with self.pool.acquire() as conn:
             await conn.execute("UPDATE proxy_configs SET check_status='pending' WHERE enabled AND check_status='healthy' AND last_checked_at < now() - make_interval(secs => $1::double precision)", cfg["stale_after_seconds"])
             await conn.execute("""
                 INSERT INTO proxy_check_jobs (id, proxy_config_id, priority, status, requested_by)
                 SELECT gen_random_uuid(), p.id, 0, 'queued', 'scheduler' FROM proxy_configs p
-                WHERE p.enabled AND NOT EXISTS (SELECT 1 FROM proxy_check_jobs j WHERE j.proxy_config_id=p.id AND j.status IN ('queued','running'))
-                AND (p.last_checked_at IS NULL OR p.last_checked_at < now() - make_interval(secs => CASE WHEN p.check_status='healthy' THEN $1::double precision ELSE $2::double precision END))
-            """, cfg["check_interval_seconds"], cfg["unhealthy_retry_seconds"])
+                WHERE p.enabled AND p.check_status <> 'unhealthy'
+                AND NOT EXISTS (SELECT 1 FROM proxy_check_jobs j WHERE j.proxy_config_id=p.id AND j.status IN ('queued','running'))
+                AND (p.last_checked_at IS NULL OR p.last_checked_at < now() - make_interval(secs => $1::double precision))
+            """, cfg["check_interval_seconds"])
 
     async def claim(self) -> dict | None:
         async with self.pool.acquire() as conn:
@@ -87,13 +113,23 @@ class Checker:
         secret_file = provider_cfg.get("token_secret_file")
         if secret_file: headers["Authorization"] = f"Bearer {Path(secret_file).read_text().strip()}"
         started = time.monotonic()
-        async with httpx.AsyncClient(proxy=proxy_url, verify=proxy["verify_ssl"], timeout=timeout) as client:
-            response = await client.get(provider_cfg["url"], headers=headers); response.raise_for_status(); data = response.json()
-        return normalize(name, data), round((time.monotonic() - started) * 1000)
+        try:
+            async with httpx.AsyncClient(proxy=proxy_url, verify=proxy["verify_ssl"], timeout=timeout) as client:
+                response = await client.get(provider_cfg["url"], headers=headers)
+        except Exception as exc:
+            raise ProviderAttemptError(error_text(exc), False) from exc
+        provider_reached = response.status_code not in {407, 502, 503, 504}
+        try:
+            response.raise_for_status()
+            data = response.json()
+            result = normalize(name, data)
+        except Exception as exc:
+            raise ProviderAttemptError(error_text(exc), provider_reached) from exc
+        return result, round((time.monotonic() - started) * 1000)
 
     async def check(self, item: dict, cfg: dict) -> None:
         job, proxy = item["job"], item["proxy"]
-        attempts: list[tuple[str, bool, dict | None, int | None, str | None]] = []
+        attempts: list[tuple[str, bool, bool, dict | None, int | None, str | None]] = []
         accepted = None
         countries: dict[str, int] = {}
         expected = proxy["expected_country_code"] or proxy["country_code"]
@@ -103,31 +139,38 @@ class Checker:
             for attempt in range(cfg["retries"] + 1):
                 try:
                     result, latency = await self.provider_call(name, pcfg, proxy, cfg["timeout_seconds"])
-                    attempts.append((name, True, result, latency, None)); countries[result["country_code"]] = countries.get(result["country_code"], 0) + 1
+                    attempts.append((name, True, True, result, latency, None)); countries[result["country_code"]] = countries.get(result["country_code"], 0) + 1
                     if not expected or result["country_code"] == expected: accepted = result
                     elif countries[result["country_code"]] >= 2: accepted = result
                     break
                 except Exception as exc:
-                    if attempt == cfg["retries"]: attempts.append((name, False, None, None, str(exc)[:2000]))
+                    if attempt == cfg["retries"]:
+                        attempt_error = str(exc) if isinstance(exc, ProviderAttemptError) else error_text(exc)
+                        attempts.append((name, False, bool(getattr(exc, "provider_reached", False)), None, None, attempt_error))
             if accepted: break
         mismatch = accepted and proxy["expected_country_code"] and accepted["country_code"] != proxy["expected_country_code"]
         success = bool(accepted) and not mismatch
-        error = None if success else (f'expected {proxy["expected_country_code"]}, detected {accepted["country_code"]}' if mismatch else "all providers failed or disagreed")
+        details = "; ".join(f"{name}: {attempt_error}" for name, ok, reached, result, latency, attempt_error in attempts if attempt_error)
+        error = None if success else (f'expected {proxy["expected_country_code"]}, detected {accepted["country_code"]}' if mismatch else details or "all providers failed or disagreed")
         async with self.pool.acquire() as conn:
             async with conn.transaction():
-                for name, ok, result, latency, attempt_error in attempts:
-                    await conn.execute("INSERT INTO proxy_check_results (id,job_id,proxy_config_id,provider,success,exit_ip,country_code,country_name,timezone,latency_ms,error) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)", uuid.uuid4(), job["id"], proxy["id"], name, ok, result and result["exit_ip"], result and result["country_code"], result and result["country_name"], result and result["timezone"], latency, attempt_error)
+                for name, ok, reached, result, latency, attempt_error in attempts:
+                    await conn.execute("INSERT INTO proxy_check_results (id,job_id,proxy_config_id,provider,provider_reached,success,exit_ip,country_code,country_name,timezone,latency_ms,error) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)", uuid.uuid4(), job["id"], proxy["id"], name, reached, ok, result and result["exit_ip"], result and result["country_code"], result and result["country_name"], result and result["timezone"], latency, attempt_error)
                 if success:
                     await conn.execute("UPDATE proxy_configs SET check_status='healthy',check_error=NULL,consecutive_failures=0,exit_ip=$2,country_code=$3,country_name=$4,timezone=$5,last_checked_at=now() WHERE id=$1", proxy["id"], accepted["exit_ip"], accepted["country_code"], accepted["country_name"], accepted["timezone"])
                 else:
                     await conn.execute("UPDATE proxy_configs SET consecutive_failures=consecutive_failures+1,check_status=CASE WHEN consecutive_failures+1 >= $2 THEN 'unhealthy' ELSE 'pending' END,check_error=$3,last_checked_at=now() WHERE id=$1", proxy["id"], cfg["failure_threshold"], error)
                 await conn.execute("UPDATE proxy_check_jobs SET status=$2,finished_at=now(),error=$3 WHERE id=$1", job["id"], "completed" if success else "failed", error)
+        if not success:
+            logger.warning("Proxy check failed for %s: %s", proxy["name"], error)
 
     async def loop(self) -> None:
         self.cipher = Fernet(KEY_FILE.read_bytes().strip())
         while self.running:
             try:
-                if self.pool is None: self.pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=10)
+                if self.pool is None:
+                    self.pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=10)
+                    await self.recover_interrupted_jobs()
                 cfg = await self.settings(); await self.enqueue_due(cfg); self.last_cycle = time.time()
                 items = [item for item in [await self.claim() for _ in range(cfg["concurrency"])] if item]
                 self.active = len(items)

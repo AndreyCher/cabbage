@@ -3,7 +3,7 @@ import { Alert, Box, Button, Card, CardContent, FormControlLabel, LinearProgress
 import { controllerApi } from './controllerApi'
 
 type Service = { id: string; name: string; enabled: boolean; used: number; limit: number; window: 'minute' | 'day' | string }
-type Settings = { check_interval_seconds: number; unhealthy_retry_seconds: number; stale_after_seconds: number; timeout_seconds: number; retries: number; concurrency: number; failure_threshold: number; providers: string[]; services: Service[]; revision: number }
+type Settings = { check_interval_seconds: number; stale_after_seconds: number; timeout_seconds: number; retries: number; concurrency: number; failure_threshold: number; providers: string[]; services: Service[]; revision: number }
 
 const windowLabel = (window: string) => window === 'minute' ? 'minute' : window === 'day' ? 'day' : window
 
@@ -22,10 +22,10 @@ export function ProxyCheckerSettings() {
   return <Stack gap={2}>
     <Typography color="text.secondary">Database values override the autonomous proxy-checker config.json defaults. Changes are picked up without restart.</Typography>
     {error && <Alert severity="error">{error}</Alert>}{saved && <Alert severity="success">Settings saved.</Alert>}
-    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 2 }}>{number('check_interval_seconds', 'Healthy check interval, sec')}{number('unhealthy_retry_seconds', 'Unhealthy retry interval, sec')}{number('stale_after_seconds', 'Result stale after, sec')}{number('timeout_seconds', 'Provider timeout, sec')}{number('retries', 'Retries')}{number('concurrency', 'Concurrent checks')}{number('failure_threshold', 'Failures before unhealthy')}</Box>
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 2 }}>{number('check_interval_seconds', 'Monitoring interval, sec')}{number('stale_after_seconds', 'Result stale after, sec')}{number('timeout_seconds', 'Provider timeout, sec')}{number('retries', 'Retries')}{number('concurrency', 'Concurrent checks')}{number('failure_threshold', 'Failures before unhealthy')}</Box>
     <Box>
       <Typography variant="h6" mb={0.5}>Proxy location verification services</Typography>
-      <Typography variant="body2" color="text.secondary" mb={2}>Enable only the providers the checker may call. Usage is calculated from completed provider attempts in the current quota window.</Typography>
+      <Typography variant="body2" color="text.secondary" mb={2}>Enable only the providers the checker may call. Usage counts only requests that reached the GEO provider, not proxy connection failures.</Typography>
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' }, gap: 2 }}>
         {value.services.map((service) => {
           const percentage = service.limit > 0 ? Math.min(100, service.used / service.limit * 100) : 0

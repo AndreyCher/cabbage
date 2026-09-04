@@ -1,4 +1,4 @@
-# web-console 0.1.34-dev
+# web-console 0.1.35-dev
 
 Early control-plane web interface built with React, TypeScript and Google Material Design through Material UI. The visual direction follows modern infrastructure dashboards: persistent navigation, compact operational cards, clear health states and responsive layouts.
 
@@ -16,7 +16,7 @@ Current scope:
 - Identity tabs for profile settings, default proxy and guarded profile maintenance/runtime inspection;
 - Scenario tabs for actions and external `wait_input`/`webhook` integrations;
 - verified proxy exit country/IP/timezone display with manual recheck;
-- asynchronous proxy checks and Settings controls for scheduling, stale lifetime, retries, concurrency and failure threshold, plus per-provider enable switches and live quota-window usage;
+- asynchronous proxy checks with explicit pending/healthy/unhealthy states, automatic table refresh, actionable errors and manual recovery for unhealthy endpoints; Settings includes monitoring, retries, provider switches and reached-provider quota usage;
 - country-pool browser proxy assignment for Identities, while explicit matching run selection and forced disabled mode remain available; Scenarios do not own proxy settings;
 - automatic locale/language/timezone defaults for newly created country-bound Identities, independent run switches for location validation and proxy requirements, and automatic application of both bypasses in Debug mode without mutating the persistent fingerprint;
 - JSON scenario import and save-as-new-version workflow without redeploy;
