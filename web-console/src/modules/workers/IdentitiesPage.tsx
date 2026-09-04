@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
   Alert, Box, Button, Card, CardContent, Chip, Dialog, DialogActions,
-  DialogContent, DialogTitle, Stack, Table, TableBody, TableCell, TableHead,
+  DialogContent, DialogTitle, FormControlLabel, Stack, Switch, Table, TableBody, TableCell, TableHead,
   TableRow, Tab, Tabs, TextField, Typography,
 } from '@mui/material'
 import { AddRounded, DeleteForeverRounded, DeleteOutlineRounded, EditRounded, RefreshRounded } from '@mui/icons-material'
@@ -81,7 +81,7 @@ export function IdentitiesPage() {
   return <>
     <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" gap={2} mb={3}>
       <Box><Typography variant="h4">Identities</Typography><Typography color="text.secondary" mt={.5}>Persistent browser profiles used by worker runs.</Typography></Box>
-      <Stack direction="row" gap={1}><Button startIcon={<RefreshRounded />} onClick={() => void refresh()}>Refresh</Button><Button startIcon={<AddRounded />} onClick={() => void create(true)}>Bulk create</Button><Button variant="contained" startIcon={<AddRounded />} onClick={() => void create(false)}>New Identity</Button></Stack>
+      <Stack direction="row" gap={1}><Button startIcon={<RefreshRounded />} onClick={() => void refresh()}>Refresh</Button><Button size="small" variant="contained" startIcon={<AddRounded />} sx={{ px: 1.5 }} onClick={() => void create(false)}>New Identity</Button></Stack>
     </Stack>
     {error && !modalOpen && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
     <Card><CardContent sx={{ overflowX: 'auto' }}><Table size="small" sx={{ width: '100%' }}><TableHead><TableRow><TableCell sx={{ width: '1%', whiteSpace: 'nowrap' }}>Status</TableCell><TableCell sx={{ width: 'auto' }}>Name</TableCell><TableCell align="right" sx={{ width: '1%', whiteSpace: 'nowrap' }}>Revision</TableCell><TableCell align="right" sx={{ width: '1%', whiteSpace: 'nowrap' }}>Updated</TableCell><TableCell sx={{ width: '1%' }} /></TableRow></TableHead><TableBody>
@@ -90,6 +90,7 @@ export function IdentitiesPage() {
     </TableBody></Table></CardContent><ClientTablePagination count={items.length} {...pagination} /></Card>
     <Dialog open={modalOpen} onClose={() => { setSelected(null); setCreating(false); setBulkCreating(false) }} fullWidth maxWidth="md"><DialogTitle>{bulkCreating ? 'Bulk create Identities' : creating ? 'Create Identity' : `Edit ${identity}`}</DialogTitle><DialogContent><Stack gap={2} mt={1}>
       {error && <Alert severity="error">{error}</Alert>}
+      {creating && <FormControlLabel control={<Switch checked={bulkCreating} onChange={(event) => setBulkCreating(event.target.checked)} />} label="Bulk create" />}
       <TextField label={bulkCreating ? 'Name prefix (optional)' : 'Identity name'} value={identity} disabled={!creating} onChange={(event) => setIdentity(event.target.value)} required={!bulkCreating} helperText={bulkCreating ? 'If set, profiles are named prefix-1, prefix-2, etc. If empty, localized random names are generated.' : 'Letters, numbers, dots, underscores and hyphens.'} />
       {bulkCreating && <TextField label="Number of profiles" type="number" value={bulkCount} inputProps={{ min: 2, max: 200 }} onChange={(event) => setBulkCount(Number(event.target.value))} helperText="From 2 to 200 profiles in one operation." />}
       <Tabs value={tab} onChange={(_, next) => setTab(next)} variant="scrollable" scrollButtons="auto"><Tab value="profile" label="Profile settings" /><Tab value="proxy" label="Proxy" />{!creating && <Tab value="maintenance" label="Maintenance" />}</Tabs>

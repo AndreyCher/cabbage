@@ -1,5 +1,9 @@
 # web-console changelog
 
+## 0.1.48-dev
+
+- Moved Bulk create into the New Identity dialog as a switch above the name field and compacted the header action.
+
 ## 0.1.47-dev
 
 - Added bulk Identity creation with count, optional numbered name prefix, shared profile settings and shared proxy country.
