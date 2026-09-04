@@ -59,6 +59,12 @@ class ProxyConfig(Base):
     geoip: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     verify_ssl: Mapped[bool] = mapped_column(Boolean, default=True)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    country_code: Mapped[str | None] = mapped_column(String(2), index=True)
+    country_name: Mapped[str | None] = mapped_column(String(128))
+    exit_ip: Mapped[str | None] = mapped_column(String(64))
+    timezone: Mapped[str | None] = mapped_column(String(128))
+    last_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
 
 
 class IdentityProfile(Base):
@@ -67,7 +73,7 @@ class IdentityProfile(Base):
     config: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     revision: Mapped[int] = mapped_column(Integer, default=1)
     pending_operation: Mapped[str | None] = mapped_column(String(16))
-    default_proxy_config_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("proxy_configs.id"))
+    proxy_country_code: Mapped[str | None] = mapped_column(String(2), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

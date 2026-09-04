@@ -2,8 +2,8 @@ import pytest
 from pydantic import ValidationError
 
 from app.schemas import ProxyCreate, RunCreate
-from app.api import resolve_proxy_config_id
 from app.worker_config import WorkerConfig
+from app.api import parse_proxy_location
 
 
 def test_run_create_accepts_complete_typed_worker_config():
@@ -42,8 +42,14 @@ def test_controller_proxy_contract_matches_worker_transport():
         ProxyCreate(name="p", host="proxy", port=1080, scheme="socks5")
 
 
-def test_proxy_resolution_precedence():
-    assert resolve_proxy_config_id("selected", "run", "identity") == "run"
-    assert resolve_proxy_config_id("default", None, "identity") == "identity"
-    assert resolve_proxy_config_id("default", None, None) is None
-    assert resolve_proxy_config_id("disabled", "run", "identity") is None
+def test_proxy_location_is_normalized_for_country_pool():
+    result = parse_proxy_location({"success": True, "ip": "203.0.113.7", "country": "Germany", "country_code": "de", "timezone": {"id": "Europe/Berlin"}})
+    assert result["country_code"] == "DE"
+    assert result["country_name"] == "Germany"
+    assert result["exit_ip"] == "203.0.113.7"
+    assert result["timezone"] == "Europe/Berlin"
+
+
+def test_proxy_location_requires_country_code():
+    with pytest.raises(ValueError):
+        parse_proxy_location({"success": False, "message": "lookup failed"})

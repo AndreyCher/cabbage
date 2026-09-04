@@ -101,6 +101,7 @@ class ProxyCreate(BaseModel):
     bypass: str | None = Field(default=None, max_length=4096)
     geoip: ProxyGeoConfig = Field(default_factory=ProxyGeoConfig)
     verify_ssl: bool = True
+    expected_country_code: str | None = Field(default=None, min_length=2, max_length=2)
 
 
 class ProxyUpdate(BaseModel):
@@ -114,17 +115,18 @@ class ProxyUpdate(BaseModel):
     geoip: ProxyGeoConfig | None = None
     verify_ssl: bool | None = None
     enabled: bool | None = None
+    expected_country_code: str | None = Field(default=None, min_length=2, max_length=2)
 
 
 class IdentityCreate(BaseModel):
     identity: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
     config: WorkerConfig = Field(default_factory=WorkerConfig)
-    default_proxy_config_id: uuid.UUID | None = None
+    proxy_country_code: str | None = Field(default=None, min_length=2, max_length=2)
 
 
 class IdentityUpdate(BaseModel):
     config: WorkerConfig
-    default_proxy_config_id: uuid.UUID | None = None
+    proxy_country_code: str | None = Field(default=None, min_length=2, max_length=2)
 
 
 class IdentityRead(BaseModel):
@@ -136,7 +138,7 @@ class IdentityRead(BaseModel):
     updated_at: datetime
     in_use: bool = False
     pending_operation: str | None = None
-    default_proxy_config_id: uuid.UUID | None = None
+    proxy_country_code: str | None = None
 
 
 class IdentityDefaultsUpdate(BaseModel):

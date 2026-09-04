@@ -4,6 +4,8 @@ This is the global release history for all application components. Component cha
 
 ## Unreleased
 
+- Added Controller 0.1.16 and Web Console 0.1.30-dev with verified proxy exit locations, country-based Identity pools, least-recently-used endpoint rotation and worker-compatible country proxy identities.
+
 - Added Controller 0.1.15 and Web Console 0.1.29-dev: removed Scenario-level proxy ownership and kept proxy selection at the browser Identity or explicit run level.
 
 - Added Controller 0.1.14 and Web Console 0.1.28-dev with Identity/Scenario default-proxy precedence, a dedicated proxy-management section, grouped global/Identity/run worker configuration, categorized Scenario external requests and Identity maintenance/runtime inspection.

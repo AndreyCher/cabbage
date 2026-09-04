@@ -1,5 +1,11 @@
 # web-console changelog
 
+## 0.1.30-dev
+
+- Added verified country, exit IP and timezone to the Proxies catalog plus an explicit Verify action.
+- Replaced direct Identity proxy selection with a country-pool selector showing available endpoint counts.
+- Updated browser-proxy guidance to describe Controller endpoint rotation and worker runtime GEO validation.
+
 ## 0.1.29-dev
 
 - Removed the Proxy tab and proxy fields from Scenario editing.

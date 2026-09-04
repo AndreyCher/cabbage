@@ -91,7 +91,7 @@ class Scheduler:
                     if run.proxy_mode != "disabled" and run.proxy_config is not None:
                         proxy = {
                             "enabled": True,
-                            "proxy_id": run.proxy_config.name,
+                            "proxy_id": f"country:{run.proxy_config.country_code}" if run.proxy_config.country_code else run.proxy_config.name,
                             "server": f"{run.proxy_config.scheme}://{run.proxy_config.host}:{run.proxy_config.port}",
                             "username": run.proxy_config.username,
                             "password": self.cipher.decrypt(run.proxy_config.encrypted_password) if run.proxy_config.encrypted_password else None,

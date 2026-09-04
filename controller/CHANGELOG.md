@@ -1,5 +1,14 @@
 # Controller changelog
 
+## 0.1.16
+
+- Added proxy exit-IP and location verification through the same `ipwho.is` service used by worker runtime diagnostics.
+- Stored verified country, country name, timezone, exit IP, check time and last-use time for every proxy endpoint.
+- Replaced direct Identity-to-proxy references with ISO country pool assignment.
+- Added least-recently-used selection across active verified endpoints in the Identity country and rejected explicit country mismatches.
+- Materialized a stable `country:XX` logical proxy identity so endpoint rotation remains compatible with persistent worker Identities.
+- Added the authenticated proxy verify endpoint, migration `0010_country_proxy_pools` and country normalization tests.
+
 ## 0.1.15
 
 - Removed proxy configuration from Scenario models and API contracts because proxy ownership belongs to the browser Identity or an explicit run override.

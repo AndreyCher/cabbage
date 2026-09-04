@@ -39,17 +39,38 @@ def run_read(run: Run) -> RunRead:
     })
 
 
-def resolve_proxy_config_id(proxy_mode: str, explicit_id, identity_default_id):
-    if proxy_mode == "disabled":
-        return None
-    if proxy_mode == "selected":
-        return explicit_id
-    return identity_default_id
+def parse_proxy_location(data: dict) -> dict:
+    if data.get("success") is False or not data.get("country_code"):
+        raise ValueError(data.get("message") or "Country was not detected")
+    timezone_data = data.get("timezone") or {}
+    return {"country_code": str(data["country_code"]).upper(), "country_name": data.get("country"), "exit_ip": data.get("ip"), "timezone": timezone_data.get("id") if isinstance(timezone_data, dict) else timezone_data, "last_checked_at": datetime.now(timezone.utc)}
+
+
+async def detect_proxy_location(scheme: str, host: str, port: int, username: str | None, password: str | None, verify_ssl: bool) -> dict:
+    proxy_url = httpx.URL(f"{scheme}://{host}:{port}", username=username or None, password=password or None)
+    try:
+        async with httpx.AsyncClient(proxy=proxy_url, verify=verify_ssl, timeout=20) as client:
+            response = await client.get("https://ipwho.is/")
+            response.raise_for_status()
+            data = response.json()
+    except Exception as exc:
+        raise HTTPException(422, detail={"code": "proxy_location_unavailable", "message": str(exc)}) from exc
+    try:
+        return parse_proxy_location(data)
+    except ValueError as exc:
+        raise HTTPException(422, detail={"code": "proxy_location_unavailable", "message": str(exc)}) from exc
+
+
+async def select_country_proxy(session: AsyncSession, country_code: str) -> ProxyConfig | None:
+    return await session.scalar(
+        select(ProxyConfig).where(ProxyConfig.enabled.is_(True), ProxyConfig.country_code == country_code.upper())
+        .order_by(ProxyConfig.last_used_at.asc().nullsfirst(), ProxyConfig.name).with_for_update(skip_locked=True).limit(1)
+    )
 
 
 @router.get("/health")
 async def health() -> dict:
-    return {"status": "ok", "component": "controller", "version": "0.1.15", "api_version": "v1"}
+    return {"status": "ok", "component": "controller", "version": "0.1.16", "api_version": "v1"}
 
 
 @router.get("/worker-config/schema", dependencies=[Depends(require_token)])
@@ -79,11 +100,18 @@ async def create_run(payload: RunCreate, request: Request, session: AsyncSession
     identity_profile = await session.get(IdentityProfile, payload.identity)
     if identity_profile is None:
         raise HTTPException(404, detail={"code": "identity_not_found", "identity": payload.identity, "suggestion": "create_identity"})
-    proxy_config_id = resolve_proxy_config_id(payload.proxy_mode, payload.proxy_config_id, identity_profile.default_proxy_config_id)
-    if proxy_config_id is not None:
-        proxy = await session.get(ProxyConfig, proxy_config_id)
-        if proxy is None or not proxy.enabled:
-            raise HTTPException(422, detail="proxy_not_available")
+    proxy = None
+    if payload.proxy_mode == "selected":
+        proxy = await session.get(ProxyConfig, payload.proxy_config_id)
+    elif payload.proxy_mode == "default" and identity_profile.proxy_country_code:
+        proxy = await select_country_proxy(session, identity_profile.proxy_country_code)
+    if payload.proxy_mode != "disabled" and (payload.proxy_mode == "selected" or identity_profile.proxy_country_code) and (proxy is None or not proxy.enabled):
+        raise HTTPException(422, detail="proxy_not_available_for_country")
+    if proxy is not None and identity_profile.proxy_country_code and proxy.country_code != identity_profile.proxy_country_code:
+        raise HTTPException(422, detail="proxy_country_mismatch")
+    proxy_config_id = proxy.id if proxy else None
+    if proxy:
+        proxy.last_used_at = datetime.now(timezone.utc)
     overrides = payload.worker_config.overrides()
     if payload.recording is not None:
         overrides.setdefault("recording", {})["video"] = payload.recording
@@ -302,11 +330,10 @@ async def create_identity(payload: IdentityCreate, session: AsyncSession = Depen
         raise HTTPException(409, detail="identity_exists")
     defaults = await session.get(ControllerSetting, "identity_defaults")
     config = _deep_merge(defaults.value if defaults else {}, payload.config.overrides())
-    if payload.default_proxy_config_id is not None:
-        proxy = await session.get(ProxyConfig, payload.default_proxy_config_id)
-        if proxy is None or not proxy.enabled:
-            raise HTTPException(422, detail="proxy_not_available")
-    row = IdentityProfile(identity=payload.identity, config=config, default_proxy_config_id=payload.default_proxy_config_id)
+    country = payload.proxy_country_code.upper() if payload.proxy_country_code else None
+    if country and not await select_country_proxy(session, country):
+        raise HTTPException(422, detail="proxy_not_available_for_country")
+    row = IdentityProfile(identity=payload.identity, config=config, proxy_country_code=country)
     session.add(row)
     await session.commit()
     await session.refresh(row)
@@ -344,11 +371,10 @@ async def update_identity(identity: str, payload: IdentityUpdate, session: Async
     if row is None:
         raise HTTPException(404, detail="identity_not_found")
     row.config = payload.config.overrides()
-    if payload.default_proxy_config_id is not None:
-        proxy = await session.get(ProxyConfig, payload.default_proxy_config_id)
-        if proxy is None or not proxy.enabled:
-            raise HTTPException(422, detail="proxy_not_available")
-    row.default_proxy_config_id = payload.default_proxy_config_id
+    country = payload.proxy_country_code.upper() if payload.proxy_country_code else None
+    if country and not await select_country_proxy(session, country):
+        raise HTTPException(422, detail="proxy_not_available_for_country")
+    row.proxy_country_code = country
     row.revision += 1
     await session.commit()
     await session.refresh(row)
@@ -552,7 +578,7 @@ async def list_proxies(session: AsyncSession = Depends(session_dependency)):
 
 
 def _proxy_read(row: ProxyConfig) -> dict:
-    return {"id": row.id, "name": row.name, "scheme": row.scheme, "host": row.host, "port": row.port, "username": row.username, "has_password": bool(row.encrypted_password), "bypass": row.bypass, "geoip": row.geoip, "verify_ssl": row.verify_ssl, "enabled": row.enabled}
+    return {"id": row.id, "name": row.name, "scheme": row.scheme, "host": row.host, "port": row.port, "username": row.username, "has_password": bool(row.encrypted_password), "bypass": row.bypass, "geoip": row.geoip, "verify_ssl": row.verify_ssl, "enabled": row.enabled, "country_code": row.country_code, "country_name": row.country_name, "exit_ip": row.exit_ip, "timezone": row.timezone, "last_checked_at": row.last_checked_at, "last_used_at": row.last_used_at}
 
 
 @router.post("/proxies", status_code=201, dependencies=[Depends(require_token)])
@@ -560,7 +586,10 @@ async def create_proxy(payload: ProxyCreate, session: AsyncSession = Depends(ses
     if await session.scalar(select(ProxyConfig).where(ProxyConfig.name == payload.name)):
         raise HTTPException(409, detail="proxy_name_exists")
     cipher = SecretCipher(get_settings())
-    row = ProxyConfig(name=payload.name, scheme=payload.scheme, host=payload.host, port=payload.port, username=payload.username, encrypted_password=cipher.encrypt(payload.password) if payload.password else None, bypass=payload.bypass, geoip=payload.geoip.model_dump(), verify_ssl=payload.verify_ssl)
+    location = await detect_proxy_location(payload.scheme, payload.host, payload.port, payload.username, payload.password, payload.verify_ssl)
+    if payload.expected_country_code and location["country_code"] != payload.expected_country_code.upper():
+        raise HTTPException(422, detail={"code": "proxy_country_mismatch", "expected": payload.expected_country_code.upper(), "actual": location["country_code"]})
+    row = ProxyConfig(name=payload.name, scheme=payload.scheme, host=payload.host, port=payload.port, username=payload.username, encrypted_password=cipher.encrypt(payload.password) if payload.password else None, bypass=payload.bypass, geoip=payload.geoip.model_dump(), verify_ssl=payload.verify_ssl, **location)
     session.add(row)
     await session.commit()
     await session.refresh(row)
@@ -573,6 +602,7 @@ async def update_proxy(proxy_id: uuid.UUID, payload: ProxyUpdate, session: Async
     if row is None:
         raise HTTPException(404, detail="proxy_not_found")
     changes = payload.model_dump(exclude_unset=True)
+    expected_country = changes.pop("expected_country_code", None)
     if "name" in changes and await session.scalar(select(ProxyConfig).where(ProxyConfig.name == changes["name"], ProxyConfig.id != proxy_id)):
         raise HTTPException(409, detail="proxy_name_exists")
     password = changes.pop("password", None)
@@ -583,8 +613,29 @@ async def update_proxy(proxy_id: uuid.UUID, payload: ProxyUpdate, session: Async
         row.encrypted_password = SecretCipher(get_settings()).encrypt(password) if password else None
     if geoip is not None:
         row.geoip = geoip
+    connection_changed = bool({"scheme", "host", "port", "username", "password", "verify_ssl"} & payload.model_fields_set)
+    if connection_changed or expected_country:
+        plain_password = password if "password" in payload.model_fields_set else (SecretCipher(get_settings()).decrypt(row.encrypted_password) if row.encrypted_password else None)
+        location = await detect_proxy_location(row.scheme, row.host, row.port, row.username, plain_password, row.verify_ssl)
+        if expected_country and location["country_code"] != expected_country.upper():
+            raise HTTPException(422, detail={"code": "proxy_country_mismatch", "expected": expected_country.upper(), "actual": location["country_code"]})
+        for field, value in location.items():
+            setattr(row, field, value)
     await session.commit()
     await session.refresh(row)
+    return _proxy_read(row)
+
+
+@router.post("/proxies/{proxy_id}/verify", dependencies=[Depends(require_token)])
+async def verify_proxy(proxy_id: uuid.UUID, session: AsyncSession = Depends(session_dependency)):
+    row = await session.get(ProxyConfig, proxy_id)
+    if row is None:
+        raise HTTPException(404, detail="proxy_not_found")
+    password = SecretCipher(get_settings()).decrypt(row.encrypted_password) if row.encrypted_password else None
+    location = await detect_proxy_location(row.scheme, row.host, row.port, row.username, password, row.verify_ssl)
+    for field, value in location.items():
+        setattr(row, field, value)
+    await session.commit(); await session.refresh(row)
     return _proxy_read(row)
 
 

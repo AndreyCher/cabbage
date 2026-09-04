@@ -12,6 +12,12 @@ export type ProxyConfig = {
   geoip: { enabled: boolean; validate_identity: boolean; fail_on_mismatch: boolean }
   verify_ssl: boolean
   enabled: boolean
+  country_code?: string | null
+  country_name?: string | null
+  exit_ip?: string | null
+  timezone?: string | null
+  last_checked_at?: string | null
+  last_used_at?: string | null
 }
 
 export type Identity = {
@@ -22,7 +28,7 @@ export type Identity = {
   updated_at: string
   in_use: boolean
   pending_operation?: string | null
-  default_proxy_config_id?: string | null
+  proxy_country_code?: string | null
 }
 
 export type Scenario = {
