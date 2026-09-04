@@ -1,5 +1,10 @@
 # web-console changelog
 
+## 0.1.33-dev
+
+- Added a Create Run switch to bypass Identity location and proxy requirements while preserving its persistent fingerprint.
+- Debug mode no longer silently disables proxy use.
+
 ## 0.1.32-dev
 
 - Split global worker defaults into Recording, Diagnostics, Plugins and Advanced JSON, while Identity profiles now expose only Browser, Fingerprint and Advanced JSON.

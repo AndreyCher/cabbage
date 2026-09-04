@@ -20,3 +20,8 @@ def test_free_provider_responses_normalize(provider, payload):
 def test_invalid_provider_response_is_rejected():
     with pytest.raises(ValueError):
         normalize("ipwhois", {"success": False, "message": "quota"})
+
+
+def test_location_without_timezone_is_rejected():
+    with pytest.raises(ValueError, match="timezone"):
+        normalize("ipwhois", {"ip": "1.2.3.4", "country_code": "DE", "country": "Germany"})

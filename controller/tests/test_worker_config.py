@@ -23,6 +23,11 @@ def test_run_create_accepts_complete_typed_worker_config():
     assert payload.timeout_seconds == 60
 
 
+def test_run_can_explicitly_ignore_identity_location_and_proxy_requirement():
+    payload = RunCreate(identity="identity-1", scenario="example", proxy_mode="selected", ignore_identity_location_and_proxy=True)
+    assert payload.ignore_identity_location_and_proxy is True
+
+
 def test_worker_config_rejects_infrastructure_and_unknown_fields():
     with pytest.raises(ValidationError):
         WorkerConfig.model_validate({"api": {"port": 9999}})

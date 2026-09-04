@@ -14,7 +14,7 @@ import httpx
 from cryptography.fernet import Fernet
 from fastapi import FastAPI
 
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 _container_config = Path("/app/config.json")
 DEFAULT_CONFIG_PATH = Path(os.getenv("PROXY_CHECKER_CONFIG_PATH", str(_container_config if _container_config.exists() else Path(__file__).parents[1] / "config.json")))
 DATABASE_URL = os.getenv("PROXY_CHECKER_DATABASE_URL", "postgresql://controller:controller@postgres:5432/controller").replace("postgresql+asyncpg://", "postgresql://")
@@ -40,7 +40,7 @@ def normalize(provider: str, data: dict) -> dict:
         result = {"exit_ip": data.get("ip"), "country_code": data.get("country_code"), "country_name": data.get("country_name"), "timezone": data.get("timezone")}
     else:
         result = {"exit_ip": data.get("ip"), "country_code": data.get("country_code"), "country_name": data.get("country_name"), "timezone": data.get("timezone")}
-    if not result["exit_ip"] or not result["country_code"]: raise ValueError("provider response lacks IP or country code")
+    if not result["exit_ip"] or not result["country_code"] or not result["timezone"]: raise ValueError("provider response lacks IP, country code or timezone")
     result["country_code"] = str(result["country_code"]).upper()
     return result
 

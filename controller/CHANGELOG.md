@@ -1,5 +1,10 @@
 # Controller changelog
 
+## 0.1.19
+
+- Derived new Identity locale and language defaults from CLDR plus timezone from a healthy endpoint in the selected country pool.
+- Added an explicit per-run override to ignore the Identity proxy/location requirement without changing its persistent fingerprint.
+
 ## 0.1.18
 
 - Exposed proxy-location provider state and quota-window usage counters from persisted check history for the Web Console settings page.

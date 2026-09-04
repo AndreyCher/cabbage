@@ -1,4 +1,4 @@
-# Controller 0.1.18
+# Controller 0.1.19
 
 FastAPI control plane for queued, resource-aware execution of disposable
 Firefox workers. PostgreSQL stores durable run/scenario/proxy records; Redis
@@ -80,7 +80,9 @@ Controller listens on `127.0.0.1:8088`; Web Console proxies it internally at
 - Run responses include the immutable `scenario_name` and `scenario_version` selected for that task. Scenario catalog responses include durable `run_count` per version.
 - `POST /api/v1/identities` creates a persistent Identity profile;
   `GET/PUT /api/v1/identities/{identity}` reads or updates it. Profile changes
-  increment `revision` and apply to the next run.
+  increment `revision` and apply to the next run. For a new country-bound
+  Identity, Controller fills only default locale/languages/timezone fields from
+  CLDR and the selected healthy endpoint's verified timezone.
 - `POST /api/v1/identities/{identity}/reset` deletes persistent browser/device
   state, while `/update` schedules device/fingerprint regeneration on the next
   run and preserves the browser profile. Both reject active Identities.
@@ -94,6 +96,9 @@ Controller listens on `127.0.0.1:8088`; Web Console proxies it internally at
 - `GET/PUT /api/v1/settings/worker-defaults` manages the versioned PostgreSQL
   source for global worker behavior. It uses the same typed schema as run and
   Identity configuration and is materialized into every run.
+- `POST /api/v1/runs` accepts `ignore_identity_location_and_proxy=true` as an
+  explicit escape hatch: the run has no proxy/GEO validation, while the
+  Identity's persistent fingerprint remains unchanged.
 - `POST /api/v1/scenarios` creates a new immutable scenario version and makes
   it active. Existing runs keep their selected version; new runs use the latest
   active version. This is the persistence contract for the future scenario

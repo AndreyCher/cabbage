@@ -17,6 +17,7 @@ from .auth import require_token
 from .crypto import SecretCipher
 from .database import SessionLocal, session_dependency
 from .executor import DockerExecutor
+from .identity_location import apply_location_defaults
 from .models import ACTIVE_STATUSES, ControllerSetting, IdentityProfile, ProxyCheckJob, ProxyCheckResult, ProxyConfig, Run, RunStatus, ScenarioTemplate, TERMINAL_STATUSES
 from .queue import RunQueue
 from .schemas import IdentityCreate, IdentityDefaultsRead, IdentityDefaultsUpdate, IdentityRead, IdentityUpdate, ProxyCheckerSettingsRead, ProxyCheckerSettingsUpdate, ProxyCreate, ProxyUpdate, RunCreate, RunRead, RunUpdate, ScenarioClone, ScenarioCreate, ScenarioRead, WorkerDefaultsRead, WorkerDefaultsUpdate
@@ -54,7 +55,7 @@ async def select_country_proxy(session: AsyncSession, country_code: str) -> Prox
 
 @router.get("/health")
 async def health() -> dict:
-    return {"status": "ok", "component": "controller", "version": "0.1.18", "api_version": "v1"}
+    return {"status": "ok", "component": "controller", "version": "0.1.19", "api_version": "v1"}
 
 
 @router.get("/worker-config/schema", dependencies=[Depends(require_token)])
@@ -84,12 +85,13 @@ async def create_run(payload: RunCreate, request: Request, session: AsyncSession
     identity_profile = await session.get(IdentityProfile, payload.identity)
     if identity_profile is None:
         raise HTTPException(404, detail={"code": "identity_not_found", "identity": payload.identity, "suggestion": "create_identity"})
+    proxy_mode = "disabled" if payload.ignore_identity_location_and_proxy else payload.proxy_mode
     proxy = None
-    if payload.proxy_mode == "selected":
+    if proxy_mode == "selected":
         proxy = await session.get(ProxyConfig, payload.proxy_config_id)
-    elif payload.proxy_mode == "default" and identity_profile.proxy_country_code:
+    elif proxy_mode == "default" and identity_profile.proxy_country_code:
         proxy = await select_country_proxy(session, identity_profile.proxy_country_code)
-    if payload.proxy_mode != "disabled" and (payload.proxy_mode == "selected" or identity_profile.proxy_country_code) and (proxy is None or not proxy.enabled):
+    if proxy_mode != "disabled" and (proxy_mode == "selected" or identity_profile.proxy_country_code) and (proxy is None or not proxy.enabled):
         raise HTTPException(422, detail="proxy_not_available_for_country")
     if proxy is not None and identity_profile.proxy_country_code and proxy.country_code != identity_profile.proxy_country_code:
         raise HTTPException(422, detail="proxy_country_mismatch")
@@ -99,7 +101,7 @@ async def create_run(payload: RunCreate, request: Request, session: AsyncSession
     overrides = payload.worker_config.overrides()
     if payload.recording is not None:
         overrides.setdefault("recording", {})["video"] = payload.recording
-    run = Run(identity=payload.identity, scenario=scenario, proxy_config_id=proxy_config_id, status=RunStatus.queued.value, priority=payload.priority, debug=payload.debug, proxy_mode=payload.proxy_mode, overrides=overrides, timeout_seconds=payload.timeout_seconds)
+    run = Run(identity=payload.identity, scenario=scenario, proxy_config_id=proxy_config_id, status=RunStatus.queued.value, priority=payload.priority, debug=payload.debug, proxy_mode=proxy_mode, overrides=overrides, timeout_seconds=payload.timeout_seconds)
     session.add(run)
     await session.commit()
     await session.refresh(run)
@@ -315,8 +317,11 @@ async def create_identity(payload: IdentityCreate, session: AsyncSession = Depen
     defaults = await session.get(ControllerSetting, "identity_defaults")
     config = _deep_merge(defaults.value if defaults else {}, payload.config.overrides())
     country = payload.proxy_country_code.upper() if payload.proxy_country_code else None
-    if country and not await select_country_proxy(session, country):
-        raise HTTPException(422, detail="proxy_not_available_for_country")
+    if country:
+        proxy = await select_country_proxy(session, country)
+        if not proxy:
+            raise HTTPException(422, detail="proxy_not_available_for_country")
+        config = apply_location_defaults(config, country, proxy.timezone)
     row = IdentityProfile(identity=payload.identity, config=config, proxy_country_code=country)
     session.add(row)
     await session.commit()
