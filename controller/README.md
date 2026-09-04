@@ -1,4 +1,4 @@
-# Controller 0.1.23
+# Controller 0.1.24
 
 FastAPI control plane for queued, resource-aware execution of disposable
 Firefox workers. PostgreSQL stores durable run/scenario/proxy records; Redis

@@ -23,6 +23,8 @@ export function IdentitiesPage() {
   const [items, setItems] = useState<Identity[]>([])
   const [selected, setSelected] = useState<Identity | null>(null)
   const [creating, setCreating] = useState(false)
+  const [bulkCreating, setBulkCreating] = useState(false)
+  const [bulkCount, setBulkCount] = useState(10)
   const [identity, setIdentity] = useState('')
   const [config, setConfig] = useState<JsonObject>({})
   const [proxyCountry, setProxyCountry] = useState<string | null>(null)
@@ -43,8 +45,8 @@ export function IdentitiesPage() {
     setCreating(false); setSelected(item); setIdentity(item.identity)
     setConfig(item.config); setProxyCountry(item.proxy_country_code ?? null); setTab('profile'); setError('')
   }
-  async function create() {
-    setCreating(true); setSelected(null); setIdentity(''); setError('')
+  async function create(bulk = false) {
+    setCreating(true); setBulkCreating(bulk); setBulkCount(10); setSelected(null); setIdentity(''); setError('')
     try {
       const defaults = await controllerApi<{ config: Record<string, unknown> }>('/settings/identity-defaults')
       setConfig(defaults.config)
@@ -53,9 +55,10 @@ export function IdentitiesPage() {
   }
   async function save() {
     try {
-      if (creating) await controllerApi('/identities', { method: 'POST', body: JSON.stringify({ identity, config, proxy_country_code: proxyCountry }) })
+      if (bulkCreating) await controllerApi('/identities/bulk', { method: 'POST', body: JSON.stringify({ name: identity.trim() || null, count: bulkCount, config, proxy_country_code: proxyCountry }) })
+      else if (creating) await controllerApi('/identities', { method: 'POST', body: JSON.stringify({ identity, config, proxy_country_code: proxyCountry }) })
       else await controllerApi(`/identities/${encodeURIComponent(identity)}`, { method: 'PUT', body: JSON.stringify({ config, proxy_country_code: proxyCountry }) })
-      setSelected(null); setCreating(false); await refresh()
+      setSelected(null); setCreating(false); setBulkCreating(false); await refresh()
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to save Identity') }
   }
   const modalOpen = creating || selected !== null
@@ -78,22 +81,23 @@ export function IdentitiesPage() {
   return <>
     <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" gap={2} mb={3}>
       <Box><Typography variant="h4">Identities</Typography><Typography color="text.secondary" mt={.5}>Persistent browser profiles used by worker runs.</Typography></Box>
-      <Stack direction="row" gap={1}><Button startIcon={<RefreshRounded />} onClick={() => void refresh()}>Refresh</Button><Button variant="contained" startIcon={<AddRounded />} onClick={create}>New Identity</Button></Stack>
+      <Stack direction="row" gap={1}><Button startIcon={<RefreshRounded />} onClick={() => void refresh()}>Refresh</Button><Button startIcon={<AddRounded />} onClick={() => void create(true)}>Bulk create</Button><Button variant="contained" startIcon={<AddRounded />} onClick={() => void create(false)}>New Identity</Button></Stack>
     </Stack>
     {error && !modalOpen && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
     <Card><CardContent sx={{ overflowX: 'auto' }}><Table size="small" sx={{ width: '100%' }}><TableHead><TableRow><TableCell sx={{ width: '1%', whiteSpace: 'nowrap' }}>Status</TableCell><TableCell sx={{ width: 'auto' }}>Name</TableCell><TableCell align="right" sx={{ width: '1%', whiteSpace: 'nowrap' }}>Revision</TableCell><TableCell align="right" sx={{ width: '1%', whiteSpace: 'nowrap' }}>Updated</TableCell><TableCell sx={{ width: '1%' }} /></TableRow></TableHead><TableBody>
       {pagination.pageItems.map((item) => <TableRow key={item.identity} sx={{ height: 44, '& > td': { py: .5 } }}><TableCell sx={{ width: '1%', whiteSpace: 'nowrap' }}><Chip size="small" label={item.in_use ? 'In use' : 'Available'} color={item.in_use ? 'warning' : 'success'} variant="outlined" /></TableCell><TableCell sx={{ width: 'auto' }}>{item.identity}</TableCell><TableCell align="right" sx={{ width: '1%', whiteSpace: 'nowrap' }}>{item.revision}</TableCell><TableCell align="right" sx={{ width: '1%', whiteSpace: 'nowrap' }}>{new Date(item.updated_at).toLocaleString()}</TableCell><TableCell align="right" sx={{ width: '1%', whiteSpace: 'nowrap' }}><Button size="small" startIcon={<EditRounded />} onClick={() => edit(item)}>Open</Button><Button size="small" color="error" disabled={item.in_use} startIcon={<DeleteOutlineRounded />} onClick={() => { setDeleteTarget(item); setDeleteAccountData(false); setError('') }}>Delete</Button></TableCell></TableRow>)}
       {!items.length && <TableRow><TableCell colSpan={5}><Typography color="text.secondary" textAlign="center" py={4}>No Identity profiles.</Typography></TableCell></TableRow>}
     </TableBody></Table></CardContent><ClientTablePagination count={items.length} {...pagination} /></Card>
-    <Dialog open={modalOpen} onClose={() => { setSelected(null); setCreating(false) }} fullWidth maxWidth="md"><DialogTitle>{creating ? 'Create Identity' : `Edit ${identity}`}</DialogTitle><DialogContent><Stack gap={2} mt={1}>
+    <Dialog open={modalOpen} onClose={() => { setSelected(null); setCreating(false); setBulkCreating(false) }} fullWidth maxWidth="md"><DialogTitle>{bulkCreating ? 'Bulk create Identities' : creating ? 'Create Identity' : `Edit ${identity}`}</DialogTitle><DialogContent><Stack gap={2} mt={1}>
       {error && <Alert severity="error">{error}</Alert>}
-      <TextField label="Identity name" value={identity} disabled={!creating} onChange={(event) => setIdentity(event.target.value)} required helperText="Letters, numbers, dots, underscores and hyphens." />
+      <TextField label={bulkCreating ? 'Name prefix (optional)' : 'Identity name'} value={identity} disabled={!creating} onChange={(event) => setIdentity(event.target.value)} required={!bulkCreating} helperText={bulkCreating ? 'If set, profiles are named prefix-1, prefix-2, etc. If empty, localized random names are generated.' : 'Letters, numbers, dots, underscores and hyphens.'} />
+      {bulkCreating && <TextField label="Number of profiles" type="number" value={bulkCount} inputProps={{ min: 2, max: 200 }} onChange={(event) => setBulkCount(Number(event.target.value))} helperText="From 2 to 200 profiles in one operation." />}
       <Tabs value={tab} onChange={(_, next) => setTab(next)} variant="scrollable" scrollButtons="auto"><Tab value="profile" label="Profile settings" /><Tab value="proxy" label="Proxy" />{!creating && <Tab value="maintenance" label="Maintenance" />}</Tabs>
       {tab === 'profile' && <WorkerConfigEditor sections={['browser', 'profile', 'advanced']} value={config} onChange={setConfig} />}
       {tab === 'proxy' && <Stack gap={2}><Typography color="text.secondary">Bind the browser Identity to a country pool. Controller rotates verified endpoints from that country; worker validates the actual exit GEO on every run.</Typography><ProxyCountrySelect value={proxyCountry} onChange={setProxyCountry} /></Stack>}
       {tab === 'maintenance' && <Stack gap={2}><Alert severity="info">Operations are queued safely when the Identity is active.</Alert><Stack direction={{ xs: 'column', sm: 'row' }} gap={1}><Button variant="outlined" onClick={() => void inspectRuntime()}>Inspect runtime profile</Button><Button variant="outlined" onClick={() => void maintenance('update')}>Update profile files</Button><Button color="warning" variant="outlined" onClick={() => void maintenance('reset')}>Reset profile files</Button></Stack></Stack>}
       {!creating && selected?.in_use && <Alert severity="warning">This Identity is active. Saved changes apply to the next run.</Alert>}
-    </Stack></DialogContent><DialogActions><Button onClick={() => { setSelected(null); setCreating(false) }}>Cancel</Button><Button variant="contained" onClick={() => void save()} disabled={!identity.trim()}>Save</Button></DialogActions></Dialog>
+    </Stack></DialogContent><DialogActions><Button onClick={() => { setSelected(null); setCreating(false); setBulkCreating(false) }}>Cancel</Button><Button variant="contained" onClick={() => void save()} disabled={bulkCreating ? !Number.isInteger(bulkCount) || bulkCount < 2 || bulkCount > 200 : !identity.trim()}>{bulkCreating ? `Create ${bulkCount} profiles` : 'Save'}</Button></DialogActions></Dialog>
     <Dialog open={Boolean(runtimeProfile)} onClose={() => setRuntimeProfile(null)} fullWidth maxWidth="md"><DialogTitle>Materialized runtime profile — {identity}</DialogTitle><DialogContent><Box component="pre" sx={{ overflow: 'auto', p: 2, bgcolor: 'action.hover', borderRadius: 1, fontSize: 12 }}>{JSON.stringify(runtimeProfile, null, 2)}</Box></DialogContent><DialogActions><Button onClick={() => setRuntimeProfile(null)}>Close</Button></DialogActions></Dialog>
     <Dialog open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)} maxWidth="sm" fullWidth><DialogTitle>Delete {deleteTarget?.identity}?</DialogTitle><DialogContent><Stack gap={2} mt={1}>
       {error && <Alert severity="error">{error}</Alert>}

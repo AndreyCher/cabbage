@@ -1,5 +1,10 @@
 # Controller changelog
 
+## 0.1.24
+
+- Added transactional bulk Identity creation for 2–200 profiles with shared overrides and proxy country.
+- Added numbered prefix naming and country-styled random first/last names inferred from proxy country or explicit locale.
+
 ## 0.1.23
 
 - Exposed actual per-run log availability using one pipelined Redis lookup for the Workers list.

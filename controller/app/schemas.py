@@ -129,6 +129,13 @@ class IdentityCreate(BaseModel):
     proxy_country_code: str | None = Field(default=None, min_length=2, max_length=2)
 
 
+class IdentityBulkCreate(BaseModel):
+    name: str | None = Field(default=None, max_length=120, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
+    count: int = Field(ge=2, le=200)
+    config: WorkerConfig = Field(default_factory=WorkerConfig)
+    proxy_country_code: str | None = Field(default=None, min_length=2, max_length=2)
+
+
 class IdentityUpdate(BaseModel):
     config: WorkerConfig
     proxy_country_code: str | None = Field(default=None, min_length=2, max_length=2)

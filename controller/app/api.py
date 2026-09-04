@@ -4,6 +4,7 @@ import asyncio
 import json
 import shutil
 import uuid
+from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 
 import httpx
@@ -18,9 +19,10 @@ from .crypto import SecretCipher
 from .database import SessionLocal, session_dependency
 from .executor import DockerExecutor
 from .identity_location import apply_location_defaults
+from .identity_names import country_from_config, numbered_identity_names, random_identity_name
 from .models import ACTIVE_STATUSES, ControllerSetting, IdentityProfile, ProxyCheckJob, ProxyCheckResult, ProxyConfig, Run, RunStatus, ScenarioTemplate, TERMINAL_STATUSES
 from .queue import RunQueue
-from .schemas import IdentityCreate, IdentityDefaultsRead, IdentityDefaultsUpdate, IdentityRead, IdentityUpdate, ProxyCheckerSettingsRead, ProxyCheckerSettingsUpdate, ProxyCreate, ProxyUpdate, RunCreate, RunRead, RunUpdate, ScenarioClone, ScenarioCreate, ScenarioRead, WorkerDefaultsRead, WorkerDefaultsUpdate
+from .schemas import IdentityBulkCreate, IdentityCreate, IdentityDefaultsRead, IdentityDefaultsUpdate, IdentityRead, IdentityUpdate, ProxyCheckerSettingsRead, ProxyCheckerSettingsUpdate, ProxyCreate, ProxyUpdate, RunCreate, RunRead, RunUpdate, ScenarioClone, ScenarioCreate, ScenarioRead, WorkerDefaultsRead, WorkerDefaultsUpdate
 from .settings import get_settings
 from .streaming import create_stream_ticket, live_stream_available, proxy_novnc_asset, proxy_novnc_websocket, recorded_video_response, validate_stream_ticket, video_files
 from .worker_config import WorkerConfig
@@ -56,7 +58,7 @@ async def select_country_proxy(session: AsyncSession, country_code: str) -> Prox
 
 @router.get("/health")
 async def health() -> dict:
-    return {"status": "ok", "component": "controller", "version": "0.1.23", "api_version": "v1"}
+    return {"status": "ok", "component": "controller", "version": "0.1.24", "api_version": "v1"}
 
 
 @router.get("/worker-config/schema", dependencies=[Depends(require_token)])
@@ -333,6 +335,35 @@ async def create_identity(payload: IdentityCreate, session: AsyncSession = Depen
     await session.commit()
     await session.refresh(row)
     return row
+
+
+@router.post("/identities/bulk", response_model=list[IdentityRead], status_code=201, dependencies=[Depends(require_token)])
+async def create_identities_bulk(payload: IdentityBulkCreate, session: AsyncSession = Depends(session_dependency)):
+    defaults = await session.get(ControllerSetting, "identity_defaults")
+    config = _deep_merge(defaults.value if defaults else {}, payload.config.overrides())
+    country = payload.proxy_country_code.upper() if payload.proxy_country_code else None
+    if country:
+        proxy = await select_country_proxy(session, country)
+        if not proxy:
+            raise HTTPException(422, detail="proxy_not_available_for_country")
+        config = apply_location_defaults(config, country, proxy.timezone)
+
+    existing = set((await session.scalars(select(IdentityProfile.identity))).all())
+    if payload.name:
+        names = numbered_identity_names(payload.name, payload.count)
+        conflicts = sorted(existing.intersection(names))
+        if conflicts:
+            raise HTTPException(409, detail={"code": "identities_exist", "identities": conflicts})
+    else:
+        name_country = country or country_from_config(config)
+        names = [random_identity_name(name_country, existing) for _ in range(payload.count)]
+
+    rows = [IdentityProfile(identity=name, config=deepcopy(config), proxy_country_code=country) for name in names]
+    session.add_all(rows)
+    await session.commit()
+    for row in rows:
+        await session.refresh(row)
+    return rows
 
 
 @router.get("/identities/{identity}", response_model=IdentityRead, dependencies=[Depends(require_token)])

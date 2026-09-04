@@ -1,5 +1,9 @@
 # web-console changelog
 
+## 0.1.47-dev
+
+- Added bulk Identity creation with count, optional numbered name prefix, shared profile settings and shared proxy country.
+
 ## 0.1.46-dev
 
 - Made Name the expanding Identities column while compacting the others and right-aligning Revision and Updated.

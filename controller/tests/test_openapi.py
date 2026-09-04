@@ -9,6 +9,7 @@ def test_openapi_exposes_complete_worker_control_contract():
     assert "/api/v1/runs/{run_id}/inputs/{key}" in paths
     assert "/api/v1/identities/{identity}/reset" in paths
     assert "/api/v1/identities/{identity}/update" in paths
+    assert "/api/v1/identities/bulk" in paths
     assert "/api/v1/proxies/{proxy_id}" in paths
     assert "/api/v1/settings/worker-defaults" in paths
     assert "/api/v1/settings/proxy-checker" in paths
