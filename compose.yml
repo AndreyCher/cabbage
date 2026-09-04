@@ -33,7 +33,7 @@ services:
     build:
       context: .
       dockerfile: controller/Dockerfile
-    image: controller:0.1.21
+    image: controller:0.1.22
     profiles: ["controller"]
     depends_on:
       postgres:

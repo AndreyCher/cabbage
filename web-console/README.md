@@ -1,4 +1,4 @@
-# web-console 0.1.36-dev
+# web-console 0.1.37-dev
 
 Early control-plane web interface built with React, TypeScript and Google Material Design through Material UI. The visual direction follows modern infrastructure dashboards: persistent navigation, compact operational cards, clear health states and responsive layouts.
 

@@ -4,6 +4,8 @@ This is the global release history for all application components. Component cha
 
 ## Unreleased
 
+- Added Controller 0.1.22 and Web Console 0.1.37-dev with optional generated proxy names and compact proxy table rows matching Workers.
+
 - Added Web Console 0.1.36-dev with a concise proxy status column that keeps detailed checker errors out of the main table.
 
 - Added Controller 0.1.21, Proxy Checker 0.1.2 and Web Console 0.1.35-dev with terminal unhealthy state, manual recovery, actionable proxy errors, accurate provider quotas and real status display.

@@ -1,5 +1,9 @@
 # Controller changelog
 
+## 0.1.22
+
+- Made proxy names optional and generate a unique endpoint-based name when omitted.
+
 ## 0.1.21
 
 - Counted provider quota usage only when the GEO provider was actually reached and added migration `0013_proxy_attempt_accounting`.

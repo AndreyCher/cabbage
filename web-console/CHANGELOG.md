@@ -1,5 +1,9 @@
 # web-console changelog
 
+## 0.1.37-dev
+
+- Made proxy names optional and compacted proxy rows to match the Workers table density.
+
 ## 0.1.36-dev
 
 - Removed verbose transport errors from the Proxies status column; unhealthy endpoints now show only the red status badge and last-check time.

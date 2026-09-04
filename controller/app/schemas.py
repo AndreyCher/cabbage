@@ -96,7 +96,7 @@ class ScenarioRead(BaseModel):
 
 
 class ProxyCreate(BaseModel):
-    name: str = Field(min_length=1, max_length=128)
+    name: str | None = Field(default=None, max_length=128)
     scheme: Literal["http", "https"] = "http"
     host: str = Field(min_length=1, max_length=255)
     port: int = Field(ge=1, le=65535)
@@ -109,7 +109,7 @@ class ProxyCreate(BaseModel):
 
 
 class ProxyUpdate(BaseModel):
-    name: str | None = Field(default=None, min_length=1, max_length=128)
+    name: str | None = Field(default=None, max_length=128)
     scheme: Literal["http", "https"] | None = None
     host: str | None = Field(default=None, min_length=1, max_length=255)
     port: int | None = Field(default=None, ge=1, le=65535)

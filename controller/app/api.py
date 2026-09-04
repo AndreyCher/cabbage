@@ -55,7 +55,7 @@ async def select_country_proxy(session: AsyncSession, country_code: str) -> Prox
 
 @router.get("/health")
 async def health() -> dict:
-    return {"status": "ok", "component": "controller", "version": "0.1.21", "api_version": "v1"}
+    return {"status": "ok", "component": "controller", "version": "0.1.22", "api_version": "v1"}
 
 
 @router.get("/worker-config/schema", dependencies=[Depends(require_token)])
@@ -614,12 +614,35 @@ async def enqueue_proxy_check(session: AsyncSession, proxy_id: uuid.UUID, reques
     return job
 
 
+async def proxy_name(session: AsyncSession, requested: str | None, host: str, port: int, exclude_id: uuid.UUID | None = None) -> str:
+    explicit = (requested or "").strip()
+    query = select(ProxyConfig.id).where(ProxyConfig.name == explicit)
+    if exclude_id is not None:
+        query = query.where(ProxyConfig.id != exclude_id)
+    if explicit:
+        if await session.scalar(query):
+            raise HTTPException(409, detail="proxy_name_exists")
+        return explicit
+
+    base = f"{host}:{port}"[:128]
+    candidate = base
+    suffix = 2
+    while True:
+        query = select(ProxyConfig.id).where(ProxyConfig.name == candidate)
+        if exclude_id is not None:
+            query = query.where(ProxyConfig.id != exclude_id)
+        if not await session.scalar(query):
+            return candidate
+        marker = f" ({suffix})"
+        candidate = f"{base[:128 - len(marker)]}{marker}"
+        suffix += 1
+
+
 @router.post("/proxies", status_code=201, dependencies=[Depends(require_token)])
 async def create_proxy(payload: ProxyCreate, session: AsyncSession = Depends(session_dependency)):
-    if await session.scalar(select(ProxyConfig).where(ProxyConfig.name == payload.name)):
-        raise HTTPException(409, detail="proxy_name_exists")
     cipher = SecretCipher(get_settings())
-    row = ProxyConfig(name=payload.name, scheme=payload.scheme, host=payload.host, port=payload.port, username=payload.username, encrypted_password=cipher.encrypt(payload.password) if payload.password else None, bypass=payload.bypass, geoip=payload.geoip.model_dump(), verify_ssl=payload.verify_ssl, expected_country_code=payload.expected_country_code.upper() if payload.expected_country_code else None, check_status="pending")
+    name = await proxy_name(session, payload.name, payload.host, payload.port)
+    row = ProxyConfig(name=name, scheme=payload.scheme, host=payload.host, port=payload.port, username=payload.username, encrypted_password=cipher.encrypt(payload.password) if payload.password else None, bypass=payload.bypass, geoip=payload.geoip.model_dump(), verify_ssl=payload.verify_ssl, expected_country_code=payload.expected_country_code.upper() if payload.expected_country_code else None, check_status="pending")
     session.add(row)
     await session.flush()
     await enqueue_proxy_check(session, row.id, "create", 50)
@@ -635,8 +658,8 @@ async def update_proxy(proxy_id: uuid.UUID, payload: ProxyUpdate, session: Async
         raise HTTPException(404, detail="proxy_not_found")
     changes = payload.model_dump(exclude_unset=True)
     expected_country = changes.pop("expected_country_code", None)
-    if "name" in changes and await session.scalar(select(ProxyConfig).where(ProxyConfig.name == changes["name"], ProxyConfig.id != proxy_id)):
-        raise HTTPException(409, detail="proxy_name_exists")
+    if "name" in changes:
+        changes["name"] = await proxy_name(session, changes["name"], changes.get("host", row.host), changes.get("port", row.port), row.id)
     password = changes.pop("password", None)
     geoip = changes.pop("geoip", None)
     for field, value in changes.items():

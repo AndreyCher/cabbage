@@ -49,5 +49,7 @@ def test_custom_debug_display_requires_dimensions():
 
 def test_controller_proxy_contract_matches_worker_transport():
     assert ProxyCreate(name="p", host="proxy", port=8080, scheme="https").scheme == "https"
+    assert ProxyCreate(host="proxy", port=8080).name is None
+    assert ProxyCreate(name="", host="proxy", port=8080).name == ""
     with pytest.raises(ValidationError):
         ProxyCreate(name="p", host="proxy", port=1080, scheme="socks5")
