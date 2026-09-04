@@ -55,7 +55,7 @@ async def select_country_proxy(session: AsyncSession, country_code: str) -> Prox
 
 @router.get("/health")
 async def health() -> dict:
-    return {"status": "ok", "component": "controller", "version": "0.1.19", "api_version": "v1"}
+    return {"status": "ok", "component": "controller", "version": "0.1.20", "api_version": "v1"}
 
 
 @router.get("/worker-config/schema", dependencies=[Depends(require_token)])
@@ -85,7 +85,9 @@ async def create_run(payload: RunCreate, request: Request, session: AsyncSession
     identity_profile = await session.get(IdentityProfile, payload.identity)
     if identity_profile is None:
         raise HTTPException(404, detail={"code": "identity_not_found", "identity": payload.identity, "suggestion": "create_identity"})
-    proxy_mode = "disabled" if payload.ignore_identity_location_and_proxy else payload.proxy_mode
+    ignore_identity_location = payload.ignore_identity_location or payload.debug
+    ignore_proxy_requirement = payload.ignore_proxy_requirement or payload.debug
+    proxy_mode = "disabled" if ignore_proxy_requirement else payload.proxy_mode
     proxy = None
     if proxy_mode == "selected":
         proxy = await session.get(ProxyConfig, payload.proxy_config_id)
@@ -101,7 +103,7 @@ async def create_run(payload: RunCreate, request: Request, session: AsyncSession
     overrides = payload.worker_config.overrides()
     if payload.recording is not None:
         overrides.setdefault("recording", {})["video"] = payload.recording
-    run = Run(identity=payload.identity, scenario=scenario, proxy_config_id=proxy_config_id, status=RunStatus.queued.value, priority=payload.priority, debug=payload.debug, proxy_mode=proxy_mode, overrides=overrides, timeout_seconds=payload.timeout_seconds)
+    run = Run(identity=payload.identity, scenario=scenario, proxy_config_id=proxy_config_id, status=RunStatus.queued.value, priority=payload.priority, debug=payload.debug, proxy_mode=proxy_mode, ignore_identity_location=ignore_identity_location, ignore_proxy_requirement=ignore_proxy_requirement, overrides=overrides, timeout_seconds=payload.timeout_seconds)
     session.add(run)
     await session.commit()
     await session.refresh(run)

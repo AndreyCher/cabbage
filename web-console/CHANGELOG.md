@@ -1,5 +1,10 @@
 # web-console changelog
 
+## 0.1.34-dev
+
+- Split the combined run override into independent `Ignore Identity location` and `Ignore proxy requirement` switches.
+- Debug mode now automatically enables both bypass policies while keeping the persistent Identity fingerprint unchanged.
+
 ## 0.1.33-dev
 
 - Added a Create Run switch to bypass Identity location and proxy requirements while preserving its persistent fingerprint.

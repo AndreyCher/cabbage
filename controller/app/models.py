@@ -129,6 +129,8 @@ class Run(Base):
     priority: Mapped[int] = mapped_column(Integer, default=0, index=True)
     debug: Mapped[bool] = mapped_column(Boolean, default=False)
     proxy_mode: Mapped[str] = mapped_column(String(16), default="default")
+    ignore_identity_location: Mapped[bool] = mapped_column(Boolean, default=False)
+    ignore_proxy_requirement: Mapped[bool] = mapped_column(Boolean, default=False)
     overrides: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     timeout_seconds: Mapped[int | None] = mapped_column(Integer)
     worker_run_id: Mapped[str | None] = mapped_column(String(64))

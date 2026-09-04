@@ -19,7 +19,8 @@ def test_run_create_schema_does_not_expose_raw_docker_or_worker_api_fields():
     schema = app.openapi()["components"]["schemas"]["RunCreate"]
     properties = schema["properties"]
     assert "worker_config" in properties
-    assert "ignore_identity_location_and_proxy" in properties
+    assert "ignore_identity_location" in properties
+    assert "ignore_proxy_requirement" in properties
     for forbidden in ("overrides", "image", "mounts", "network", "environment", "api"):
         assert forbidden not in properties
 

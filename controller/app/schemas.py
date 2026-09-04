@@ -14,7 +14,8 @@ class RunCreate(BaseModel):
     scenario: str = Field(min_length=1, max_length=128)
     priority: int = Field(default=0, ge=-100, le=100)
     debug: bool = False
-    ignore_identity_location_and_proxy: bool = False
+    ignore_identity_location: bool = False
+    ignore_proxy_requirement: bool = False
     proxy_mode: Literal["default", "selected", "disabled"] = "default"
     proxy_config_id: uuid.UUID | None = None
     recording: bool | None = None
@@ -23,7 +24,7 @@ class RunCreate(BaseModel):
 
     @model_validator(mode="after")
     def validate_proxy(self) -> "RunCreate":
-        if not self.ignore_identity_location_and_proxy and self.proxy_mode == "selected" and self.proxy_config_id is None:
+        if not (self.ignore_proxy_requirement or self.debug) and self.proxy_mode == "selected" and self.proxy_config_id is None:
             raise ValueError("proxy_config_id is required for selected proxy mode")
         return self
 
@@ -36,6 +37,8 @@ class RunRead(BaseModel):
     priority: int
     debug: bool
     proxy_mode: str
+    ignore_identity_location: bool = False
+    ignore_proxy_requirement: bool = False
     current_stage: str | None
     current_action: int | None
     container_id: str | None

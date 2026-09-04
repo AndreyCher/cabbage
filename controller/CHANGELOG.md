@@ -1,5 +1,11 @@
 # Controller changelog
 
+## 0.1.20
+
+- Split the run bypass into independent Identity-location and proxy-requirement flags and persisted both policies on each run.
+- Restored Debug semantics: debug runs automatically disable proxy use and GEO validation without modifying the Identity fingerprint.
+- Added migration `0012_run_location_proxy_overrides`.
+
 ## 0.1.19
 
 - Derived new Identity locale and language defaults from CLDR plus timezone from a healthy endpoint in the selected country pool.

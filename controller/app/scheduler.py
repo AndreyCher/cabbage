@@ -99,6 +99,8 @@ class Scheduler:
                             "geoip": run.proxy_config.geoip,
                             "verify_ssl": run.proxy_config.verify_ssl,
                         }
+                        if run.ignore_identity_location:
+                            proxy["geoip"] = {"enabled": True, "validate_identity": False, "fail_on_mismatch": False}
                     identity_profile = await session.get(IdentityProfile, run.identity)
                     identity_config = WorkerConfig.model_validate(identity_profile.config if identity_profile else {}).overrides()
                     defaults_row = await session.get(ControllerSetting, "worker_defaults")
