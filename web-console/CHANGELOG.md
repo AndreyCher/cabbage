@@ -1,5 +1,9 @@
 # web-console changelog
 
+## 0.1.39-dev
+
+- Renamed the non-blocking proxy GEO validation policy and form control to `Validation enabled` for consistent, unambiguous wording.
+
 ## 0.1.38-dev
 
 - Removed bold emphasis from proxy names in the Proxies table.

@@ -4,6 +4,8 @@ This is the global release history for all application components. Component cha
 
 ## Unreleased
 
+- Added Web Console 0.1.39-dev with consistent `Validation enabled` wording for proxy GEO policy.
+
 - Added Web Console 0.1.38-dev with regular-weight proxy names in the Proxies table.
 
 - Added Controller 0.1.22 and Web Console 0.1.37-dev with optional generated proxy names and compact proxy table rows matching Workers.
