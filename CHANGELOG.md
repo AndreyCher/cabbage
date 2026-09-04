@@ -4,6 +4,8 @@ This is the global release history for all application components. Component cha
 
 ## Unreleased
 
+- Added Web Console 0.1.42-dev with Identity as the only auto-expanding Workers column.
+
 - Added Web Console 0.1.41-dev with the requested Workers column order.
 
 - Added Web Console 0.1.40-dev with run status as a left-side visual indicator and fixing video/log actions to dedicated rightmost columns.

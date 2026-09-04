@@ -1,5 +1,9 @@
 # web-console changelog
 
+## 0.1.42-dev
+
+- Made Identity consume the remaining Workers table width while all other columns shrink to their content.
+
 ## 0.1.41-dev
 
 - Reordered Workers columns to Status, Priority, Scenario, Stage, Identity, Created, Video and Logs.
