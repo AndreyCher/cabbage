@@ -65,7 +65,7 @@ Standalone data-resolution service used by automated workers. The initial backen
 
 ### web-console
 
-Current development release: **0.1.40-dev**
+Current development release: **0.1.41-dev**
 
 React/TypeScript control-plane interface using Material UI. It provides Controller-backed worker queue/history, grouped worker configuration, versioned Scenario and Identity management, verified country-based proxy pools for browser Identities, Create Run overrides, live logs, responsive read-only debug streams, automatic recorded-video playback, sorting, persisted navigation, settings and service health.
 

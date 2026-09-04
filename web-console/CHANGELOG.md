@@ -1,5 +1,9 @@
 # web-console changelog
 
+## 0.1.41-dev
+
+- Reordered Workers columns to Status, Priority, Scenario, Stage, Identity, Created, Video and Logs.
+
 ## 0.1.40-dev
 
 - Moved run status to the left as a compact color-coded dot and assigned stable rightmost columns to video and logs.
