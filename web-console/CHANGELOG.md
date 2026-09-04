@@ -1,5 +1,9 @@
 # web-console changelog
 
+## 0.1.45-dev
+
+- Aligned Identities with the compact Workers table: status first, 44 px rows and regular-weight names.
+
 ## 0.1.44-dev
 
 - Kept disabled gray video and log icons visible when the corresponding run artifacts are unavailable.
