@@ -1,5 +1,9 @@
 # web-console changelog
 
+## 0.1.46-dev
+
+- Made Name the expanding Identities column while compacting the others and right-aligning Revision and Updated.
+
 ## 0.1.45-dev
 
 - Aligned Identities with the compact Workers table: status first, 44 px rows and regular-weight names.

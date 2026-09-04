@@ -4,6 +4,8 @@ This is the global release history for all application components. Component cha
 
 ## Unreleased
 
+- Added Web Console 0.1.46-dev with Name as the expanding Identities column and right-aligned metadata.
+
 - Added Web Console 0.1.45-dev aligning the Identities table density and column emphasis with Workers.
 
 - Added Controller 0.1.23 and Web Console 0.1.44-dev with factual log availability and stable disabled media/log icons.
