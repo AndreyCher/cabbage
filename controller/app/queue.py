@@ -43,3 +43,12 @@ class RunQueue:
         minimum = after if after == "-" else f"({after}"
         rows = await self.redis.xrange(f"controller:run:{run_id}:logs", min=minimum, max="+", count=count)
         return [{"id": row_id, **fields} for row_id, fields in rows]
+
+    async def logs_available(self, run_ids: list[uuid.UUID]) -> dict[uuid.UUID, bool]:
+        if not run_ids:
+            return {}
+        pipeline = self.redis.pipeline(transaction=False)
+        for run_id in run_ids:
+            pipeline.xlen(f"controller:run:{run_id}:logs")
+        counts = await pipeline.execute()
+        return {run_id: bool(count) for run_id, count in zip(run_ids, counts, strict=True)}

@@ -38,11 +38,12 @@ def services(request):
     return request.app.state.queue, request.app.state.executor
 
 
-def run_read(run: Run) -> RunRead:
+def run_read(run: Run, *, logs_available: bool = False) -> RunRead:
     settings = get_settings()
     return RunRead.from_run(run).model_copy(update={
         "live_stream_available": live_stream_available(run),
         "recorded_video_available": bool(video_files(run, settings)),
+        "logs_available": logs_available,
     })
 
 
@@ -55,7 +56,7 @@ async def select_country_proxy(session: AsyncSession, country_code: str) -> Prox
 
 @router.get("/health")
 async def health() -> dict:
-    return {"status": "ok", "component": "controller", "version": "0.1.22", "api_version": "v1"}
+    return {"status": "ok", "component": "controller", "version": "0.1.23", "api_version": "v1"}
 
 
 @router.get("/worker-config/schema", dependencies=[Depends(require_token)])
@@ -66,6 +67,7 @@ async def worker_config_schema() -> dict:
 
 @router.get("/runs", response_model=list[RunRead], dependencies=[Depends(require_token)])
 async def list_runs(
+    request: Request,
     status_filter: str | None = Query(default=None, alias="status"),
     limit: int = Query(default=500, ge=1, le=10000),
     session: AsyncSession = Depends(session_dependency),
@@ -74,7 +76,9 @@ async def list_runs(
     if status_filter:
         query = query.where(Run.status == status_filter)
     result = await session.execute(query)
-    return [run_read(run) for run in result.scalars().unique()]
+    runs = list(result.scalars().unique())
+    logs = await request.app.state.queue.logs_available([run.id for run in runs])
+    return [run_read(run, logs_available=logs.get(run.id, False)) for run in runs]
 
 
 @router.post("/runs", response_model=RunRead, status_code=status.HTTP_202_ACCEPTED, dependencies=[Depends(require_token)])

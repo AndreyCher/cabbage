@@ -1,5 +1,9 @@
 # web-console changelog
 
+## 0.1.44-dev
+
+- Kept disabled gray video and log icons visible when the corresponding run artifacts are unavailable.
+
 ## 0.1.43-dev
 
 - Corrected Workers table sizing so Identity receives the remaining width and Status stays content-sized.

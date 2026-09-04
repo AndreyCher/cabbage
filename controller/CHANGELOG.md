@@ -1,5 +1,9 @@
 # Controller changelog
 
+## 0.1.23
+
+- Exposed actual per-run log availability using one pipelined Redis lookup for the Workers list.
+
 ## 0.1.22
 
 - Made proxy names optional and generate a unique endpoint-based name when omitted.

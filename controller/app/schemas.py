@@ -51,6 +51,7 @@ class RunRead(BaseModel):
     scenario_version: int
     live_stream_available: bool = False
     recorded_video_available: bool = False
+    logs_available: bool = False
     timeout_seconds: int | None = None
     worker_run_id: str | None = None
     worker_config: dict[str, Any] = Field(default_factory=dict)
@@ -61,7 +62,7 @@ class RunRead(BaseModel):
             **{
                 name: getattr(run, name)
                 for name in cls.model_fields
-                if name not in {"scenario_name", "scenario_version", "live_stream_available", "recorded_video_available", "worker_config"}
+                if name not in {"scenario_name", "scenario_version", "live_stream_available", "recorded_video_available", "logs_available", "worker_config"}
             },
             scenario_name=run.scenario.name,
             scenario_version=run.scenario.version,
