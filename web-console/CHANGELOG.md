@@ -1,5 +1,9 @@
 # web-console changelog
 
+## 0.1.40-dev
+
+- Moved run status to the left as a compact color-coded dot and assigned stable rightmost columns to video and logs.
+
 ## 0.1.39-dev
 
 - Renamed the non-blocking proxy GEO validation policy and form control to `Validation enabled` for consistent, unambiguous wording.

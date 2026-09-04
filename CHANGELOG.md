@@ -4,6 +4,8 @@ This is the global release history for all application components. Component cha
 
 ## Unreleased
 
+- Added Web Console 0.1.40-dev with run status as a left-side visual indicator and fixing video/log actions to dedicated rightmost columns.
+
 - Added Web Console 0.1.39-dev with consistent `Validation enabled` wording for proxy GEO policy.
 
 - Added Web Console 0.1.38-dev with regular-weight proxy names in the Proxies table.
