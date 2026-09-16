@@ -38,8 +38,9 @@ Cloud allocation is available as `{{input.phone.number}}`; SMS polling or a
 trusted webhook bridge supplies `{{input.sms.verification_code}}` through
 `wait_input`. Credentials use injected environment/secret files; allocations
 are released at run completion by default. The HTTP adapter defines a normalized
-gateway contract, and the JuicySMS adapter uses its v2 one-time-order API with a
-read-only `WORKER_JUICY_SMS_TOKEN_FILE`; no secret is part of a profile JSON.
+gateway contract, and the JuicySMS adapter uses its v2 one-time-order API.
+Standalone profiles can provide its token directly in a Git-ignored `*.local.json`;
+`WORKER_JUICY_SMS_TOKEN_FILE` remains available for Controller/future secret storage.
 
 See [TELEPHONY.md](TELEPHONY.md) for every setting, API contract, examples,
 permissions, process-scope limitations and test commands.

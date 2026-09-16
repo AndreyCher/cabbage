@@ -72,3 +72,8 @@ class JuicySMSTests(unittest.TestCase):
                 provider = JuicySMSPhoneProvider({})
                 with self.assertRaises(ProviderError):
                     provider.allocate({"country": "de", "service_id": "12"}, "run-id")
+
+    def test_profile_token_does_not_need_an_environment_secret(self):
+        with patch.dict(os.environ, {}, clear=True):
+            provider = JuicySMSPhoneProvider({"token": "profile-token"})
+        self.assertEqual(provider.token, "profile-token")

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.3 — 2026-09-16
+
+- Simplified standalone JuicySMS setup: a private local profile may now set
+  `phone_number_provider.token` directly, while retaining token-file support
+  for future Controller materialization.
+- Ignored Android `config/profiles/*.local.json` files to prevent local provider
+  credentials from being committed accidentally.
+
 ## 0.1.2 — 2026-09-16
 
 - Added a direct JuicySMS v2 one-time-order adapter with secret-file bearer

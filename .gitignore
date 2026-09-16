@@ -26,6 +26,7 @@ workers/worker-android/*.tar.gz
 !.env.example
 *.pem
 *.key
+workers/worker-android/config/profiles/*.local.json
 
 # Editors / OS
 .vscode/

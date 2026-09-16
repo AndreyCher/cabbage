@@ -15,6 +15,7 @@
     "enabled": true,
     "required": false,
     "provider": "juicysms",
+    "token": "replace-with-a-private-local-profile-token",
     "country": "de",
     "service_id": 1,
     "max_price": 0.5,

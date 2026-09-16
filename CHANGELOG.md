@@ -4,6 +4,9 @@ This is the global release history for all application components. Component cha
 
 ## Unreleased
 
+- Added worker-android 0.1.3 with simple Git-ignored local-profile configuration
+  for JuicySMS tokens.
+
 - Added worker-android 0.1.2 with JuicySMS v2 one-time phone/SMS allocations,
   secret-file credentials and optional run-scoped phone lifecycle warnings.
 

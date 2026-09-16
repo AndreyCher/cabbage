@@ -1,3 +1,10 @@
+# worker-android 0.1.3
+
+Standalone JuicySMS configuration is now one private profile field:
+`phone_number_provider.token`. Copy the example to a profile ending in
+`.local.json`; that pattern is ignored by Git. The token-file variable remains
+available for a future Controller-managed secret store.
+
 # worker-android 0.1.2
 
 Adds a direct JuicySMS v2 adapter for run-scoped QA numbers and SMS polling.

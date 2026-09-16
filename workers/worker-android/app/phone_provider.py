@@ -157,15 +157,24 @@ class JuicySMSPhoneProvider:
         self.timeout = bounded(cfg, "request_timeout_sec", 10, 0.1, 60)
         self.allocation_timeout = bounded(cfg, "allocation_timeout_sec", 60, 0.1, 60)
         self.interval = bounded(cfg, "poll_interval_sec", 5, 0.1, 300)
-        secret = os.environ.get("WORKER_JUICY_SMS_TOKEN_FILE")
-        if not secret:
-            raise ProviderError("JuicySMS token file is required")
-        try:
-            self.token = Path(secret).read_text().strip()
-        except OSError:
-            raise ProviderError("Cannot read JuicySMS token file") from None
+        # Standalone profiles may carry their private provider token directly,
+        # just like standalone proxy credentials. Controller materialization can
+        # continue to use the file form so it never needs to expose a secret.
+        configured = cfg.get("token")
+        if configured is not None:
+            if not isinstance(configured, str):
+                raise ProviderError("JuicySMS token must be a string")
+            self.token = configured.strip()
+        else:
+            secret = os.environ.get("WORKER_JUICY_SMS_TOKEN_FILE")
+            if not secret:
+                raise ProviderError("JuicySMS token is required")
+            try:
+                self.token = Path(secret).read_text().strip()
+            except OSError:
+                raise ProviderError("Cannot read JuicySMS token file") from None
         if not self.token or "\n" in self.token or "\r" in self.token:
-            raise ProviderError("Invalid JuicySMS token file")
+            raise ProviderError("Invalid JuicySMS token")
         self.opener = urllib.request.build_opener(_NoRedirect())
 
     def _request(self, method, path, payload=None, timeout=None):

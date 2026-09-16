@@ -179,6 +179,7 @@ read-only secret file mounted into the worker:
   "phone_number_provider": {
     "enabled": true,
     "provider": "juicysms",
+    "token": "your-private-juicysms-token",
     "required": false,
     "country": "de",
     "service_id": 1,
@@ -190,8 +191,11 @@ read-only secret file mounted into the worker:
 }
 ```
 
-Set `WORKER_JUICY_SMS_TOKEN_FILE` to the in-container path of that file. The
-worker sends `POST /orders`, polls `GET /orders/<id>/messages`, and requests
+For the standalone worker, put the token directly in a private launch profile,
+for example `config/profiles/android-juicysms.local.json`. Files matching
+`*.local.json` are ignored by Git. `WORKER_JUICY_SMS_TOKEN_FILE` remains a
+supported alternative for Controller/future secret materialization. The worker
+sends `POST /orders`, polls `GET /orders/<id>/messages`, and requests
 `POST /orders/<id>/cancel` during graceful cleanup. `service_id` must come from
 JuicySMS's `/services` catalogue and `max_price` is optional. The direct adapter
 never logs the token, number, SMS body, response body or provider URL. See
