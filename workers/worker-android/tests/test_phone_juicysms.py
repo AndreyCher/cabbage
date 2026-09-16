@@ -3,8 +3,10 @@ import os
 import tempfile
 import threading
 import unittest
+from io import BytesIO
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from unittest.mock import patch
+from urllib.error import HTTPError
 
 from app.phone_provider import JuicySMSPhoneProvider, ProviderError
 
@@ -79,3 +81,13 @@ class JuicySMSTests(unittest.TestCase):
         with patch.dict(os.environ, {}, clear=True):
             provider = JuicySMSPhoneProvider({"token": "profile-token"})
         self.assertEqual(provider.token, "profile-token")
+
+    def test_provider_error_exposes_only_stable_api_code(self):
+        provider = JuicySMSPhoneProvider({"token": "profile-token"})
+        error = HTTPError("https://juicysms.com/api/v2/orders", 422, "", {},
+                          BytesIO(b'{"code":"price_above_maximum","detail":"sensitive billing detail"}'))
+        with patch.object(provider.opener, "open", side_effect=error):
+            with self.assertRaises(ProviderError) as caught:
+                provider.allocate({"country": "NL", "service_id": 1}, "run-id")
+        self.assertEqual(str(caught.exception), "JuicySMS request failed: price_above_maximum")
+        self.assertNotIn("sensitive", str(caught.exception))

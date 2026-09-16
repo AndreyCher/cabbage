@@ -4,6 +4,9 @@ This is the global release history for all application components. Component cha
 
 ## Unreleased
 
+- Added worker-android 0.1.5 with safe detailed JuicySMS debug traces and
+  actionable normal-mode allocation warnings.
+
 - Added worker-android 0.1.4 correcting JuicySMS one-time country validation
   and the example profile to the provider's current `USA`/`UK`/`NL`/`PH` set.
 

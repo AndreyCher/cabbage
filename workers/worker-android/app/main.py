@@ -55,7 +55,7 @@ def main():
         phone_cfg = cfg.get("phone_number_provider", {})
         if phone_cfg.get("enabled", False):
             try:
-                phone = PhoneSession(phone_cfg, runtime)
+                phone = PhoneSession(phone_cfg, runtime, debug=bool(cfg.get("debug", {}).get("keep_alive", False)))
             except FatalActionError:
                 if phone_cfg.get("required", False):
                     raise
@@ -70,14 +70,14 @@ def main():
             try:
                 cloud_number = phone.start()["number"]
                 summary["phone_provider"] = {"provider": phone_cfg["provider"], "allocated": True}
-            except FatalActionError:
+            except FatalActionError as exc:
                 if phone_cfg.get("required", False):
                     raise
                 try: phone.close()
                 except Exception: log.warning("Phone provider cleanup failed after unavailable allocation")
                 phone = None
                 summary["phone_provider"] = {"provider": phone_cfg.get("provider"), "allocated": False, "warning": "unavailable"}
-                log.warning("Phone provider is unavailable; starting without a connected phone")
+                log.warning("Phone provider is unavailable (%s); starting without a connected phone", exc)
         elif (cfg.get("telephony", {}).get("enabled", False)
               and isinstance(cfg.get("telephony", {}).get("phone_number"), dict)
               and cfg["telephony"]["phone_number"].get("source") == "cloud_provider"):

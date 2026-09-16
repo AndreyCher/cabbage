@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import threading
@@ -16,8 +17,9 @@ from .runtime import FatalActionError
 
 
 class ProviderError(FatalActionError):
-    def __init__(self, message="Phone provider operation failed"):
+    def __init__(self, message="Phone provider operation failed", *, code=None):
         super().__init__(message, reason="phone_provider_failed")
+        self.code = code
 
 
 class PhoneNumberProvider(Protocol):
@@ -154,7 +156,7 @@ class JuicySMSPhoneProvider:
     API = "https://juicysms.com/api/v2"
     SUPPORTED_COUNTRIES = {"USA", "UK", "NL", "PH"}
 
-    def __init__(self, cfg):
+    def __init__(self, cfg, *, trace=False):
         self.timeout = bounded(cfg, "request_timeout_sec", 10, 0.1, 60)
         self.allocation_timeout = bounded(cfg, "allocation_timeout_sec", 60, 0.1, 60)
         self.interval = bounded(cfg, "poll_interval_sec", 5, 0.1, 300)
@@ -177,6 +179,12 @@ class JuicySMSPhoneProvider:
         if not self.token or "\n" in self.token or "\r" in self.token:
             raise ProviderError("Invalid JuicySMS token")
         self.opener = urllib.request.build_opener(_NoRedirect())
+        self.trace = trace
+        self.log = logging.getLogger("worker-android")
+
+    def _trace(self, message, *args):
+        if self.trace:
+            self.log.info("JuicySMS: " + message, *args)
 
     def _request(self, method, path, payload=None, timeout=None):
         headers = {"Accept": "application/json", "Authorization": "Bearer " + self.token}
@@ -184,13 +192,30 @@ class JuicySMSPhoneProvider:
         if payload is not None:
             body = json.dumps(payload).encode()
             headers["Content-Type"] = "application/json"
+        # Payloads contain only service/country/price. Never trace headers,
+        # phone numbers, SMS bodies, verification codes or raw responses.
+        self._trace("request %s %s payload=%s", method, path, payload or {})
         try:
             req = urllib.request.Request(self.API + path, body, headers, method=method)
             with self.opener.open(req, timeout=timeout or self.timeout) as response:
                 raw = response.read(65537)
                 if len(raw) > 65536:
                     raise ProviderError("JuicySMS response exceeds size limit")
+                self._trace("response %s %s status=%s", method, path, response.status)
                 return json.loads(raw) if raw else None
+        except urllib.error.HTTPError as exc:
+            raw = exc.read(65537)
+            code = None
+            try:
+                data = json.loads(raw)
+                candidate = data.get("code") if isinstance(data, dict) else None
+                if isinstance(candidate, str) and re.fullmatch(r"[a-z_]{1,80}", candidate):
+                    code = candidate
+            except (ValueError, UnicodeDecodeError):
+                pass
+            self._trace("response %s %s status=%s code=%s", method, path, exc.code, code or "unknown")
+            detail = code or f"http_{exc.code}"
+            raise ProviderError(f"JuicySMS request failed: {detail}", code=code) from None
         except ProviderError:
             raise
         except (OSError, ValueError, urllib.error.URLError):
@@ -239,12 +264,14 @@ class JuicySMSPhoneProvider:
             messages = data.get("data", []) if isinstance(data, dict) else []
             if not isinstance(messages, list):
                 raise ProviderError("Invalid JuicySMS messages response")
+            self._trace("message poll order=%s count=%s", allocation_id, len(messages))
             for item in reversed(messages):
                 if not isinstance(item, dict):
                     continue
                 text = item.get("text") or item.get("message")
                 code = item.get("code")
                 if isinstance(text, str) or isinstance(code, str):
+                    self._trace("message received for order=%s", allocation_id)
                     return message({"allocation_id": allocation_id, "verification_code": code, "text": text or ""}, allocation_id)
             stop.wait(min(self.interval, max(0, deadline - time.monotonic())))
         return None
@@ -288,7 +315,7 @@ def bounded(cfg, key, default, low, high):
 
 class PhoneSession:
     """Own one run allocation. Poll only when the scenario requests its SMS."""
-    def __init__(self, cfg, runtime, provider=None):
+    def __init__(self, cfg, runtime, provider=None, *, debug=False):
         self.cfg, self.runtime = cfg, runtime
         self.delivery = cfg.get("delivery_mode", "polling")
         if self.delivery not in {"polling", "webhook"}:
@@ -298,8 +325,8 @@ class PhoneSession:
         if provider is None:
             if kind not in {"http", "juicysms", "mock"}:
                 raise ProviderError("phone_number_provider.provider must be http, juicysms or mock")
-            provider = {"http": HTTPPhoneProvider, "juicysms": JuicySMSPhoneProvider,
-                        "mock": MockPhoneProvider}[kind](cfg)
+            provider = (JuicySMSPhoneProvider(cfg, trace=debug) if kind == "juicysms"
+                        else {"http": HTTPPhoneProvider, "mock": MockPhoneProvider}[kind](cfg))
         self.provider = provider
         self.key = cfg.get("input_key", "sms")
         self.number_key = cfg.get("number_input_key", "phone")

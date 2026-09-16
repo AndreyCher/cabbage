@@ -1,3 +1,9 @@
+# worker-android 0.1.5
+
+Adds safe JuicySMS diagnostics: Debug logs show lifecycle request/status/error
+codes without credentials, phone numbers or SMS contents. Normal startup logs
+the stable reason instead of only saying that no phone is connected.
+
 # worker-android 0.1.4
 
 Corrects JuicySMS country validation to match the live v2 OpenAPI contract:

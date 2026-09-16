@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.5 — 2026-09-16
+
+- Added safe JuicySMS lifecycle tracing in debug mode and descriptive stable
+  provider error codes in normal startup warnings.
+
 ## 0.1.4 — 2026-09-16
 
 - Corrected JuicySMS country handling to its current v2 contract: one-time

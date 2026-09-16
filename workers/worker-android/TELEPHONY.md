@@ -202,6 +202,12 @@ JuicySMS's `/services` catalogue and `max_price` is optional. The direct adapter
 never logs the token, number, SMS body, response body or provider URL. See
 `config/profiles/android-juicysms-example.json` for a non-secret profile.
 
+In a debug profile (`debug.keep_alive: true`), the worker additionally logs the
+JuicySMS request method/path, safe order payload fields, HTTP status and stable
+provider error code. It never logs bearer tokens, phone numbers, SMS text or
+verification codes. Normal runs log the same stable reason in the startup
+warning, for example `JuicySMS request failed: price_above_maximum`.
+
 ## Mock and tests
 
 `provider: "mock"` needs no credentials/network and does not acquire a real
