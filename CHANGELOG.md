@@ -4,6 +4,9 @@ This is the global release history for all application components. Component cha
 
 ## Unreleased
 
+- Added worker-android 0.1.6 so Compose debug runs always enable safe provider
+  diagnostics.
+
 - Added worker-android 0.1.5 with safe detailed JuicySMS debug traces and
   actionable normal-mode allocation warnings.
 

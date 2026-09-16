@@ -1,3 +1,8 @@
+# worker-android 0.1.6
+
+Compose debug runs now always enable safe provider diagnostics, independently
+of the selected profile's `debug.keep_alive` value.
+
 # worker-android 0.1.5
 
 Adds safe JuicySMS diagnostics: Debug logs show lifecycle request/status/error

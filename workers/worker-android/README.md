@@ -45,6 +45,10 @@ Standalone profiles can provide its token directly in a Git-ignored `*.local.jso
 See [TELEPHONY.md](TELEPHONY.md) for every setting, API contract, examples,
 permissions, process-scope limitations and test commands.
 
+The Compose `worker-android-debug` service sets `WORKER_DEBUG_MODE=true`, so it
+always includes safe provider request/status diagnostics even if the chosen
+profile does not enable `debug.keep_alive`.
+
 ## Host requirements
 
 Linux x86_64 host with hardware virtualization and `/dev/kvm` available to Docker.

@@ -1,6 +1,6 @@
 services:
   worker-android:
-    image: worker-android:0.1.5
+    image: worker-android:0.1.6
     build:
       context: .
       dockerfile: Dockerfile
@@ -26,7 +26,7 @@ services:
     command: ["python3","-m","app.main"]
 
   worker-android-debug:
-    image: worker-android:0.1.5
+    image: worker-android:0.1.6
     build:
       context: .
       dockerfile: Dockerfile
@@ -44,6 +44,7 @@ services:
       EMULATOR_DEVICE: "${EMULATOR_DEVICE:-Samsung Galaxy S10}"
       WORKER_SYSTEM_CONFIG: "/config/config.json"
       WORKER_PROFILE: "${WORKER_DEBUG_PROFILE:-android-test-001-debug}"
+      WORKER_DEBUG_MODE: "true"
     ports:
       - "0.0.0.0:6081:6080"
       - "0.0.0.0:8091:8090"

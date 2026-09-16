@@ -55,7 +55,10 @@ def main():
         phone_cfg = cfg.get("phone_number_provider", {})
         if phone_cfg.get("enabled", False):
             try:
-                phone = PhoneSession(phone_cfg, runtime, debug=bool(cfg.get("debug", {}).get("keep_alive", False)))
+                phone = PhoneSession(phone_cfg, runtime, debug=(
+                    os.getenv("WORKER_DEBUG_MODE", "").lower() in {"1", "true", "yes"}
+                    or bool(cfg.get("debug", {}).get("keep_alive", False))
+                ))
             except FatalActionError:
                 if phone_cfg.get("required", False):
                     raise

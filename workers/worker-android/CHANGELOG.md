@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.6 — 2026-09-16
+
+- Made the Compose debug service explicitly enable safe JuicySMS diagnostics,
+  including when the selected profile does not set `debug.keep_alive`.
+
 ## 0.1.5 — 2026-09-16
 
 - Added safe JuicySMS lifecycle tracing in debug mode and descriptive stable

@@ -100,3 +100,8 @@ class ProviderTests(unittest.TestCase):
                     {"provider": "mock", "input_key": "phone"}):
             with self.assertRaises(ProviderError):
                 PhoneSession(cfg, self.runtime())
+
+    def test_debug_flag_is_accepted_by_mock_provider(self):
+        phone = PhoneSession({"provider": "mock"}, self.runtime(), debug=True)
+        phone.start()
+        phone.close()
