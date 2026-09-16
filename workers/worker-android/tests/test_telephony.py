@@ -44,6 +44,13 @@ class IdentityTests(unittest.TestCase):
             resolve_identity(cfg, "qa")
         self.assertEqual(resolve_identity(cfg, "qa", "+4915112345678")["phone_number"], "+4915112345678")
 
+    def test_cloud_number_can_be_absent_for_non_blocking_startup(self):
+        cfg = profile()
+        cfg["phone_number"] = {"source": "cloud_provider"}
+        values = resolve_identity(cfg, "qa", allow_missing_cloud_number=True)
+        self.assertIsNone(values["phone_number"])
+        self.assertEqual(values["operator"], "QA DE")
+
     def test_profile_not_modified(self):
         cfg = profile()
         before = copy.deepcopy(cfg)

@@ -4,6 +4,9 @@ This is the global release history for all application components. Component cha
 
 ## Unreleased
 
+- Added worker-android 0.1.2 with JuicySMS v2 one-time phone/SMS allocations,
+  secret-file credentials and optional run-scoped phone lifecycle warnings.
+
 - Added worker-android 0.1.1 with app-scoped telephony QA, mock/HTTP phone providers,
   allocation-correlated SMS runtime inputs and automated plus real Android tests.
 

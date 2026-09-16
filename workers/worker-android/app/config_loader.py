@@ -83,8 +83,9 @@ def load_runtime_config(profile_ref: str, system_config_path: str | Path):
         if not isinstance(value, dict) or not isinstance(value.get("enabled", False), bool):
             raise ConfigError(f"{domain} must be an object with boolean enabled")
     provider = cfg.get("phone_number_provider", {})
-    if not isinstance(provider.get("release_on_finish", True), bool):
-        raise ConfigError("phone_number_provider.release_on_finish must be boolean")
+    for key in ("release_on_finish", "required"):
+        if not isinstance(provider.get(key, False if key == "required" else True), bool):
+            raise ConfigError(f"phone_number_provider.{key} must be boolean")
     identity = cfg.get("identity"); selected = cfg.get("run", {}).get("scenario")
     if not isinstance(identity, str) or not identity.strip(): raise ConfigError("resolved config must contain a non-empty 'identity'")
     if not isinstance(selected, str) or not selected.strip(): raise ConfigError("resolved config must contain run.scenario")

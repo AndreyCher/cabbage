@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.2 — 2026-09-16
+
+- Added a direct JuicySMS v2 one-time-order adapter with secret-file bearer
+  credentials, bounded polling, E.164/order validation and graceful cancel.
+- Added non-secret JuicySMS profile configuration and provider contract tests.
+- Made cloud phone allocation run-scoped and optional by default: a worker can
+  start without a connected number, logs a clear warning and exposes `null` as
+  the QA app's line number. `required: true` retains fail-fast behavior.
+
 ## 0.1.1 — 2026-09-16
 
 - Added opt-in application-scoped telephony QA via pinned Frida runtime: IMEI,

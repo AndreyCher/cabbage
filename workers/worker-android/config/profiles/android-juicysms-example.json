@@ -1,0 +1,27 @@
+{
+  "identity": "android-telephony-qa",
+  "run": {"scenario": "android-phone-example"},
+  "telephony": {
+    "enabled": true,
+    "mode": "emulated",
+    "backend": "app_api",
+    "packages": ["org.example.telephonyqa"],
+    "imei": {"mode": "generated"},
+    "imsi": {"mode": "generated"},
+    "operator": {"name": "QA Germany", "mcc": "262", "mnc": "01", "country_iso": "de"},
+    "phone_number": {"source": "cloud_provider"}
+  },
+  "phone_number_provider": {
+    "enabled": true,
+    "required": false,
+    "provider": "juicysms",
+    "country": "de",
+    "service_id": 1,
+    "max_price": 0.5,
+    "request_timeout_sec": 10,
+    "allocation_timeout_sec": 60,
+    "poll_interval_sec": 5,
+    "message_timeout_sec": 180,
+    "release_on_finish": true
+  }
+}

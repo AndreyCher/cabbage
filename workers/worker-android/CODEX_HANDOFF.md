@@ -2,6 +2,23 @@
 
 This document is the implementation handoff for the standalone Android worker. It is intentionally scoped to `workers/worker-android`; do not modify Controller or WebUI unless explicitly requested later.
 
+## Update — 0.1.2 (2026-09-16)
+
+JuicySMS v2 is now a direct `PhoneNumberProvider` (`provider: "juicysms"`) for
+one-time numbers. It allocates one order per worker run, polls its messages and
+cancels on graceful cleanup. The only credential path is the mounted
+`WORKER_JUICY_SMS_TOKEN_FILE`; never place a bearer token in JSON, artifacts or
+Identity state. JuicySMS's webhook routes currently return `403
+feature_unavailable`, so use polling for this provider. No paid/live order was
+created during tests.
+
+Phone allocation is deliberately non-persistent: worker restarts never reclaim
+or demand the previous number. `phone_number_provider.required` is false by
+default; missing/unavailable allocation logs a warning, continues Android
+startup and exposes `null` for an app-scoped cloud line number. A scenario that
+needs phone/SMS still has to wait for it, and `required: true` remains the
+explicit fail-fast option. Controller/WebUI Android integration is still deferred.
+
 ## Update — 0.1.1 (2026-09-16)
 
 The user approved **application-scoped QA API fixtures** for explicitly configured

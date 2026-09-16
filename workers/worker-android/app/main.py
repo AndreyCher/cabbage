@@ -48,18 +48,45 @@ def main():
     try:
         # Install the SMS validator before publishing the API; early callbacks
         # must not occupy an unvalidated SMS input slot during Android boot.
+        # Validate fixed telephony values before touching Android. Cloud phone
+        # numbers are intentionally optional: a new worker run must never
+        # require reuse of a number allocated by an earlier container.
         resolve_identity(cfg.get("telephony", {}), cfg["identity"], "+15555550100")
-        if cfg.get("phone_number_provider", {}).get("enabled", False):
-            phone = PhoneSession(cfg["phone_number_provider"], runtime)
+        phone_cfg = cfg.get("phone_number_provider", {})
+        if phone_cfg.get("enabled", False):
+            try:
+                phone = PhoneSession(phone_cfg, runtime)
+            except FatalActionError:
+                if phone_cfg.get("required", False):
+                    raise
+                summary["phone_provider"] = {"provider": phone_cfg.get("provider"), "allocated": False, "warning": "unavailable"}
+                log.warning("Phone provider is unavailable; starting without a connected phone")
         acfg=cfg.get("api",{})
         if acfg.get("enabled",True): api=ControlAPIServer(runtime,host=acfg.get("host","0.0.0.0"),port=int(acfg.get("port",8090)),logger=log,profile_config_path=Path(layout["identities_dir"])/cfg["identity"]/"config.json",project_name=layout["project_name"],worker_type=layout["worker_type"]);api.start()
         log.info("Project: %s",layout["project_name"]);log.info("Component: worker-%s",layout["worker_type"]);log.info("Worker version: %s",APP_VERSION);log.info("Identity: %s",cfg["identity"]);log.info("Scenario: %s",scenario);log.info("Run ID: %s",run_id)
         runtime.set_status("starting"); device.wait_ready(int(cfg.get("android",{}).get("boot_timeout_sec",180)))
         cloud_number = None
         if phone:
-            cloud_number = phone.start()["number"]
-            summary["phone_provider"] = {"provider": cfg["phone_number_provider"]["provider"], "allocated": True}
-        values = resolve_identity(cfg.get("telephony", {}), cfg["identity"], cloud_number)
+            try:
+                cloud_number = phone.start()["number"]
+                summary["phone_provider"] = {"provider": phone_cfg["provider"], "allocated": True}
+            except FatalActionError:
+                if phone_cfg.get("required", False):
+                    raise
+                try: phone.close()
+                except Exception: log.warning("Phone provider cleanup failed after unavailable allocation")
+                phone = None
+                summary["phone_provider"] = {"provider": phone_cfg.get("provider"), "allocated": False, "warning": "unavailable"}
+                log.warning("Phone provider is unavailable; starting without a connected phone")
+        elif (cfg.get("telephony", {}).get("enabled", False)
+              and isinstance(cfg.get("telephony", {}).get("phone_number"), dict)
+              and cfg["telephony"]["phone_number"].get("source") == "cloud_provider"):
+            summary["phone_provider"] = {"configured": False, "allocated": False, "warning": "not_configured"}
+            log.warning("No phone provider is configured; starting without a connected phone")
+        values = resolve_identity(cfg.get("telephony", {}), cfg["identity"], cloud_number,
+                                  allow_missing_cloud_number=True)
+        if values and values["phone_number"] is None:
+            log.warning("Telephony QA is starting without a connected phone number")
         if values:
             telephony = TelephonySession(device, cfg["telephony"], values)
             telephony.prepare()

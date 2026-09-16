@@ -22,7 +22,7 @@ def check_digit(digits):
     return str((-total) % 10)
 
 
-def resolve_identity(cfg, identity, cloud_number=None):
+def resolve_identity(cfg, identity, cloud_number=None, *, allow_missing_cloud_number=False):
     if not cfg.get("enabled", False):
         return None
     if cfg.get("mode", "emulated") != "emulated" or cfg.get("backend", "app_api") != "app_api":
@@ -71,6 +71,14 @@ def resolve_identity(cfg, identity, cloud_number=None):
         if source not in {"fixed", "cloud_provider"}:
             raise TelephonyError("Unsupported phone_number.source")
         phone = cloud_number if source == "cloud_provider" else phone.get("value")
+        if phone is None and source == "cloud_provider" and allow_missing_cloud_number:
+            # Null is the native Android API representation for a device with
+            # no line number. It makes this a QA fixture without claiming a
+            # persistent SIM/number after a worker restart.
+            phone = None
+    if phone is None and allow_missing_cloud_number:
+        return {"imei": imei, "imsi": imsi, "phone_number": None,
+                "operator": name, "mcc": mcc, "mnc": mnc, "country_iso": country.lower()}
     if not isinstance(phone, str) or not re.fullmatch(r"\+[1-9][0-9]{6,14}", phone):
         raise TelephonyError("Telephony phone_number must use E.164 or an allocated cloud number")
     return {"imei": imei, "imsi": imsi, "phone_number": phone,

@@ -1,4 +1,4 @@
-# worker-android v0.1.1
+# worker-android v0.1.2
 
 `worker-android` is the Android execution sibling of `worker-firefox`.
 The first release is intentionally autonomous: Controller and Web Console changes are not required.
@@ -24,8 +24,11 @@ The execution backend is Android Emulator + Appium UiAutomator2 instead of Camou
 
 ## Telephony QA and cloud SMS
 
-v0.1.1 adds opt-in `telephony` fixtures for explicitly configured QA applications
-and a replaceable `phone_number_provider` (`mock` or normalized `http` bridge).
+v0.1.2 includes opt-in `telephony` fixtures for explicitly configured QA applications
+and a replaceable `phone_number_provider` (`mock`, normalized `http` bridge, or
+JuicySMS v2). Phone allocations are run-scoped rather than bound to a persistent
+Android Identity; an unavailable optional provider produces a warning and the
+worker continues without a connected phone.
 The fixture supplies IMEI, IMSI, phone number, operator and MCC/MNC/country through
 Android Java APIs in the main process of apps started by `launch_app`. It requires
 an adb-root-capable x86_64 emulator and does not change the whole OS/modem or
@@ -35,7 +38,8 @@ Cloud allocation is available as `{{input.phone.number}}`; SMS polling or a
 trusted webhook bridge supplies `{{input.sms.verification_code}}` through
 `wait_input`. Credentials use injected environment/secret files; allocations
 are released at run completion by default. The HTTP adapter defines a normalized
-gateway contract; no commercial provider is hard-coded.
+gateway contract, and the JuicySMS adapter uses its v2 one-time-order API with a
+read-only `WORKER_JUICY_SMS_TOKEN_FILE`; no secret is part of a profile JSON.
 
 See [TELEPHONY.md](TELEPHONY.md) for every setting, API contract, examples,
 permissions, process-scope limitations and test commands.

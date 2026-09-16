@@ -143,6 +143,107 @@ class HTTPPhoneProvider:
         self._request("DELETE", f"/allocations/{allocation_id}")
 
 
+class JuicySMSPhoneProvider:
+    """JuicySMS v2 adapter. The API token is always supplied out of band.
+
+    JuicySMS currently has no webhook delivery endpoint, so this adapter uses
+    the provider's order-message polling API.  One worker run owns one order;
+    no number is retained in an Android Identity.
+    """
+
+    API = "https://juicysms.com/api/v2"
+
+    def __init__(self, cfg):
+        self.timeout = bounded(cfg, "request_timeout_sec", 10, 0.1, 60)
+        self.allocation_timeout = bounded(cfg, "allocation_timeout_sec", 60, 0.1, 60)
+        self.interval = bounded(cfg, "poll_interval_sec", 5, 0.1, 300)
+        secret = os.environ.get("WORKER_JUICY_SMS_TOKEN_FILE")
+        if not secret:
+            raise ProviderError("JuicySMS token file is required")
+        try:
+            self.token = Path(secret).read_text().strip()
+        except OSError:
+            raise ProviderError("Cannot read JuicySMS token file") from None
+        if not self.token or "\n" in self.token or "\r" in self.token:
+            raise ProviderError("Invalid JuicySMS token file")
+        self.opener = urllib.request.build_opener(_NoRedirect())
+
+    def _request(self, method, path, payload=None, timeout=None):
+        headers = {"Accept": "application/json", "Authorization": "Bearer " + self.token}
+        body = None
+        if payload is not None:
+            body = json.dumps(payload).encode()
+            headers["Content-Type"] = "application/json"
+        try:
+            req = urllib.request.Request(self.API + path, body, headers, method=method)
+            with self.opener.open(req, timeout=timeout or self.timeout) as response:
+                raw = response.read(65537)
+                if len(raw) > 65536:
+                    raise ProviderError("JuicySMS response exceeds size limit")
+                return json.loads(raw) if raw else None
+        except ProviderError:
+            raise
+        except (OSError, ValueError, urllib.error.URLError):
+            # Provider responses can include request/account details. Do not
+            # make either those details or the bearer token observable.
+            raise ProviderError("JuicySMS HTTP request failed") from None
+
+    @staticmethod
+    def _order_id(data):
+        value = data.get("id") if isinstance(data, dict) else None
+        if isinstance(value, int):
+            value = str(value)
+        if not isinstance(value, str) or not re.fullmatch(r"[0-9]{1,128}", value):
+            raise ProviderError("Invalid JuicySMS order ID")
+        return value
+
+    def allocate(self, request, request_id):
+        service_id = request.get("service_id") or request.get("service")
+        country = request.get("country")
+        if isinstance(service_id, bool) or not isinstance(service_id, int) or service_id <= 0:
+            raise ProviderError("JuicySMS service_id must be a positive integer")
+        if not isinstance(country, str) or not re.fullmatch(r"[A-Za-z]{2}", country):
+            raise ProviderError("JuicySMS country must be a two-letter code")
+        payload = {"service_id": service_id, "country": country.lower()}
+        max_price = request.get("max_price")
+        if max_price is not None:
+            if isinstance(max_price, bool) or not isinstance(max_price, (int, float)) or not 0 < max_price <= 100000:
+                raise ProviderError("JuicySMS max_price must be a positive number")
+            payload["max_price"] = max_price
+        data = self._request("POST", "/orders", payload, timeout=self.allocation_timeout)
+        order_id = self._order_id(data)
+        phone = data.get("phone_number") if isinstance(data, dict) else None
+        return allocation({"allocation_id": order_id, "number": phone, "country": country.lower()})
+
+    def get_status(self, allocation_id):
+        return self._request("GET", f"/orders/{allocation_id}")
+
+    def wait_message(self, allocation_id, timeout, stop):
+        deadline = time.monotonic() + timeout
+        while not stop.is_set():
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return None
+            data = self._request("GET", f"/orders/{allocation_id}/messages", timeout=min(self.timeout, remaining))
+            messages = data.get("data", []) if isinstance(data, dict) else []
+            if not isinstance(messages, list):
+                raise ProviderError("Invalid JuicySMS messages response")
+            for item in reversed(messages):
+                if not isinstance(item, dict):
+                    continue
+                text = item.get("text") or item.get("message")
+                code = item.get("code")
+                if isinstance(text, str) or isinstance(code, str):
+                    return message({"allocation_id": allocation_id, "verification_code": code, "text": text or ""}, allocation_id)
+            stop.wait(min(self.interval, max(0, deadline - time.monotonic())))
+        return None
+
+    def release(self, allocation_id):
+        # Cancelling an already-completed order may return an HTTP error. The
+        # provider owns the final lifecycle; cleanup must not expose its body.
+        self._request("POST", f"/orders/{allocation_id}/cancel", {})
+
+
 class MockPhoneProvider:
     """Explicit QA fixture: no real allocation, billing or SMS delivery."""
     def __init__(self, cfg):
@@ -184,9 +285,10 @@ class PhoneSession:
         self.timeout = bounded(cfg, "message_timeout_sec", 180, 0.1, 3600)
         kind = cfg.get("provider")
         if provider is None:
-            if kind not in {"http", "mock"}:
-                raise ProviderError("phone_number_provider.provider must be http or mock")
-            provider = HTTPPhoneProvider(cfg) if kind == "http" else MockPhoneProvider(cfg)
+            if kind not in {"http", "juicysms", "mock"}:
+                raise ProviderError("phone_number_provider.provider must be http, juicysms or mock")
+            provider = {"http": HTTPPhoneProvider, "juicysms": JuicySMSPhoneProvider,
+                        "mock": MockPhoneProvider}[kind](cfg)
         self.provider = provider
         self.key = cfg.get("input_key", "sms")
         self.number_key = cfg.get("number_input_key", "phone")
@@ -206,7 +308,7 @@ class PhoneSession:
         return message(data, self.allocated["allocation_id"])
 
     def start(self):
-        request = {key: self.cfg[key] for key in ("country", "service") if self.cfg.get(key)}
+        request = {key: self.cfg[key] for key in ("country", "service", "service_id", "max_price") if self.cfg.get(key) is not None}
         self.allocated = allocation(self.provider.allocate(request, self.runtime.run_id))
         self.runtime.expected_inputs.update({self.key, self.number_key})
         accepted, _ = self.runtime.put_input(self.number_key, self.allocated)

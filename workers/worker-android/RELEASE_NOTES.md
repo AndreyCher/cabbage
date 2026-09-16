@@ -1,3 +1,23 @@
+# worker-android 0.1.2
+
+Adds a direct JuicySMS v2 adapter for run-scoped QA numbers and SMS polling.
+Configure `provider: "juicysms"`, `country`, `service_id` and optionally
+`max_price`; mount its bearer token as a read-only file and set
+`WORKER_JUICY_SMS_TOKEN_FILE`. No provider credential is stored in an Identity,
+profile or scenario JSON.
+
+Cloud numbers are intentionally not persistent Android-Identity fields. Every
+new container allocates independently. With the default `required: false`, an
+unavailable/disabled provider logs a warning and lets Android start without a
+line number; a scenario can still explicitly fail by waiting for unavailable
+phone/SMS input. Use `required: true` for fail-fast allocation.
+
+Verification: 26 automated unit, HTTP-contract and API tests passed on
+2026-09-16. No JuicySMS account, credential or paid order was used.
+
+See [TELEPHONY.md](TELEPHONY.md) and
+`config/profiles/android-juicysms-example.json` for the exact configuration.
+
 # worker-android 0.1.1
 
 Adds application-scoped telephony QA and the cloud phone-number adapter contract.

@@ -75,6 +75,7 @@ readiness failures for up to 20 seconds.
   "phone_number_provider": {
     "enabled": true,
     "provider": "http",
+    "required": false,
     "country": "de",
     "service": "your-qa-service",
     "allocation_timeout_sec": 60,
@@ -95,6 +96,14 @@ read-only via a private Compose override/Docker secret. Credentials never belong
 in Identity/scenario JSON. HTTPS is required; HTTP is allowed only for loopback
 test servers. Redirects are rejected. Responses are limited to 64 KiB. Errors
 exclude response bodies, URLs and token contents.
+
+`required` defaults to `false`. A provider that is disabled, unconfigured or
+temporarily unavailable never blocks Android startup in that mode: the worker
+records a warning and the telephony fixture returns no line number (`null`) to
+the configured QA app. A scenario which actually waits for `phone`/`sms` will
+naturally time out. Set `required: true` only when a scenario must fail before
+automation without an allocated number. Numbers are per-run allocations; a
+restarted container never attempts to reclaim its previous number.
 
 `provider: "http"` is a normalized bridge API, not an adapter for an arbitrarily
 shaped vendor API. Implement the contract below in a provider-specific gateway
@@ -156,6 +165,37 @@ The worker releases allocations on completion/failure/graceful stop when
 are recorded without leaking credentials. Phone numbers and SMS bodies are not
 included in provider lifecycle logs/summary; downstream actions/screenshots may
 still expose data they intentionally use.
+
+### JuicySMS
+
+`provider: "juicysms"` is a direct adapter for the documented JuicySMS v2
+one-time order API. It polls order messages because JuicySMS does not currently
+offer webhook delivery. Use a least-privilege, account-scoped token with the
+`services:read`, `orders:read` and `orders:write` scopes, stored only in a
+read-only secret file mounted into the worker:
+
+```json
+{
+  "phone_number_provider": {
+    "enabled": true,
+    "provider": "juicysms",
+    "required": false,
+    "country": "de",
+    "service_id": 1,
+    "max_price": 0.50,
+    "poll_interval_sec": 5,
+    "message_timeout_sec": 180,
+    "release_on_finish": true
+  }
+}
+```
+
+Set `WORKER_JUICY_SMS_TOKEN_FILE` to the in-container path of that file. The
+worker sends `POST /orders`, polls `GET /orders/<id>/messages`, and requests
+`POST /orders/<id>/cancel` during graceful cleanup. `service_id` must come from
+JuicySMS's `/services` catalogue and `max_price` is optional. The direct adapter
+never logs the token, number, SMS body, response body or provider URL. See
+`config/profiles/android-juicysms-example.json` for a non-secret profile.
 
 ## Mock and tests
 

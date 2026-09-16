@@ -112,7 +112,7 @@ Webhook values also use the same namespace:
 ```json
 {"type":"type", "selector":"id=com.example:id/name", "text":"{{webhook.profile.name}}"}
 ```
-## Telephony-enabled scenarios (v0.1.1)
+## Telephony-enabled scenarios (v0.1.2)
 
 `launch_app` installs the configured telephony fixture before starting packages
 listed in `telephony.packages`. This restarts the target application's main

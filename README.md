@@ -23,9 +23,9 @@ Firefox/Camoufox execution worker with modular scenario actions, plugin adapters
 
 ### worker-android
 
-Current version: **0.1.1**
+Current version: **0.1.2**
 
-Autonomous Android 14 execution worker using KVM, Android Emulator, Appium UiAutomator2 and ADB. It preserves the shared worker configuration, scenario envelope, runtime-input API and artifact layout where Android equivalents exist. Controller and Web Console worker selection are intentionally not integrated yet.
+Autonomous Android 14 execution worker using KVM, Android Emulator, Appium UiAutomator2 and ADB. It preserves the shared worker configuration, scenario envelope, runtime-input API and artifact layout where Android equivalents exist. It includes opt-in app-scoped telephony QA and run-scoped SMS-number providers, including JuicySMS v2 with secret-file credentials. Controller and Web Console worker selection are intentionally not integrated yet.
 
 - Code and component documentation: `workers/worker-android/`
 - Overview: `workers/worker-android/README.md`
