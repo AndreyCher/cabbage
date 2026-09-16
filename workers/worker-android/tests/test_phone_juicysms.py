@@ -52,12 +52,12 @@ class JuicySMSTests(unittest.TestCase):
             with patch.dict(os.environ, {"WORKER_JUICY_SMS_TOKEN_FILE": token.name}):
                 with patch.object(JuicySMSPhoneProvider, "API", f"http://127.0.0.1:{self.server.server_port}"):
                     provider = JuicySMSPhoneProvider({"poll_interval_sec": .1})
-                    allocated = provider.allocate({"country": "DE", "service_id": 12, "max_price": 0.25}, "run-id")
+                    allocated = provider.allocate({"country": "NL", "service_id": 12, "max_price": 0.25}, "run-id")
                     sms = provider.wait_message("42", 1, threading.Event())
                     provider.release("42")
-        self.assertEqual(allocated, {"allocation_id": "42", "number": "+4915112345678", "country": "de"})
+        self.assertEqual(allocated, {"allocation_id": "42", "number": "+4915112345678", "country": "NL"})
         self.assertEqual(sms["verification_code"], "001234")
-        self.assertEqual(self.calls[0], ("POST", "/orders", {"service_id": 12, "country": "de", "max_price": 0.25}, "Bearer juicy-secret"))
+        self.assertEqual(self.calls[0], ("POST", "/orders", {"service_id": 12, "country": "NL", "max_price": 0.25}, "Bearer juicy-secret"))
         self.assertEqual(self.calls[-1][0:2], ("POST", "/orders/42/cancel"))
         self.assertNotIn("juicy-secret", str(allocated) + str(sms))
 
@@ -71,7 +71,9 @@ class JuicySMSTests(unittest.TestCase):
             with patch.dict(os.environ, {"WORKER_JUICY_SMS_TOKEN_FILE": token.name}):
                 provider = JuicySMSPhoneProvider({})
                 with self.assertRaises(ProviderError):
-                    provider.allocate({"country": "de", "service_id": "12"}, "run-id")
+                    provider.allocate({"country": "NL", "service_id": "12"}, "run-id")
+                with self.assertRaises(ProviderError):
+                    provider.allocate({"country": "DE", "service_id": 12}, "run-id")
 
     def test_profile_token_does_not_need_an_environment_secret(self):
         with patch.dict(os.environ, {}, clear=True):

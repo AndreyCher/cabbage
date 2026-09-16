@@ -76,7 +76,7 @@ readiness failures for up to 20 seconds.
     "enabled": true,
     "provider": "http",
     "required": false,
-    "country": "de",
+    "country": "NL",
     "service": "your-qa-service",
     "allocation_timeout_sec": 60,
     "request_timeout_sec": 10,
@@ -171,8 +171,7 @@ still expose data they intentionally use.
 `provider: "juicysms"` is a direct adapter for the documented JuicySMS v2
 one-time order API. It polls order messages because JuicySMS does not currently
 offer webhook delivery. Use a least-privilege, account-scoped token with the
-`services:read`, `orders:read` and `orders:write` scopes, stored only in a
-read-only secret file mounted into the worker:
+`services:read`, `orders:read` and `orders:write` scopes:
 
 ```json
 {
@@ -181,7 +180,7 @@ read-only secret file mounted into the worker:
     "provider": "juicysms",
     "token": "your-private-juicysms-token",
     "required": false,
-    "country": "de",
+    "country": "NL",
     "service_id": 1,
     "max_price": 0.50,
     "poll_interval_sec": 5,
@@ -196,7 +195,9 @@ for example `config/profiles/android-juicysms.local.json`. Files matching
 `*.local.json` are ignored by Git. `WORKER_JUICY_SMS_TOKEN_FILE` remains a
 supported alternative for Controller/future secret materialization. The worker
 sends `POST /orders`, polls `GET /orders/<id>/messages`, and requests
-`POST /orders/<id>/cancel` during graceful cleanup. `service_id` must come from
+`POST /orders/<id>/cancel` during graceful cleanup. At the current API version,
+JuicySMS supports one-time orders only for `USA`, `UK`, `NL` and `PH`; the worker
+rejects any other country before an order request. `service_id` must come from
 JuicySMS's `/services` catalogue and `max_price` is optional. The direct adapter
 never logs the token, number, SMS body, response body or provider URL. See
 `config/profiles/android-juicysms-example.json` for a non-secret profile.

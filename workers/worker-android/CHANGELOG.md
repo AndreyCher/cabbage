@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.4 — 2026-09-16
+
+- Corrected JuicySMS country handling to its current v2 contract: one-time
+  orders accept only `USA`, `UK`, `NL` and `PH`; reject unsupported countries
+  locally instead of creating a known-invalid order request.
+- Corrected the shipped JuicySMS example from unsupported `DE` to `NL`.
+
 ## 0.1.3 — 2026-09-16
 
 - Simplified standalone JuicySMS setup: a private local profile may now set

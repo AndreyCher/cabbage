@@ -1,3 +1,9 @@
+# worker-android 0.1.4
+
+Corrects JuicySMS country validation to match the live v2 OpenAPI contract:
+one-time orders can use only `USA`, `UK`, `NL` or `PH`. The shipped sample now
+uses `NL`; `DE` is rejected before a paid-order request is sent.
+
 # worker-android 0.1.3
 
 Standalone JuicySMS configuration is now one private profile field:

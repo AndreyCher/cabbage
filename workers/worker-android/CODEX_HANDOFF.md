@@ -2,6 +2,13 @@
 
 This document is the implementation handoff for the standalone Android worker. It is intentionally scoped to `workers/worker-android`; do not modify Controller or WebUI unless explicitly requested later.
 
+## Update — 0.1.4 (2026-09-16)
+
+JuicySMS v2 one-time country codes are deliberately restricted to `USA`, `UK`,
+`NL`, `PH`, per its current OpenAPI contract. Do not reintroduce `DE` based on
+the contradictory prose documentation; reject other countries locally to avoid
+a known-invalid purchase request.
+
 ## Update — 0.1.3 (2026-09-16)
 
 Standalone JuicySMS setup accepts `phone_number_provider.token` directly from a

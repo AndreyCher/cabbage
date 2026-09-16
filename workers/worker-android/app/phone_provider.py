@@ -152,6 +152,7 @@ class JuicySMSPhoneProvider:
     """
 
     API = "https://juicysms.com/api/v2"
+    SUPPORTED_COUNTRIES = {"USA", "UK", "NL", "PH"}
 
     def __init__(self, cfg):
         self.timeout = bounded(cfg, "request_timeout_sec", 10, 0.1, 60)
@@ -211,9 +212,10 @@ class JuicySMSPhoneProvider:
         country = request.get("country")
         if isinstance(service_id, bool) or not isinstance(service_id, int) or service_id <= 0:
             raise ProviderError("JuicySMS service_id must be a positive integer")
-        if not isinstance(country, str) or not re.fullmatch(r"[A-Za-z]{2}", country):
-            raise ProviderError("JuicySMS country must be a two-letter code")
-        payload = {"service_id": service_id, "country": country.lower()}
+        if not isinstance(country, str) or country.upper() not in self.SUPPORTED_COUNTRIES:
+            raise ProviderError("JuicySMS country must be one of USA, UK, NL, PH")
+        country = country.upper()
+        payload = {"service_id": service_id, "country": country}
         max_price = request.get("max_price")
         if max_price is not None:
             if isinstance(max_price, bool) or not isinstance(max_price, (int, float)) or not 0 < max_price <= 100000:
@@ -222,7 +224,7 @@ class JuicySMSPhoneProvider:
         data = self._request("POST", "/orders", payload, timeout=self.allocation_timeout)
         order_id = self._order_id(data)
         phone = data.get("phone_number") if isinstance(data, dict) else None
-        return allocation({"allocation_id": order_id, "number": phone, "country": country.lower()})
+        return allocation({"allocation_id": order_id, "number": phone, "country": country})
 
     def get_status(self, allocation_id):
         return self._request("GET", f"/orders/{allocation_id}")

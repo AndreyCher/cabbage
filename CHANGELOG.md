@@ -4,6 +4,9 @@ This is the global release history for all application components. Component cha
 
 ## Unreleased
 
+- Added worker-android 0.1.4 correcting JuicySMS one-time country validation
+  and the example profile to the provider's current `USA`/`UK`/`NL`/`PH` set.
+
 - Added worker-android 0.1.3 with simple Git-ignored local-profile configuration
   for JuicySMS tokens.
 

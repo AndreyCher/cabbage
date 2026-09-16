@@ -8,7 +8,7 @@
     "packages": ["org.example.telephonyqa"],
     "imei": {"mode": "generated"},
     "imsi": {"mode": "generated"},
-    "operator": {"name": "QA Germany", "mcc": "262", "mnc": "01", "country_iso": "de"},
+    "operator": {"name": "QA Netherlands", "mcc": "204", "mnc": "08", "country_iso": "nl"},
     "phone_number": {"source": "cloud_provider"}
   },
   "phone_number_provider": {
@@ -16,7 +16,7 @@
     "required": false,
     "provider": "juicysms",
     "token": "replace-with-a-private-local-profile-token",
-    "country": "de",
+    "country": "NL",
     "service_id": 1,
     "max_price": 0.5,
     "request_timeout_sec": 10,
