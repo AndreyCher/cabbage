@@ -1,0 +1,4 @@
+{
+  "identity": "android-test-001",
+  "run": {"scenario": "android-example"}
+}

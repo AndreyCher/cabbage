@@ -34,6 +34,10 @@ Potential additions when real scenarios require them:
 
 ## UI / orchestration
 
+- Android telephony follow-ups: concrete cloud provider gateway, allocation TTL/
+  crash reconciliation and multiple-message lifecycle; app-scoped QA fixtures and
+  mock/HTTP adapter contracts are already implemented in worker-android 0.1.1.
+
 - Keep the worker API-first.
 - The initial `web-console` dashboard is implemented; future increments should use action/plugin metadata to build forms and scenario workflows dynamically.
 
@@ -41,7 +45,7 @@ Potential additions when real scenarios require them:
 
 Implemented naming baseline:
 - current component: `worker-firefox`;
-- future Android component: `worker-android`;
+- current autonomous Android component: `worker-android` (Controller/Web UI integration remains future work);
 - orchestrator: `controller`;
 - worker API domain field: `worker_type`;
 - internal project codename is configurable and must not become an architectural namespace.

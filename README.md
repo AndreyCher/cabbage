@@ -21,6 +21,19 @@ Firefox/Camoufox execution worker with modular scenario actions, plugin adapters
 - Detailed component history: `workers/worker-firefox/CHANGELOG.md`
 - Current release notes: `workers/worker-firefox/RELEASE_NOTES.md`
 
+### worker-android
+
+Current version: **0.1.1**
+
+Autonomous Android 14 execution worker using KVM, Android Emulator, Appium UiAutomator2 and ADB. It preserves the shared worker configuration, scenario envelope, runtime-input API and artifact layout where Android equivalents exist. Controller and Web Console worker selection are intentionally not integrated yet.
+
+- Code and component documentation: `workers/worker-android/`
+- Overview: `workers/worker-android/README.md`
+- Scenario/actions: `workers/worker-android/SCENARIO.md`
+- Application-scoped telephony QA and phone/SMS providers: `workers/worker-android/TELEPHONY.md`
+- Implementation handoff and roadmap: `workers/worker-android/CODEX_HANDOFF.md`
+- Detailed component history: `workers/worker-android/CHANGELOG.md`
+
 ### firefox-image-builder
 
 Current version: **0.3.0**
@@ -79,6 +92,7 @@ React/TypeScript control-plane interface using Material UI. It provides Controll
 - `FUTURE.md` — concise application roadmap.
 - `FUTURE_BOT.md` — detailed implementation-oriented notes for deferred work.
 - `workers/worker-firefox/*.md` — documentation owned by the Firefox worker module.
+- `workers/worker-android/*.md` — documentation owned by the Android worker module; `CODEX_HANDOFF.md` is required reading before implementation work.
 - `data-provider/*.md` — documentation owned by the worker-facing data-resolution component.
 - `proxy-checker/*.md` — documentation owned by the proxy verification component.
 - `tools/firefox-image-builder/*.md` — documentation owned by the base-image builder module.
@@ -115,4 +129,4 @@ Print the Controller API token:
 cat secrets/controller_api_token
 ```
 
-`worker-firefox` is intentionally the only current autonomous component. In addition to the preferred root workflow, it may be built and run directly from `workers/worker-firefox/`. Other components are not required to provide a standalone Compose workflow unless that requirement is explicitly introduced later.
+`worker-firefox` and `worker-android` are autonomous worker components. Firefox supports both root and component-local Compose workflows. Android v0.1.1 currently runs from `workers/worker-android/`; its Controller, Web Console, registry and root Compose integration remain intentionally deferred until explicitly requested.

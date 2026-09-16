@@ -4,6 +4,11 @@ This is the global release history for all application components. Component cha
 
 ## Unreleased
 
+- Added worker-android 0.1.1 with app-scoped telephony QA, mock/HTTP phone providers,
+  allocation-correlated SMS runtime inputs and automated plus real Android tests.
+
+- Added autonomous worker-android 0.1.0 with Android 14/KVM, Appium UiAutomator2, portable scenario/runtime-input contracts, noVNC debug mode and Android screen recording; Controller/Web Console integration remains deferred.
+
 - Added Web Console 0.1.49-dev with exact compact vertical spacing for New Identity.
 
 - Added Web Console 0.1.48-dev integrating bulk mode into the compact New Identity flow.

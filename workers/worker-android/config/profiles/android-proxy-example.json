@@ -1,0 +1,11 @@
+{
+  "identity": "android-proxy-example",
+  "run": {"scenario": "android-example"},
+  "android": {"emulator_device": "Samsung Galaxy S10"},
+  "proxy": {
+    "enabled": true,
+    "server": "http://proxy.example.com:10000",
+    "username": "proxy-user",
+    "password": "proxy-password"
+  }
+}

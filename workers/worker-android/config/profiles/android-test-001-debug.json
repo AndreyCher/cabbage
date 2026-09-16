@@ -1,0 +1,5 @@
+{
+  "identity": "android-test-001",
+  "run": {"scenario": "android-example"},
+  "debug": {"keep_alive": true, "continue_on_error": true}
+}

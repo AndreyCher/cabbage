@@ -13,6 +13,9 @@ venv/
 # Runtime artifacts
 workers/worker-firefox/artifacts/
 workers/worker-firefox/identities/
+workers/worker-android/artifacts/
+workers/worker-android/identities/
+workers/worker-android/*.tar.gz
 
 # Logs
 *.log
