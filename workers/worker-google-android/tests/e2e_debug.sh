@@ -15,6 +15,19 @@ done
 curl -fsS http://127.0.0.1:6082/ | grep -qi '<html'
 curl -fsS http://127.0.0.1:8092/api/v1/health | python3 -c 'import json,sys; assert json.load(sys.stdin)["status"] == "ok"'
 
+# The frontend's index.html references its JS bundle by absolute path; a
+# routing mismatch can make nginx silently serve index.html (HTTP 200) for
+# that request instead of the real module, which renders as a blank white
+# page with no visible error in curl-only checks. Fetch the exact path the
+# page itself references and require an actual JS content type.
+bundle_path="$(curl -fsS http://127.0.0.1:6082/ | grep -oE '/[^"[:space:]]+\.js' | head -1)"
+[ -n "$bundle_path" ] || { echo "Could not find a JS bundle reference in index.html" >&2; exit 1; }
+bundle_type="$(curl -fsS -o /dev/null -w '%{content_type}' "http://127.0.0.1:6082${bundle_path}")"
+case "$bundle_type" in
+  *javascript*) ;;
+  *) echo "Frontend JS bundle ${bundle_path} served as '${bundle_type}', not JavaScript (blank white page)" >&2; exit 1 ;;
+esac
+
 docker exec worker-google-android-google-android-webrtc-gateway-1 python -c \
   "import asyncio,aiohttp,json; exec('async def t():\n    async with aiohttp.ClientSession() as s:\n        async with s.ws_connect(\"http://google-android-web:8080/api/v1/emulator/ws-jsep\") as w:\n            m=await asyncio.wait_for(w.receive(),10)\n            data=json.loads(m.data)\n            assert \"start\" in data and data[\"start\"].get(\"iceServers\")\nasyncio.run(t())')"
 

@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.1.3 — 2026-09-17
+
+- Fixed the WebRTC debug UI showing a blank white page. The built frontend's
+  `index.html` references its JS bundle by an absolute
+  `/android-emulator-webrtc/assets/...` path, but nginx served the build
+  output only at the root (`/assets/...`); the mismatch fell through to
+  nginx's SPA `try_files ... /index.html` fallback, which returned `index.html`
+  itself with `HTTP 200` for the JS request — so the page loaded but its
+  script never ran, no error visible to a plain `curl` check. `nginx/webrtc.conf`
+  now aliases `/android-emulator-webrtc/` back to the same document root.
+  Found by actually opening `http://<host>:6082` in a browser (reported by a
+  user) after the 0.1.2 release; the existing E2E test only checked for
+  `<html` in the root response, which passed either way.
+- Added a static check that `nginx/webrtc.conf` has the alias, and an E2E
+  check that fetches the exact JS path `index.html` references and requires a
+  real JavaScript content type, so this class of "200 but wrong content"
+  regression cannot pass silently again.
+
 ## 0.1.2 — 2026-09-17
 
 - Fixed one real cause of `open`/`new_tab` opening the wrong screen: on a fresh

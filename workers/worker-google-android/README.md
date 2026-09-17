@@ -1,4 +1,4 @@
-# worker-google-android v0.1.2
+# worker-google-android v0.1.3
 
 Autonomous Android worker built around Google's official Android Emulator
 Container (`30-google-x64-no-metrics:30.1.2`) and an Appium/ADB sidecar.

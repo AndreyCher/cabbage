@@ -1,3 +1,13 @@
+# worker-google-android 0.1.3
+
+Fixes the WebRTC debug UI at `http://<host>:6082` loading as a blank white
+page. nginx served the built frontend's assets at the wrong path relative to
+what `index.html` itself requests, so the browser's JS bundle request
+silently got the HTML page back instead (`HTTP 200`, wrong content) and never
+ran. `nginx/webrtc.conf` now serves both paths. See `CHANGELOG.md` for the
+exact mechanism; this was reported by a user actually opening the page in a
+browser, which no prior automated check exercised.
+
 # worker-google-android 0.1.2
 
 Fixes one real bug found by running the full debug E2E test against the
