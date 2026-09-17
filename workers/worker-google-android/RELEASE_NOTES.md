@@ -1,3 +1,17 @@
+# worker-google-android 0.1.4
+
+Replaces the debug UI's video path. Direct gRPC probing showed the official
+emulator image's legacy WebRTC video service never actually completes a real
+browser peer connection (no SDP answer, no ICE candidates), so the 0.1.2/0.1.3
+frontend could never show video regardless of the routing bug 0.1.3 fixed.
+`http://<host>:6082` now shows a live view via a small self-owned gateway
+(`scripts/gateway_server.py`) streaming real screenshots straight from the
+emulator's `EmulatorController` gRPC service, plus working Home/Back/App
+Switch/Power/Volume buttons and GPS controls. The vendored WebRTC frontend and
+its legacy-proto adaptation are removed entirely — verified end-to-end,
+including a real captured screen frame and a passing `android-example` run.
+See `CHANGELOG.md` for the full technical detail.
+
 # worker-google-android 0.1.3
 
 Fixes the WebRTC debug UI at `http://<host>:6082` loading as a blank white

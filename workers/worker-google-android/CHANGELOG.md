@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.1.4 — 2026-09-17
+
+- Replaced the debug UI's video path entirely. Direct gRPC probing of the
+  official emulator's legacy `android.emulation.control.Rtc` service (used by
+  the vendored WebRTC frontend) showed it never returns an SDP answer or ICE
+  candidates for a real browser offer — confirmed both via `sendJsepMessage`/
+  `receiveJsepMessage(s)` polling and by replaying an actual captured browser
+  offer. This made the 0.1.2/0.1.3 debug page fundamentally unable to show
+  video, independent of the routing bug 0.1.3 fixed.
+- `scripts/gateway_server.py` is now a small, fully self-owned aiohttp app
+  (no vendored/sed-patched third-party gateway code) that talks directly to
+  the emulator's `EmulatorController` gRPC service: `getStatus`, `setGps`
+  (`/api/v1/emulator/gps`, unchanged contract), a new `sendKey`-backed
+  `POST /api/v1/emulator/key` (`GoHome`/`GoBack`/`AppSwitch`/`Power`/
+  `AudioVolumeUp`/`AudioVolumeDown`), and a new `streamScreenshot`-backed
+  `GET /api/v1/emulator/screen.mjpeg` (a `multipart/x-mixed-replace` PNG
+  stream — a real, if lower-frame-rate, live view).
+- `web/index.html` is a new small self-owned static page (no build step)
+  showing that live stream plus hardware/GPS controls, replacing the vendored
+  `android-emulator-container-scripts` React frontend entirely.
+- `Dockerfile.webrtc-gateway`/`Dockerfile.webrtc-web` are drastically
+  simplified: no more cloning `android-emulator-container-scripts`, no more
+  `rtc_service.proto` vendoring/compilation, no more `npm ci`/webpack build.
+  Removed `scripts/webrtc-gateway-entrypoint.sh` and `webrtc/rtc_service.proto`
+  (dead code after the above). `nginx/webrtc.conf` no longer needs the 0.1.3
+  path alias and now disables proxy buffering so `screen.mjpeg` frames are
+  forwarded as they arrive instead of batched.
+- Updated static and E2E tests for the new architecture: E2E now fetches a
+  real frame from `screen.mjpeg` and posts a hardware key, instead of the old
+  JSEP-handshake-only check that could never have caught the video being
+  fundamentally broken.
+- Verified end-to-end: a `screen.mjpeg` frame confirmed visually as the real
+  emulator home screen; hardware key and GPS calls succeed; full
+  `./tests/e2e_debug.sh` passes including a genuine `android-example` PASS.
+
 ## 0.1.3 — 2026-09-17
 
 - Fixed the WebRTC debug UI showing a blank white page. The built frontend's

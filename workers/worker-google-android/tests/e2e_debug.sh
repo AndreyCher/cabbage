@@ -8,28 +8,37 @@ cd "$root_dir"
 
 deadline=$((SECONDS + 360))
 until curl -fsS http://127.0.0.1:6082/api/v1/emulator/status | python3 -c 'import json,sys; assert json.load(sys.stdin)["booted"] is True'; do
-  (( SECONDS < deadline )) || { echo "WebRTC status did not become ready" >&2; exit 1; }
+  (( SECONDS < deadline )) || { echo "Emulator status did not become ready" >&2; exit 1; }
   sleep 2
 done
 
 curl -fsS http://127.0.0.1:6082/ | grep -qi '<html'
 curl -fsS http://127.0.0.1:8092/api/v1/health | python3 -c 'import json,sys; assert json.load(sys.stdin)["status"] == "ok"'
 
-# The frontend's index.html references its JS bundle by absolute path; a
-# routing mismatch can make nginx silently serve index.html (HTTP 200) for
-# that request instead of the real module, which renders as a blank white
-# page with no visible error in curl-only checks. Fetch the exact path the
-# page itself references and require an actual JS content type.
-bundle_path="$(curl -fsS http://127.0.0.1:6082/ | grep -oE '/[^"[:space:]]+\.js' | head -1)"
-[ -n "$bundle_path" ] || { echo "Could not find a JS bundle reference in index.html" >&2; exit 1; }
-bundle_type="$(curl -fsS -o /dev/null -w '%{content_type}' "http://127.0.0.1:6082${bundle_path}")"
-case "$bundle_type" in
-  *javascript*) ;;
-  *) echo "Frontend JS bundle ${bundle_path} served as '${bundle_type}', not JavaScript (blank white page)" >&2; exit 1 ;;
-esac
+# The debug page's live view is a multipart/x-mixed-replace PNG stream
+# (screen.mjpeg), not the official image's legacy WebRTC video service (that
+# service never returns an SDP answer or ICE candidates for a real browser
+# peer connection - verified by direct gRPC probing; see README.md "Known
+# issues"). Read the first frame and require real PNG bytes, so a routing or
+# gateway regression that would otherwise render as a silent blank page fails
+# this test loudly instead.
+frame_file="$(mktemp)"
+trap 'rm -f "$frame_file"' EXIT
+# --max-time bounds this: screen.mjpeg is an infinite stream, so curl is
+# expected to exit 28 (timeout) here, not 0; only fail on other exit codes.
+set +e
+curl -fsS --max-time 3 -o "$frame_file" http://127.0.0.1:6082/api/v1/emulator/screen.mjpeg
+curl_rc=$?
+set -e
+if [ "$curl_rc" -ne 0 ] && [ "$curl_rc" -ne 28 ]; then
+  echo "screen.mjpeg request failed (curl exit $curl_rc)" >&2
+  exit 1
+fi
+grep -qa 'Content-Type: image/png' "$frame_file" || { echo "screen.mjpeg did not return a PNG frame" >&2; exit 1; }
 
-docker exec worker-google-android-google-android-webrtc-gateway-1 python -c \
-  "import asyncio,aiohttp,json; exec('async def t():\n    async with aiohttp.ClientSession() as s:\n        async with s.ws_connect(\"http://google-android-web:8080/api/v1/emulator/ws-jsep\") as w:\n            m=await asyncio.wait_for(w.receive(),10)\n            data=json.loads(m.data)\n            assert \"start\" in data and data[\"start\"].get(\"iceServers\")\nasyncio.run(t())')"
+# Hardware key injection (HOME) should be accepted by the gateway.
+key_status="$(curl -fsS -X POST -H 'Content-Type: application/json' -d '{"key":"GoHome"}' http://127.0.0.1:6082/api/v1/emulator/key | python3 -c 'import json,sys; print(json.load(sys.stdin)["status"])')"
+[ "$key_status" = "sent" ] || { echo "Hardware key injection did not report 'sent'" >&2; exit 1; }
 
 deadline=$((SECONDS + 360))
 while :; do

@@ -1,26 +1,24 @@
+# syntax=docker/dockerfile:1.7
+# Self-owned debug gateway: talks to the official emulator's
+# EmulatorController gRPC service directly (status/GPS/hardware keys/screen).
+# See scripts/gateway_server.py for why this does not use the image's legacy
+# "android.emulation.control.Rtc" WebRTC service.
 FROM python:3.12-slim
-ARG AEMU_CONTAINER_SCRIPTS_COMMIT=0654f694b46794fae4b178f1e1a17cb60c5d2d34
 ARG ANDROID_TOOLS_BASE_COMMIT=3bce36588f5e683330f968538a2a55a66ed54c0e
-COPY workers/worker-google-android/webrtc/rtc_service.proto /opt/legacy-proto/rtc_service.proto
 RUN apt-get update && apt-get install -y --no-install-recommends git \
  && rm -rf /var/lib/apt/lists/* \
- && git clone https://github.com/google/android-emulator-container-scripts.git /opt/aemu \
- && git -C /opt/aemu checkout "$AEMU_CONTAINER_SCRIPTS_COMMIT" \
  && git clone --filter=blob:none --sparse https://android.googlesource.com/platform/tools/base /opt/tools-base \
  && git -C /opt/tools-base checkout "$ANDROID_TOOLS_BASE_COMMIT" \
  && git -C /opt/tools-base sparse-checkout set emulator/proto \
- && mkdir -p /opt/protos/hardware/google/aemu/protos/services/emulator-controller /opt/protos/hardware/google/aemu/protos/services/webrtc \
- && cp /opt/tools-base/emulator/proto/*.proto /opt/protos/hardware/google/aemu/protos/services/emulator-controller/ \
- && cp /opt/tools-base/emulator/proto/*.proto /opt/protos/hardware/google/aemu/protos/services/webrtc/ \
- && BAZEL_ROOT=/opt/protos python -m pip install --no-cache-dir /opt/aemu/gateway \
- && python -m pip install --no-cache-dir grpcio-tools \
+ && python -m pip install --no-cache-dir aiohttp grpcio grpcio-tools \
+ && mkdir -p /opt/worker-google-android-gateway/proto \
  && python -m grpc_tools.protoc \
-      -I/opt/legacy-proto \
+      -I/opt/tools-base/emulator/proto \
       -I/usr/local/lib/python3.12/site-packages/grpc_tools/_proto \
-      --python_out=/opt/aemu/gateway/src/videobridge_gateway/proto \
-      --grpc_python_out=/opt/aemu/gateway/src/videobridge_gateway/proto \
-      /opt/legacy-proto/rtc_service.proto
-ENV PYTHONPATH=/opt/aemu/gateway/src
-COPY workers/worker-google-android/scripts/webrtc-gateway-entrypoint.sh /usr/local/bin/webrtc-gateway-entrypoint
-RUN chmod 755 /usr/local/bin/webrtc-gateway-entrypoint
-ENTRYPOINT ["webrtc-gateway-entrypoint"]
+      --python_out=/opt/worker-google-android-gateway/proto \
+      --grpc_python_out=/opt/worker-google-android-gateway/proto \
+      /opt/tools-base/emulator/proto/emulator_controller.proto \
+ && rm -rf /opt/tools-base
+COPY workers/worker-google-android/scripts/gateway_server.py /opt/worker-google-android-gateway/gateway_server.py
+WORKDIR /opt/worker-google-android-gateway
+ENTRYPOINT ["python3", "gateway_server.py"]

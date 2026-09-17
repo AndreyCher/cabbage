@@ -36,12 +36,13 @@ Autonomous Android 14 execution worker using KVM, Android Emulator, Appium UiAut
 
 ### worker-google-android
 
-Current version: **0.1.3**
+Current version: **0.1.4**
 
 Autonomous compatible Android worker using Google's official Android Emulator
-Container, an Appium/ADB sidecar and browser-based WebRTC debug access. It
-shares the `worker-android` Python runtime contract while adapting emulator
-startup, proxy materialization and debug transport to the Google image.
+Container, an Appium/ADB sidecar and a browser-based debug view (live screen,
+hardware buttons, GPS) served by a self-owned gateway. It shares the
+`worker-android` Python runtime contract while adapting emulator startup,
+proxy materialization and debug transport to the Google image.
 
 - Code and component documentation: `workers/worker-google-android/`
 - Overview and startup: `workers/worker-google-android/README.md`
@@ -106,7 +107,7 @@ React/TypeScript control-plane interface using Material UI. It provides Controll
 - `FUTURE_BOT.md` — detailed implementation-oriented notes for deferred work.
 - `workers/worker-firefox/*.md` — documentation owned by the Firefox worker module.
 - `workers/worker-android/*.md` — documentation owned by the Android worker module; `CODEX_HANDOFF.md` is required reading before implementation work.
-- `workers/worker-google-android/*.md` — documentation for the official Google Emulator compatible worker and WebRTC debug stack.
+- `workers/worker-google-android/*.md` — documentation for the official Google Emulator compatible worker and its browser-based debug stack.
 - `data-provider/*.md` — documentation owned by the worker-facing data-resolution component.
 - `proxy-checker/*.md` — documentation owned by the proxy verification component.
 - `tools/firefox-image-builder/*.md` — documentation owned by the base-image builder module.

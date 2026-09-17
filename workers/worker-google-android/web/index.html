@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Android Emulator Debug View</title>
+<style>
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+    background-color: #f0f2f5;
+    color: #1c1e21;
+  }
+  h1 { font-size: 1.4rem; padding: 16px 20px 0; margin: 0; }
+  .layout { display: flex; flex-wrap: wrap; gap: 20px; padding: 20px; align-items: flex-start; }
+  .screen-wrap { background: #000; border-radius: 4px; overflow: hidden; line-height: 0; }
+  #screen { display: block; max-width: 360px; width: 100%; height: auto; background: #000; }
+  .panel { background: #fff; border-radius: 8px; padding: 16px 20px; min-width: 260px; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+  .panel h2 { font-size: 1rem; margin: 0 0 12px; }
+  .status-line { font-size: 0.9rem; margin-bottom: 8px; }
+  .status-ok { color: #1a7f37; }
+  .status-bad { color: #c0392b; }
+  .buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+  button { border: 1px solid #d0d7de; background: #f6f8fa; border-radius: 6px; padding: 6px 12px; font-size: 0.85rem; cursor: pointer; }
+  button:hover { background: #eef1f4; }
+  label { display: block; font-size: 0.85rem; margin: 8px 0 4px; }
+  input[type=text] { width: 100%; box-sizing: border-box; padding: 6px 8px; border: 1px solid #d0d7de; border-radius: 6px; font-size: 0.9rem; }
+  .update-btn { background: #2ea043; color: #fff; border: none; margin-top: 10px; }
+  .update-btn:hover { background: #2c974b; }
+  .hint { font-size: 0.8rem; color: #57606a; margin-top: 10px; }
+</style>
+</head>
+<body>
+<h1>Android Emulator Debug View</h1>
+<div class="layout">
+  <div class="screen-wrap">
+    <img id="screen" alt="emulator screen" />
+  </div>
+
+  <div class="panel">
+    <h2>Status</h2>
+    <div class="status-line">Screen stream: <span id="stream-status">connecting…</span></div>
+    <div class="status-line">Emulator: <span id="emulator-status">checking…</span></div>
+  </div>
+
+  <div class="panel">
+    <h2>Hardware buttons</h2>
+    <div class="buttons">
+      <button data-key="GoHome">Home</button>
+      <button data-key="GoBack">Back</button>
+      <button data-key="AppSwitch">App Switch</button>
+      <button data-key="Power">Power</button>
+      <button data-key="AudioVolumeUp">Vol +</button>
+      <button data-key="AudioVolumeDown">Vol -</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Location (GPS)</h2>
+    <label for="lat">Latitude</label>
+    <input type="text" id="lat" value="37.4220" />
+    <label for="lng">Longitude</label>
+    <input type="text" id="lng" value="-122.0841" />
+    <button class="update-btn" id="gps-update">Update location</button>
+    <div class="hint" id="gps-result"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var screenImg = document.getElementById('screen');
+  var streamStatus = document.getElementById('stream-status');
+  var emulatorStatus = document.getElementById('emulator-status');
+
+  // The screen is a multipart/x-mixed-replace stream; <img src=...> renders
+  // it natively without any JS decoding loop. A cache-busting query param
+  // forces a fresh connection if the browser ever caches/aborts the stream.
+  function connectScreen() {
+    screenImg.onload = function () { streamStatus.textContent = 'live'; streamStatus.className = 'status-ok'; };
+    screenImg.onerror = function () {
+      streamStatus.textContent = 'disconnected, retrying…';
+      streamStatus.className = 'status-bad';
+      setTimeout(connectScreen, 2000);
+    };
+    screenImg.src = '/api/v1/emulator/screen.mjpeg?t=' + Date.now();
+  }
+  connectScreen();
+
+  function refreshStatus() {
+    fetch('/api/v1/emulator/status')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        emulatorStatus.textContent = data.booted ? 'booted' : 'not booted';
+        emulatorStatus.className = data.booted ? 'status-ok' : 'status-bad';
+      })
+      .catch(function () {
+        emulatorStatus.textContent = 'unreachable';
+        emulatorStatus.className = 'status-bad';
+      });
+  }
+  refreshStatus();
+  setInterval(refreshStatus, 10000);
+
+  document.querySelectorAll('button[data-key]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      fetch('/api/v1/emulator/key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: btn.getAttribute('data-key') }),
+      }).catch(function () {});
+    });
+  });
+
+  document.getElementById('gps-update').addEventListener('click', function () {
+    var result = document.getElementById('gps-result');
+    var lat = parseFloat(document.getElementById('lat').value);
+    var lng = parseFloat(document.getElementById('lng').value);
+    if (Number.isNaN(lat) || Number.isNaN(lng)) {
+      result.textContent = 'Invalid latitude/longitude';
+      return;
+    }
+    fetch('/api/v1/emulator/gps', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ latitude: lat, longitude: lng }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        result.textContent = data.status === 'success' ? ('Updated: ' + lat + ', ' + lng) : ('Error: ' + (data.error || 'unknown'));
+      })
+      .catch(function () { result.textContent = 'Request failed'; });
+  });
+})();
+</script>
+</body>
+</html>

@@ -8,6 +8,13 @@ This is the global release history for all application components. Component cha
   and `uiautomator2_server_install_timeout_ms` capabilities, finishing the
   release of a shared runtime change already required by worker-google-android.
 
+- Added worker-google-android 0.1.4 replacing the debug UI's video path
+  entirely: the official emulator's legacy WebRTC video service never
+  actually completes a real browser peer connection, so the live view now
+  streams real screenshots directly from the emulator's own
+  `EmulatorController` gRPC service instead, with working hardware-button
+  and GPS controls.
+
 - Added worker-google-android 0.1.3 fixing a blank white WebRTC debug page:
   nginx served the built frontend's JS bundle at the wrong path relative to
   what its own `index.html` requested.

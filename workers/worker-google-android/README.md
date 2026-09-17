@@ -1,4 +1,4 @@
-# worker-google-android v0.1.3
+# worker-google-android v0.1.4
 
 Autonomous Android worker built around Google's official Android Emulator
 Container (`30-google-x64-no-metrics:30.1.2`) and an Appium/ADB sidecar.
@@ -14,7 +14,10 @@ official emulator's `-http-proxy` launch argument.
 
 The emulator implementation differs where the base images differ:
 
-- browser debug uses WebRTC at port `6082`, not VNC/noVNC;
+- browser debug at port `6082` shows a live view and hardware/GPS controls
+  through a small self-owned gateway talking directly to the emulator's
+  `EmulatorController` gRPC service (see "Debug mode and browser UI" below),
+  not VNC/noVNC and not the image's own WebRTC video service;
 - Android is Google APIs API 30/Android 11 rather than the Android 14 image used
   by `worker-android`;
 - the device skin is the official image's Pixel 2;
@@ -40,9 +43,15 @@ cd workers/worker-google-android
 ./scripts/debug-up.sh
 ```
 
-Open `http://<docker-host>:6082`. The Control API is available locally at
-`http://127.0.0.1:8092`. No ADB-key `export` is required; all later commands work
-directly:
+Open `http://<docker-host>:6082`. The page shows a live emulator screen (a
+`multipart/x-mixed-replace` PNG stream at `/api/v1/emulator/screen.mjpeg`,
+refreshed as the device produces new frames), Home/Back/App Switch/Power/
+Volume buttons, and GPS latitude/longitude controls — all served by
+`scripts/gateway_server.py`, a small aiohttp app that talks directly to the
+emulator's own `EmulatorController` gRPC service (`sendKey`, `streamScreenshot`,
+`setPhysicalModel`). The Control API is available locally at
+`http://127.0.0.1:8092`. No ADB-key `export` is required; all later commands
+work directly:
 
 ```bash
 docker compose --profile debug ps
@@ -51,8 +60,13 @@ docker compose --profile debug down
 ```
 
 The debug profile uses `debug.keep_alive=true`, so the container remains
-available after the scenario. WebRTC signaling is adapted to the legacy RTC
-contract exposed by the pinned official emulator image.
+available after the scenario.
+
+This image's own legacy `android.emulation.control.Rtc` WebRTC video service
+does not actually complete a real browser peer connection (verified by direct
+gRPC probing: it never returns an SDP answer or ICE candidates after a client
+offer). `screen.mjpeg` above is the replacement live view; see "Known issues"
+for the (unrelated) Chrome-cold-start reliability issue this does not affect.
 
 ## Normal autonomous mode
 
@@ -90,12 +104,17 @@ PYTHONPATH=../worker-android python3 -m unittest discover -s ../worker-android/t
 ```
 
 The E2E test verifies the official emulator cold boot, Control API, browser
-page, WebSocket signaling, Appium actions and final artifacts. `runtime/adbkey`
-is private local state and must not be committed. See "Known issues" below:
-on a loaded host, `./tests/e2e_debug.sh` can currently fail `android-example`
-for a reason unrelated to the test harness itself.
+page, a real PNG frame from `screen.mjpeg`, hardware key injection, Appium
+actions and final artifacts. `runtime/adbkey` is private local state and must
+not be committed. See "Known issues" below: on a loaded host,
+`./tests/e2e_debug.sh` can still fail `android-example` itself for a reason
+unrelated to the debug UI or the test harness.
 
 ## Known issues
+
+The 0.1.2/0.1.3 blank/black debug-UI screen is resolved as of 0.1.4: the live
+view no longer depends on the image's non-functional legacy WebRTC video
+service at all (see `CHANGELOG.md`). One issue remains open:
 
 - **Chrome cold-start reliability on the official emulator image.** The
   default `android-example` scenario (`open` a URL, then `press` `BACK`) does
@@ -111,7 +130,7 @@ for a reason unrelated to the test harness itself.
   In both cases the `press`/`BACK` action that follows `open` then fails with
   `InvalidElementStateException: Cannot generate key press event for key code
   4`, because Chrome never actually finished rendering the page. Disabling
-  Chrome's first-run experience (this release, see `CHANGELOG.md`) fixes a
+  Chrome's first-run experience (0.1.2, see `CHANGELOG.md`) fixes a
   real but different problem and does not resolve this one. A pre-warm launch
   of Chrome before the worker connects (giving the flaky first launch a place
   to fail before the scenario runs) was tried and reverted: it did not
