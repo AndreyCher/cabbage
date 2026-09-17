@@ -1,0 +1,9 @@
+{
+  "name": "android-phone-example",
+  "actions": [
+    {"type": "wait_input", "key": "phone", "timeout_sec": 5},
+    {"type": "launch_app", "package": "org.example.telephonyqa"},
+    {"type": "wait_input", "key": "sms", "timeout_sec": 180},
+    {"type": "screenshot", "name": "telephony-qa.png"}
+  ]
+}

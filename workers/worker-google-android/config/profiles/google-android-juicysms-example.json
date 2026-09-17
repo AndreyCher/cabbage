@@ -1,0 +1,28 @@
+{
+  "identity": "google-android-telephony-qa",
+  "run": {"scenario": "android-phone-example"},
+  "telephony": {
+    "enabled": true,
+    "mode": "emulated",
+    "backend": "app_api",
+    "packages": ["org.example.telephonyqa"],
+    "imei": {"mode": "generated"},
+    "imsi": {"mode": "generated"},
+    "operator": {"name": "QA Netherlands", "mcc": "204", "mnc": "08", "country_iso": "nl"},
+    "phone_number": {"source": "cloud_provider"}
+  },
+  "phone_number_provider": {
+    "enabled": true,
+    "required": false,
+    "provider": "juicysms",
+    "token": "replace-with-a-private-local-profile-token",
+    "country": "NL",
+    "service_id": 1,
+    "max_price": 0.5,
+    "request_timeout_sec": 10,
+    "allocation_timeout_sec": 60,
+    "poll_interval_sec": 5,
+    "message_timeout_sec": 180,
+    "release_on_finish": true
+  }
+}

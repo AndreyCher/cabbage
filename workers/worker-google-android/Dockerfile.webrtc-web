@@ -1,0 +1,15 @@
+FROM node:20-bookworm-slim AS build
+ARG AEMU_CONTAINER_SCRIPTS_COMMIT=0654f694b46794fae4b178f1e1a17cb60c5d2d34
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates protobuf-compiler libprotobuf-dev make python3 \
+ && rm -rf /var/lib/apt/lists/* \
+ && mkdir -p /usr/local/include \
+ && ln -s /usr/include/google /usr/local/include/google \
+ && ln -s /usr/bin/python3 /usr/local/bin/python \
+ && git clone https://github.com/google/android-emulator-container-scripts.git /src/aemu \
+ && git -C /src/aemu checkout "$AEMU_CONTAINER_SCRIPTS_COMMIT"
+WORKDIR /src/aemu/js
+RUN npm ci && make protoc && cd example && npm ci && npm run build
+
+FROM nginx:1.27-alpine
+COPY workers/worker-google-android/nginx/webrtc.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /src/aemu/js/example/dist /usr/share/nginx/html

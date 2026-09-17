@@ -8,6 +8,11 @@ This is the global release history for all application components. Component cha
   and `uiautomator2_server_install_timeout_ms` capabilities, finishing the
   release of a shared runtime change already required by worker-google-android.
 
+- Added worker-google-android 0.1.2 fixing `open`/`new_tab`: Chrome's
+  first-run setup wizard intercepted the first `ACTION_VIEW` intent on a fresh
+  official emulator instance, found by running the full debug E2E test for
+  the first time.
+
 - Added worker-google-android 0.1.1 with functional parity through the shared
   Android runtime, working Appium cold starts, file-mounted ADB authentication,
   proxy/telephony/provider profiles, and browser WebRTC debug E2E coverage.

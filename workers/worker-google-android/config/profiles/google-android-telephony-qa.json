@@ -1,0 +1,24 @@
+{
+  "identity": "google-android-telephony-qa",
+  "run": {"scenario": "android-phone-example"},
+  "telephony": {
+    "enabled": true,
+    "mode": "emulated",
+    "backend": "app_api",
+    "packages": ["org.example.telephonyqa"],
+    "imei": {"mode": "generated"},
+    "imsi": {"mode": "generated"},
+    "operator": {"name": "QA Germany", "mcc": "262", "mnc": "01", "country_iso": "de"},
+    "phone_number": {"source": "cloud_provider"}
+  },
+  "phone_number_provider": {
+    "enabled": true,
+    "provider": "mock",
+    "country": "de",
+    "mock_number": "+4915112345678",
+    "mock_code": "123456",
+    "mock_delay_sec": 1,
+    "message_timeout_sec": 180,
+    "release_on_finish": true
+  }
+}

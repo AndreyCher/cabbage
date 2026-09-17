@@ -1,0 +1,36 @@
+{
+  "plugins": {
+    "enabled": false,
+    "items": {}
+  },
+  "browser": {
+    "mode": "virtual"
+  },
+  "recording": {
+    "video": true,
+    "max_time_sec": 180,
+    "bitrate": 4000000
+  },
+  "fingerprint_diagnostics": {
+    "enabled": false
+  },
+  "vm_diagnostics": {
+    "enabled": false
+  },
+  "android": {
+    "serial": "google-emulator:5555",
+    "device_name": "Google Android Emulator",
+    "appium_url": "http://127.0.0.1:4723",
+    "boot_timeout_sec": 240,
+    "new_command_timeout": 600,
+    "no_reset": true,
+    "auto_grant_permissions": true,
+    "adb_exec_timeout_ms": 120000,
+    "uiautomator2_server_install_timeout_ms": 120000,
+    "appium_timeout_sec": 120
+  },
+  "debug": {
+    "keep_alive": false,
+    "continue_on_error": false
+  }
+}

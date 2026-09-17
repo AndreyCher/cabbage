@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "project": {"name": "cabbage"},
+  "worker": {"type": "google-android"},
+  "paths": {
+    "global_default_config": "/workers-config/default.json",
+    "local_default_config": "/config/default.json",
+    "profiles_dir": "/config/profiles",
+    "global_scenarios_dir": "/workers-config/scenarios",
+    "local_scenarios_dir": "/config/scenarios",
+    "identities_dir": "/identities",
+    "artifacts_dir": "/artifacts"
+  }
+}

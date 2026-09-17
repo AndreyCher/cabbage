@@ -1,0 +1,10 @@
+{
+  "identity": "google-android-proxy-example",
+  "run": {"scenario": "android-example"},
+  "proxy": {
+    "enabled": true,
+    "server": "http://proxy.example.com:10000",
+    "username": "proxy-user",
+    "password": "proxy-password"
+  }
+}

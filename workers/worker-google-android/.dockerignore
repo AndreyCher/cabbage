@@ -1,0 +1,6 @@
+runtime/
+artifacts/
+identities/
+config/profiles/*.local.json
+**/__pycache__/
+**/*.pyc

@@ -1,0 +1,76 @@
+services:
+  google-emulator:
+    image: worker-google-android-emulator:0.1.2
+    build:
+      context: ../..
+      dockerfile: workers/worker-google-android/Dockerfile.emulator
+    devices: ["/dev/kvm:/dev/kvm"]
+    environment:
+      EMULATOR_PARAMS: "-no-snapshot -no-audio"
+      WORKER_SYSTEM_CONFIG: /config/config.json
+      WORKER_PROFILE: "${WORKER_PROFILE:-google-android-test-001}"
+    volumes:
+      - ./config:/config:ro
+      - ./runtime/adbkey:/run/secrets/adbkey:ro
+    ports:
+      - "127.0.0.1:8554:8554"
+    healthcheck:
+      test: ["CMD-SHELL", "/android/sdk/platform-tools/adb shell getprop sys.boot_completed | grep -q 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  worker-google-android:
+    image: worker-google-android:0.1.2
+    build:
+      context: ../..
+      dockerfile: workers/worker-google-android/Dockerfile
+    depends_on:
+      google-emulator:
+        condition: service_healthy
+    environment:
+      WORKER_SYSTEM_CONFIG: /config/config.json
+      WORKER_PROFILE: "${WORKER_PROFILE:-google-android-test-001}"
+      WORKER_GOOGLE_ANDROID_ADB_SERIAL: google-emulator:5555
+      ADB_VENDOR_KEYS: /run/adb/adbkey
+    volumes:
+      - ../config:/workers-config:ro
+      - ./config:/config:ro
+      - ./runtime/adbkey:/run/adb/adbkey:ro
+      - ./identities:/identities
+      - ./artifacts:/artifacts
+    ports:
+      - "127.0.0.1:8092:8090"
+
+  worker-google-android-debug:
+    extends: worker-google-android
+    profiles: ["debug"]
+    environment:
+      WORKER_SYSTEM_CONFIG: /config/config.json
+      WORKER_PROFILE: "${WORKER_DEBUG_PROFILE:-google-android-test-001-debug}"
+      WORKER_GOOGLE_ANDROID_ADB_SERIAL: google-emulator:5555
+      ADB_VENDOR_KEYS: /run/adb/adbkey
+      WORKER_DEBUG_MODE: "true"
+    ports:
+      - "127.0.0.1:8092:8090"
+
+  google-android-webrtc-gateway:
+    profiles: ["debug"]
+    build:
+      context: ../..
+      dockerfile: workers/worker-google-android/Dockerfile.webrtc-gateway
+    environment:
+      EMULATOR_GRPC_HOST: google-emulator
+    depends_on:
+      google-emulator:
+        condition: service_healthy
+
+  google-android-web:
+    profiles: ["debug"]
+    build:
+      context: ../..
+      dockerfile: workers/worker-google-android/Dockerfile.webrtc-web
+    depends_on:
+      - google-android-webrtc-gateway
+    ports:
+      - "0.0.0.0:6082:8080"
