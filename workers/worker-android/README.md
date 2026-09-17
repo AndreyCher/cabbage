@@ -1,4 +1,4 @@
-# worker-android v0.1.2
+# worker-android v0.1.7
 
 `worker-android` is the Android execution sibling of `worker-firefox`.
 The first release is intentionally autonomous: Controller and Web Console changes are not required.
@@ -144,6 +144,26 @@ Persistent worker profile:
 
 `EMULATOR_DEVICE` environment variable has priority over profile configuration.
 The selected device name must be supported by the underlying Docker-Android image.
+
+## Appium session tuning
+
+A slower host or emulator image can need a longer cold Appium/UiAutomator2
+install before the first session succeeds. Two optional `android` keys tune
+this without a code change:
+
+```json
+{
+  "android": {
+    "adb_exec_timeout_ms": 120000,
+    "uiautomator2_server_install_timeout_ms": 120000
+  }
+}
+```
+
+Both default to `120000` (2 minutes), matching the previous hard-coded
+behavior; existing profiles do not need to set them. `worker-google-android`
+sets both explicitly in its own `config/default.json` because its official
+emulator image has a slower cold Appium/UiAutomator2 install.
 
 ## Proxy
 

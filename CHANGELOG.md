@@ -4,6 +4,14 @@ This is the global release history for all application components. Component cha
 
 ## Unreleased
 
+- Added worker-android 0.1.7 with configurable Appium `adb_exec_timeout_ms`
+  and `uiautomator2_server_install_timeout_ms` capabilities, finishing the
+  release of a shared runtime change already required by worker-google-android.
+
+- Added worker-google-android 0.1.1 with functional parity through the shared
+  Android runtime, working Appium cold starts, file-mounted ADB authentication,
+  proxy/telephony/provider profiles, and browser WebRTC debug E2E coverage.
+
 - Added worker-android 0.1.6 so Compose debug runs always enable safe provider
   diagnostics.
 

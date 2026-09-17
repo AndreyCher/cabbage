@@ -39,6 +39,8 @@ class AndroidDevice:
             "appium:udid":self.serial, "appium:noReset":bool(acfg.get("no_reset", True)),
             "appium:newCommandTimeout":int(acfg.get("new_command_timeout", 600)),
             "appium:autoGrantPermissions":bool(acfg.get("auto_grant_permissions", True)),
+            "appium:adbExecTimeout":int(acfg.get("adb_exec_timeout_ms", 120000)),
+            "appium:uiautomator2ServerInstallTimeout":int(acfg.get("uiautomator2_server_install_timeout_ms", 120000)),
         }
         last = None
         deadline = time.monotonic() + int(acfg.get("appium_timeout_sec", 120))

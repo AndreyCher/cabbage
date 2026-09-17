@@ -1,3 +1,13 @@
+# worker-android 0.1.7
+
+Adds two optional Appium capabilities, `android.adb_exec_timeout_ms` and
+`android.uiautomator2_server_install_timeout_ms` (default 120000 ms each), so a
+slow cold UiAutomator2 install/ADB path can be tuned per profile instead of
+requiring a code change. Existing profiles are unaffected: both keys keep their
+previous implicit defaults. This finishes releasing a shared `app/android.py`
+change that `worker-google-android` 0.1.1 already depended on for its slower
+official-emulator cold start.
+
 # worker-android 0.1.6
 
 Compose debug runs now always enable safe provider diagnostics, independently

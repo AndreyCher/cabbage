@@ -23,7 +23,7 @@ Firefox/Camoufox execution worker with modular scenario actions, plugin adapters
 
 ### worker-android
 
-Current version: **0.1.6**
+Current version: **0.1.7**
 
 Autonomous Android 14 execution worker using KVM, Android Emulator, Appium UiAutomator2 and ADB. It preserves the shared worker configuration, scenario envelope, runtime-input API and artifact layout where Android equivalents exist. It includes opt-in app-scoped telephony QA and run-scoped SMS-number providers, including JuicySMS v2 with private local-profile credentials. Controller and Web Console worker selection are intentionally not integrated yet.
 
@@ -33,6 +33,19 @@ Autonomous Android 14 execution worker using KVM, Android Emulator, Appium UiAut
 - Application-scoped telephony QA and phone/SMS providers: `workers/worker-android/TELEPHONY.md`
 - Implementation handoff and roadmap: `workers/worker-android/CODEX_HANDOFF.md`
 - Detailed component history: `workers/worker-android/CHANGELOG.md`
+
+### worker-google-android
+
+Current version: **0.1.1**
+
+Autonomous compatible Android worker using Google's official Android Emulator
+Container, an Appium/ADB sidecar and browser-based WebRTC debug access. It
+shares the `worker-android` Python runtime contract while adapting emulator
+startup, proxy materialization and debug transport to the Google image.
+
+- Code and component documentation: `workers/worker-google-android/`
+- Overview and startup: `workers/worker-google-android/README.md`
+- Detailed component history: `workers/worker-google-android/CHANGELOG.md`
 
 ### firefox-image-builder
 
@@ -93,6 +106,7 @@ React/TypeScript control-plane interface using Material UI. It provides Controll
 - `FUTURE_BOT.md` — detailed implementation-oriented notes for deferred work.
 - `workers/worker-firefox/*.md` — documentation owned by the Firefox worker module.
 - `workers/worker-android/*.md` — documentation owned by the Android worker module; `CODEX_HANDOFF.md` is required reading before implementation work.
+- `workers/worker-google-android/*.md` — documentation for the official Google Emulator compatible worker and WebRTC debug stack.
 - `data-provider/*.md` — documentation owned by the worker-facing data-resolution component.
 - `proxy-checker/*.md` — documentation owned by the proxy verification component.
 - `tools/firefox-image-builder/*.md` — documentation owned by the base-image builder module.
@@ -129,4 +143,7 @@ Print the Controller API token:
 cat secrets/controller_api_token
 ```
 
-`worker-firefox` and `worker-android` are autonomous worker components. Firefox supports both root and component-local Compose workflows. Android v0.1.1 currently runs from `workers/worker-android/`; its Controller, Web Console, registry and root Compose integration remain intentionally deferred until explicitly requested.
+`worker-firefox`, `worker-android` and `worker-google-android` can operate as
+autonomous worker components. The Google variant currently runs from
+`workers/worker-google-android/`; its Controller, Web Console, registry and root
+Compose integration remain intentionally deferred until explicitly requested.

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.7 — 2026-09-17
+
+- Added configurable Appium session capabilities `android.adb_exec_timeout_ms`
+  and `android.uiautomator2_server_install_timeout_ms` (both default 120000)
+  to `AndroidDevice.connect()`, so a slower cold Appium/UiAutomator2 install on
+  a given emulator/host does not need a code change. This closes out a shared
+  runtime change that was already required by `worker-google-android` 0.1.1's
+  cold-start fix but had not yet been released for `worker-android` itself.
+- No behavior change for existing profiles: both new keys keep their previous
+  hard-coded defaults unless a profile explicitly overrides them.
+
 ## 0.1.6 — 2026-09-16
 
 - Made the Compose debug service explicitly enable safe JuicySMS diagnostics,

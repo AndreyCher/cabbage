@@ -2,6 +2,46 @@
 
 This document is the implementation handoff for the standalone Android worker. It is intentionally scoped to `workers/worker-android`; do not modify Controller or WebUI unless explicitly requested later.
 
+## Update — 0.1.7 (2026-09-17)
+
+A prior session had built `workers/worker-google-android` (a sibling autonomous
+worker sharing this component's `app/` Python runtime, see its own
+`README.md`/`CHANGELOG.md`) entirely inside the `/config/cabbage` working
+directory but never finished the release: nothing under
+`workers/worker-google-android/` had reached the `/home/blackbird/cabbage` Git
+repository (no commit, no tag), and a shared-code change this component needed
+— two new `AndroidDevice.connect()` Appium capabilities,
+`android.adb_exec_timeout_ms` and `android.uiautomator2_server_install_timeout_ms`
+(both already consumed by `worker-google-android`'s `config/default.json`) —
+had been made to this component's `app/android.py` without a version bump,
+changelog entry or release for `worker-android` itself. This session finished
+that release as `worker-android` 0.1.7 (see `CHANGELOG.md`/`RELEASE_NOTES.md`);
+both new keys default to the previous hard-coded `120000` ms, so existing
+profiles are unaffected. It also confirmed the two workers still have
+identical action/API/config/artifact/telephony/provider behavior by
+construction (`worker-google-android` builds its image directly from this
+component's `app/` directory; only emulator/proxy/debug transport differs) and
+ran this component's 29 unit tests plus `worker-google-android`'s static
+config, Go proxy-contract and full debug E2E tests. See
+`workers/worker-google-android/CHANGELOG.md` and `AGENT.md` for the outcome of
+that E2E run. A stray `cabbage-android-future-updated.tar.gz` sits in this
+directory from an earlier session; it is already `.gitignore`d/`.dockerignore`d
+and harmless, but is not a real project asset — a future cleanup session may
+remove it after confirming with the user.
+
+The items below (bind-mount ownership, explicit selector waits, device
+identity, telephony/provider follow-ups) were already open before this session
+and remain open; this session did not attempt them to stay in scope.
+
+## Update — 0.1.5 / 0.1.6 (2026-09-16)
+
+Two small `worker-android` releases landed without a dedicated handoff update;
+recorded here for continuity. 0.1.5 added safe JuicySMS lifecycle/error-code
+debug tracing without exposing credentials, phone numbers or SMS contents.
+0.1.6 made the Compose `worker-android-debug` service always enable that
+tracing regardless of the selected profile's `debug.keep_alive` value. See
+`CHANGELOG.md` for exact detail.
+
 ## Update — 0.1.4 (2026-09-16)
 
 JuicySMS v2 one-time country codes are deliberately restricted to `USA`, `UK`,

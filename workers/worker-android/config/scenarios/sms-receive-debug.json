@@ -1,0 +1,16 @@
+{
+  "name": "sms-receive-debug",
+  "actions": [
+    {
+      "type": "wait_input",
+      "key": "phone",
+      "timeout_sec": 10
+    },
+    {
+      "type": "wait_input",
+      "key": "sms",
+      "timeout_sec": 540,
+      "on_timeout": "fail"
+    }
+  ]
+}
