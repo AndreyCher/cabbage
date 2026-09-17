@@ -1,4 +1,4 @@
-# worker-google-android v0.1.4
+# worker-google-android v0.1.5
 
 Autonomous Android worker built around Google's official Android Emulator
 Container (`30-google-x64-no-metrics:30.1.2`) and an Appium/ADB sidecar.
@@ -43,15 +43,16 @@ cd workers/worker-google-android
 ./scripts/debug-up.sh
 ```
 
-Open `http://<docker-host>:6082`. The page shows a live emulator screen (a
-`multipart/x-mixed-replace` PNG stream at `/api/v1/emulator/screen.mjpeg`,
-refreshed as the device produces new frames), Home/Back/App Switch/Power/
-Volume buttons, and GPS latitude/longitude controls — all served by
+Open `http://<docker-host>:6082`. The page shows a live, clickable emulator
+screen (a `multipart/x-mixed-replace` PNG stream at
+`/api/v1/emulator/screen.mjpeg`, refreshed as the device produces new frames;
+click-and-drag or touch on it sends real taps/swipes), Home/Back/App Switch/
+Power/Volume buttons, and GPS latitude/longitude controls — all served by
 `scripts/gateway_server.py`, a small aiohttp app that talks directly to the
-emulator's own `EmulatorController` gRPC service (`sendKey`, `streamScreenshot`,
-`setPhysicalModel`). The Control API is available locally at
-`http://127.0.0.1:8092`. No ADB-key `export` is required; all later commands
-work directly:
+emulator's own `EmulatorController` gRPC service (`sendKey`, `sendMouse`,
+`streamScreenshot`, `setPhysicalModel`). The Control API is available locally
+at `http://127.0.0.1:8092`. No ADB-key `export` is required; all later
+commands work directly:
 
 ```bash
 docker compose --profile debug ps
@@ -104,9 +105,9 @@ PYTHONPATH=../worker-android python3 -m unittest discover -s ../worker-android/t
 ```
 
 The E2E test verifies the official emulator cold boot, Control API, browser
-page, a real PNG frame from `screen.mjpeg`, hardware key injection, Appium
-actions and final artifacts. `runtime/adbkey` is private local state and must
-not be committed. See "Known issues" below: on a loaded host,
+page, a real PNG frame from `screen.mjpeg`, hardware key and mouse injection,
+Appium actions and final artifacts. `runtime/adbkey` is private local state
+and must not be committed. See "Known issues" below: on a loaded host,
 `./tests/e2e_debug.sh` can still fail `android-example` itself for a reason
 unrelated to the debug UI or the test harness.
 

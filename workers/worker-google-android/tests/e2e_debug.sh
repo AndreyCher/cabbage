@@ -13,7 +13,12 @@ until curl -fsS http://127.0.0.1:6082/api/v1/emulator/status | python3 -c 'impor
 done
 
 curl -fsS http://127.0.0.1:6082/ | grep -qi '<html'
-curl -fsS http://127.0.0.1:8092/api/v1/health | python3 -c 'import json,sys; assert json.load(sys.stdin)["status"] == "ok"'
+
+deadline=$((SECONDS + 120))
+until curl -fsS http://127.0.0.1:8092/api/v1/health | python3 -c 'import json,sys; assert json.load(sys.stdin)["status"] == "ok"'; do
+  (( SECONDS < deadline )) || { echo "Worker Control API did not become ready" >&2; exit 1; }
+  sleep 2
+done
 
 # The debug page's live view is a multipart/x-mixed-replace PNG stream
 # (screen.mjpeg), not the official image's legacy WebRTC video service (that
@@ -39,6 +44,12 @@ grep -qa 'Content-Type: image/png' "$frame_file" || { echo "screen.mjpeg did not
 # Hardware key injection (HOME) should be accepted by the gateway.
 key_status="$(curl -fsS -X POST -H 'Content-Type: application/json' -d '{"key":"GoHome"}' http://127.0.0.1:6082/api/v1/emulator/key | python3 -c 'import json,sys; print(json.load(sys.stdin)["status"])')"
 [ "$key_status" = "sent" ] || { echo "Hardware key injection did not report 'sent'" >&2; exit 1; }
+
+# Mouse/tap injection (a down+up pair, as the frontend sends for a click).
+mouse_status="$(curl -fsS -X POST -H 'Content-Type: application/json' -d '{"x":50,"y":50,"buttons":1}' http://127.0.0.1:6082/api/v1/emulator/mouse | python3 -c 'import json,sys; print(json.load(sys.stdin)["status"])')"
+[ "$mouse_status" = "sent" ] || { echo "Mouse-down injection did not report 'sent'" >&2; exit 1; }
+mouse_status="$(curl -fsS -X POST -H 'Content-Type: application/json' -d '{"x":50,"y":50,"buttons":0}' http://127.0.0.1:6082/api/v1/emulator/mouse | python3 -c 'import json,sys; print(json.load(sys.stdin)["status"])')"
+[ "$mouse_status" = "sent" ] || { echo "Mouse-up injection did not report 'sent'" >&2; exit 1; }
 
 deadline=$((SECONDS + 360))
 while :; do

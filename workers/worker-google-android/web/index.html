@@ -14,7 +14,7 @@
   h1 { font-size: 1.4rem; padding: 16px 20px 0; margin: 0; }
   .layout { display: flex; flex-wrap: wrap; gap: 20px; padding: 20px; align-items: flex-start; }
   .screen-wrap { background: #000; border-radius: 4px; overflow: hidden; line-height: 0; }
-  #screen { display: block; max-width: 360px; width: 100%; height: auto; background: #000; }
+  #screen { display: block; max-width: 360px; width: 100%; height: auto; background: #000; cursor: pointer; touch-action: none; user-select: none; -webkit-user-drag: none; }
   .panel { background: #fff; border-radius: 8px; padding: 16px 20px; min-width: 260px; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
   .panel h2 { font-size: 1rem; margin: 0 0 12px; }
   .status-line { font-size: 0.9rem; margin-bottom: 8px; }
@@ -100,6 +100,69 @@
   }
   refreshStatus();
   setInterval(refreshStatus, 10000);
+
+  // Click/drag on the screen image injects mouse events at the device's own
+  // pixel coordinates (the image is displayed at CSS size but streamed at
+  // native device resolution). One POST per down/move/up mirrors
+  // EmulatorController.sendMouse's own event-at-a-time model, so a plain
+  // click becomes a tap and a drag becomes a swipe/scroll.
+  function toDeviceCoords(clientX, clientY) {
+    var rect = screenImg.getBoundingClientRect();
+    var nx = Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1);
+    var ny = Math.min(Math.max((clientY - rect.top) / rect.height, 0), 1);
+    var w = screenImg.naturalWidth || rect.width;
+    var h = screenImg.naturalHeight || rect.height;
+    return { x: Math.round(nx * w), y: Math.round(ny * h) };
+  }
+  function sendMouse(coords, buttons) {
+    fetch('/api/v1/emulator/mouse', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ x: coords.x, y: coords.y, buttons: buttons }),
+    }).catch(function () {});
+  }
+  var pointerDown = false;
+  var lastMoveAt = 0;
+  screenImg.addEventListener('mousedown', function (e) {
+    e.preventDefault();
+    pointerDown = true;
+    sendMouse(toDeviceCoords(e.clientX, e.clientY), 1);
+  });
+  screenImg.addEventListener('mousemove', function (e) {
+    if (!pointerDown) return;
+    var now = Date.now();
+    if (now - lastMoveAt < 40) return; // ~25 events/sec is plenty for a drag
+    lastMoveAt = now;
+    sendMouse(toDeviceCoords(e.clientX, e.clientY), 1);
+  });
+  window.addEventListener('mouseup', function (e) {
+    if (!pointerDown) return;
+    pointerDown = false;
+    sendMouse(toDeviceCoords(e.clientX, e.clientY), 0);
+  });
+  screenImg.addEventListener('dragstart', function (e) { e.preventDefault(); });
+  screenImg.addEventListener('touchstart', function (e) {
+    e.preventDefault();
+    pointerDown = true;
+    var t = e.touches[0];
+    sendMouse(toDeviceCoords(t.clientX, t.clientY), 1);
+  }, { passive: false });
+  screenImg.addEventListener('touchmove', function (e) {
+    e.preventDefault();
+    if (!pointerDown) return;
+    var now = Date.now();
+    if (now - lastMoveAt < 40) return;
+    lastMoveAt = now;
+    var t = e.touches[0];
+    sendMouse(toDeviceCoords(t.clientX, t.clientY), 1);
+  }, { passive: false });
+  screenImg.addEventListener('touchend', function (e) {
+    e.preventDefault();
+    if (!pointerDown) return;
+    pointerDown = false;
+    var t = e.changedTouches[0];
+    sendMouse(toDeviceCoords(t.clientX, t.clientY), 0);
+  }, { passive: false });
 
   document.querySelectorAll('button[data-key]').forEach(function (btn) {
     btn.addEventListener('click', function () {

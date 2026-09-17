@@ -8,6 +8,10 @@ This is the global release history for all application components. Component cha
   and `uiautomator2_server_install_timeout_ms` capabilities, finishing the
   release of a shared runtime change already required by worker-google-android.
 
+- Added worker-google-android 0.1.5 with real mouse/touch interaction on the
+  debug UI's live screen (click-and-drag or touch sends real taps/swipes),
+  verified by tapping the Chrome icon and confirming it launched.
+
 - Added worker-google-android 0.1.4 replacing the debug UI's video path
   entirely: the official emulator's legacy WebRTC video service never
   actually completes a real browser peer connection, so the live view now

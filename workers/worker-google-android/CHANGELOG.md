@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.1.5 — 2026-09-17
+
+- Added mouse/touch interaction to the debug UI: click-and-drag (or touch)
+  on the live screen now injects real taps/swipes via a new `sendMouse`-backed
+  `POST /api/v1/emulator/mouse` (`{x, y, buttons}`, one call per down/move/up).
+  Coordinates are translated from the displayed image's CSS size to the
+  stream's native device pixel size in `web/index.html`. Verified end-to-end
+  by tapping the Chrome icon in a live session and confirming it launched.
+  Reported by a user who could see the screen (0.1.4) but had no way to
+  interact with it.
+- Added a static check for the new route/frontend wiring and an E2E check
+  that a mouse-down/mouse-up pair is accepted.
+- Fixed an E2E test race: the worker Control API health check ran once
+  immediately after the emulator's own boot check, which could fail if the
+  emulator was already booted from a prior run (leaving the worker container
+  no time to start). It now retries like the other readiness checks.
+
 ## 0.1.4 — 2026-09-17
 
 - Replaced the debug UI's video path entirely. Direct gRPC probing of the

@@ -36,7 +36,7 @@ Autonomous Android 14 execution worker using KVM, Android Emulator, Appium UiAut
 
 ### worker-google-android
 
-Current version: **0.1.4**
+Current version: **0.1.5**
 
 Autonomous compatible Android worker using Google's official Android Emulator
 Container, an Appium/ADB sidecar and a browser-based debug view (live screen,

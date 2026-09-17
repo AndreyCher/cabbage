@@ -1,3 +1,11 @@
+# worker-google-android 0.1.5
+
+Adds real interaction to the 0.1.4 live view: click-and-drag (or touch) on the
+screen now sends actual taps/swipes to the device via a new
+`POST /api/v1/emulator/mouse` endpoint (`sendMouse` on `EmulatorController`).
+Verified by tapping the Chrome icon in a live session and confirming it
+launched. Also fixes a test-only race in the worker Control API health check.
+
 # worker-google-android 0.1.4
 
 Replaces the debug UI's video path. Direct gRPC probing showed the official

@@ -97,6 +97,30 @@ async def handle_key(request: web.Request) -> web.Response:
         return web.json_response({"error": str(exc)}, status=502)
 
 
+async def handle_mouse(request: web.Request) -> web.Response:
+    """Injects a single mouse event (down/move/up) at device pixel coordinates.
+
+    The frontend sends one call per down/move/up so a drag becomes a plain
+    sequence of button=1 events followed by a button=0 release, matching
+    EmulatorController.sendMouse's own event-at-a-time model.
+    """
+    try:
+        data = await request.json()
+        x = int(data.get("x", 0))
+        y = int(data.get("y", 0))
+        buttons = int(data.get("buttons", 0))
+    except (ValueError, TypeError):
+        return web.json_response({"error": "invalid_mouse_payload"}, status=400)
+
+    stub = ec_grpc.EmulatorControllerStub(EMULATOR_CHANNEL)
+    try:
+        await stub.sendMouse(ec.MouseEvent(x=x, y=y, buttons=buttons))
+        return web.json_response({"status": "sent"})
+    except grpc.RpcError as exc:
+        logging.error("Error sending mouse event to emulator: %s", exc)
+        return web.json_response({"error": str(exc)}, status=502)
+
+
 async def handle_screen_stream(request: web.Request) -> web.StreamResponse:
     """Live-ish screen view as a multipart/x-mixed-replace PNG stream.
 
@@ -148,6 +172,7 @@ def init_app() -> web.Application:
     app.router.add_get("/api/v1/emulator/status", handle_status)
     app.router.add_post("/api/v1/emulator/gps", handle_gps)
     app.router.add_post("/api/v1/emulator/key", handle_key)
+    app.router.add_post("/api/v1/emulator/mouse", handle_mouse)
     app.router.add_get("/api/v1/emulator/screen.mjpeg", handle_screen_stream)
     return app
 

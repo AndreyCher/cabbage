@@ -1,6 +1,6 @@
 services:
   google-emulator:
-    image: worker-google-android-emulator:0.1.4
+    image: worker-google-android-emulator:0.1.5
     build:
       context: ../..
       dockerfile: workers/worker-google-android/Dockerfile.emulator
@@ -21,7 +21,7 @@ services:
       retries: 30
 
   worker-google-android:
-    image: worker-google-android:0.1.4
+    image: worker-google-android:0.1.5
     build:
       context: ../..
       dockerfile: workers/worker-google-android/Dockerfile
